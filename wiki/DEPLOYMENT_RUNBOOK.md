@@ -52,9 +52,12 @@ Ports:
 12. Set the three owner confirmation gates to true only after reviewing membership prices, pool rates, and kitchen/menu/recipe/opening stock.
 13. Run the launch gate:
    `python3 admin/deploy/new-gym-termux/preflight-new-gym.py --config ~/.config/new-gym/new-gym.env --stage launch`
-14. Enable the tunnel only if the launch gate returns `"ready":true`.
-15. Run browser regression against the final domains.
-16. Record deployment commit, backup IDs and acceptance results in deployment-track-record.
+14. With the tunnel still disabled, run local Redmi acceptance:
+   `python3 admin/deploy/new-gym-termux/acceptance-new-gym.py --config ~/.config/new-gym/new-gym.env --skip-launch-preflight`
+   It must report `"ready":true` and verifies service state, loopback listeners, admin/member/public health, and public admin/API isolation.
+15. Enable the tunnel only after both launch preflight and local acceptance pass. The installer enforces this ordering when `--enable-tunnel` is used.
+16. Run browser regression against the final domains.
+17. Record deployment commit, backup IDs and acceptance results in deployment-track-record.
 
 ## Preflight behavior
 
@@ -69,7 +72,7 @@ At launch stage it also opens the configured New Gym SQLite database read-only a
 - at least one available kitchen menu item and one active inventory item
 - no recipe referencing missing/inactive stock
 
-The installer calls the install-stage preflight automatically. `--enable-tunnel` calls the stricter launch-stage preflight before the tunnel service is enabled.
+The installer calls the install-stage preflight automatically. `--enable-tunnel` calls the stricter launch-stage preflight, then the local Redmi acceptance gate, before the tunnel service is enabled.
 
 A launch also requires a fresh verified off-device backup marker. `backup-offdevice.sh` creates that marker only after the archive is copied and `rclone check` succeeds. The default maximum age is 86,400 seconds (24 hours), and the marker must match the currently configured backup remote.
 

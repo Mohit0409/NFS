@@ -180,7 +180,7 @@ Dedicated runtime locations:
 - `~/.local/state/new-gym`
 - `~/.local/share/new-gym`
 
-The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. On a clean Termux host it can create the checkout-local Python virtualenv, install the New Gym package with Firebase support, and verify required runtime imports before installing services. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data. It also requires a recent off-device backup marker written only after a successful rclone verification.
+The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. On a clean Termux host it can create the checkout-local Python virtualenv, install the New Gym package with Firebase support, and verify required runtime imports before installing services. Before `--enable-tunnel`, it also requires the local Redmi acceptance gate to prove all core services are running, all three HTTP ports are loopback-only, the tunnel is still down, health endpoints are good, and the public website does not expose admin/API routes. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data. It also requires a recent off-device backup marker written only after a successful rclone verification.
 
 ## Required real business data before deployment
 
@@ -209,7 +209,7 @@ Current verified state:
 - clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **241/241 PASS**
+- full admin/backend regression: **242/242 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

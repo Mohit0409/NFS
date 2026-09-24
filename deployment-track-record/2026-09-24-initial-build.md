@@ -121,6 +121,15 @@ This record documents local development milestones only.
    - isolated wheel build PASS
    - backend regression 241/241 PASS
 
+15. `804c6d7` — Require local Redmi acceptance before tunnel
+   - tunnel must be down during acceptance
+   - admin/member/public services must all be running
+   - ports 8897/8898/8899 must be loopback-only
+   - admin and member health endpoints must pass
+   - public website must respond while /admin and /api/admin/session remain unavailable
+   - installer enforces launch-preflight → local-acceptance → tunnel order
+   - backend regression 242/242 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
