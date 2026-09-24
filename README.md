@@ -15,6 +15,9 @@ This repository is separate from live Gravity Fitness and Vibe4You. No live Grav
 - `admin/` — gym backend/admin portal plus Pool and Kitchen operations.
 - `customer-website/` — redesigned public website, member UI, diet planner, exercise library and independent member gateway.
 - `admin/deploy/new-gym-termux/` — isolated Redmi/Termux production profile.
+- `wiki/` — architecture, operations and deployment runbook.
+- `jira/` — local New Gym work/status register.
+- `deployment-track-record/` — immutable-style local release/deployment history.
 
 ## Admin portal
 
