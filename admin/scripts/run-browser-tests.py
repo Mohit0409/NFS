@@ -1,4 +1,4 @@
-"""Run Playwright against an isolated in-process Gravity server."""
+"""Run Playwright against an isolated in-process New Gym server."""
 from __future__ import annotations
 
 import os
@@ -17,9 +17,9 @@ from server.gravity.http import create_server  # noqa: E402
 
 
 def main() -> int:
-    port = int(os.environ.get("GRAVITY_E2E_PORT", "8791"))
+    port = int(os.environ.get("NEW_GYM_E2E_PORT") or os.environ.get("GRAVITY_E2E_PORT", "8896"))
     base_url = f"http://127.0.0.1:{port}"
-    runtime = TemporaryDirectory(prefix="gravity-e2e-")
+    runtime = TemporaryDirectory(prefix="new-gym-e2e-")
     runtime_path = Path(runtime.name)
     environment = dict(os.environ)
     environment.update(
@@ -32,7 +32,7 @@ def main() -> int:
             "GRAVITY_LOG_DIR": str(runtime_path / "logs"),
             "GRAVITY_BACKUP_DIR": str(runtime_path / "backups"),
             "GRAVITY_LOG_LEVEL": "WARNING",
-            "SECRET_KEY": "gravity-e2e-secret-key-with-more-than-thirty-two-bytes",
+            "SECRET_KEY": "new-gym-e2e-secret-key-with-more-than-thirty-two-bytes",
             "FIREBASE_PROJECT_ID": "",
             "FIREBASE_WEB_API_KEY": "",
             "FIREBASE_AUTH_DOMAIN": "",
@@ -50,6 +50,7 @@ def main() -> int:
     runner_environment.update(
         {
             "GRAVITY_E2E_EXTERNAL_SERVER": "1",
+            "NEW_GYM_E2E_PORT": str(port),
             "GRAVITY_E2E_PORT": str(port),
         }
     )

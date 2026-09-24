@@ -376,6 +376,13 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("http://127.0.0.1:8898", routes)
         self.assertIn("http://127.0.0.1:8899", routes)
 
+    def test_new_gym_firebase_aliases_are_not_bound_to_gravity(self) -> None:
+        for path in (ROOT / ".firebaserc", ROOT.parent / "customer-website" / ".firebaserc"):
+            text = path.read_text(encoding="utf-8")
+            self.assertIn('"projects": {}', text, path)
+            for marker in ("gravityfitnessnmh", "gravity-authe"):
+                self.assertNotIn(marker, text, path)
+
     def test_new_gym_member_gateway_has_no_gravity_live_endpoints(self) -> None:
         gateway = (ROOT.parent / "customer-website" / "gateway" / "member_gateway.py").read_text(
             encoding="utf-8"

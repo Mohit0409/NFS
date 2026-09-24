@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 **/.gravity/
+**/.new-gym-e2e/
 **/__pycache__/
 **/*.pyc
 **/node_modules/

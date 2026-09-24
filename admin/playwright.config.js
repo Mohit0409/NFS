@@ -1,6 +1,6 @@
 const { defineConfig } = require('@playwright/test');
 
-const port = Number(process.env.GRAVITY_E2E_PORT || 8791);
+const port = Number(process.env.NEW_GYM_E2E_PORT || process.env.GRAVITY_E2E_PORT || 8896);
 const baseURL = `http://127.0.0.1:${port}`;
 const python = process.env.GRAVITY_E2E_PYTHON || 'python';
 
@@ -19,7 +19,7 @@ const managedWebServer = {
     GRAVITY_LOG_DIR: '.gravity/e2e/logs',
     GRAVITY_BACKUP_DIR: '.gravity/e2e/backups',
     GRAVITY_LOG_LEVEL: 'WARNING',
-    SECRET_KEY: 'gravity-e2e-secret-key-with-more-than-thirty-two-bytes',
+    SECRET_KEY: 'new-gym-e2e-secret-key-with-more-than-thirty-two-bytes',
     FIREBASE_PROJECT_ID: '',
     FIREBASE_WEB_API_KEY: '',
     FIREBASE_AUTH_DOMAIN: '',
@@ -39,7 +39,7 @@ module.exports = defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
-  outputDir: '.gravity/playwright-artifacts',
+  outputDir: '.new-gym-e2e/playwright-artifacts',
   use: {
     baseURL,
     browserName: 'chromium',

@@ -1,8 +1,8 @@
 {
-  "name": "gravity-fitness",
+  "name": "new-gym-platform",
   "version": "2.0.0",
   "private": true,
-  "description": "Browser release gates for Gravity Fitness Neemuch",
+  "description": "Browser release gates for the isolated New Gym platform",
   "scripts": {
     "test:e2e": "node scripts/run-browser-tests.mjs",
     "test:e2e:headed": "node scripts/run-browser-tests.mjs --headed"

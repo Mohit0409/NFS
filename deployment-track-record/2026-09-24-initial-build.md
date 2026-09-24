@@ -30,6 +30,14 @@ This record documents local development milestones only.
    - migration 016
    - backend regression 223/223 PASS
 
+## Browser isolation verification
+
+- copied Firebase default aliases removed from both New Gym .firebaserc files
+- Firebase isolation regression: PASS
+- inherited admin reliability Chromium suite: 3/3 PASS
+- New Gym Pool/Kitchen Chromium suite: 2/2 PASS
+- final-domain E2E remains pending until domains/configuration exist
+
 ## Customer verification
 
 - homepage 8/8 PASS

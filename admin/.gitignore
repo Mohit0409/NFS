@@ -9,8 +9,9 @@ node_modules/
 !.env.example
 .venv/
 
-# Gravity runtime state
+# Runtime / browser-test state
 .gravity/
+.new-gym-e2e/
 data/
 logs/
 backups/
