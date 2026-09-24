@@ -71,6 +71,8 @@ At launch stage it also opens the configured New Gym SQLite database read-only a
 
 The installer calls the install-stage preflight automatically. `--enable-tunnel` calls the stricter launch-stage preflight before the tunnel service is enabled.
 
+A launch also requires a fresh verified off-device backup marker. `backup-offdevice.sh` creates that marker only after the archive is copied and `rclone check` succeeds. The default maximum age is 86,400 seconds (24 hours), and the marker must match the currently configured backup remote.
+
 ## Rollback
 
 Rollback must restore:

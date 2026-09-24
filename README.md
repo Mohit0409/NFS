@@ -168,7 +168,7 @@ Dedicated runtime locations:
 - `~/.local/state/new-gym`
 - `~/.local/share/new-gym`
 
-The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data.
+The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data. It also requires a recent off-device backup marker written only after a successful rclone verification.
 
 ## Required real business data before deployment
 
@@ -197,7 +197,7 @@ Current verified state:
 - clean migration through `001-017`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **233/233 PASS**
+- full admin/backend regression: **234/234 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

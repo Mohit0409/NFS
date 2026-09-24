@@ -23,14 +23,15 @@
 | NG-019 | Remove copied Gravity Firebase default aliases and add regression guard | DONE | Not deployed |
 | NG-020 | Fail-closed Redmi install/launch preflight with explicit pricing/rate/kitchen confirmation gates | DONE | Not deployed |
 | NG-021 | Database-aware launch gate for schema/integrity/legacy Gravity pricing/pool rates/kitchen live data | DONE | Not deployed |
+| NG-022 | Fresh verified off-device backup marker required before tunnel enable | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`3fb4494 Validate live New Gym database before launch`
+`e671267 Require fresh verified off-device backup for launch`
 
 Verification at this point:
-- backend: 233/233 PASS
+- backend: 234/234 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

@@ -67,6 +67,13 @@ This record documents local development milestones only.
    - requires confirmed live kitchen menu/inventory data and valid recipes
    - backend regression 233/233 PASS
 
+9. `e671267` — Require fresh verified off-device backup for launch
+   - off-device backup marker is written only after rclone copy + rclone check
+   - marker records verification time, archive SHA-256 and remote path
+   - launch blocks stale, invalid or wrong-remote backup markers
+   - default freshness window: 24 hours
+   - backend regression 234/234 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
