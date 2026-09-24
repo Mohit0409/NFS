@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Member Login | New Gym</title>
+  <meta name="description" content="Secure mobile OTP login for active New Gym members.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0b0d10">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://www.google.com" crossorigin>
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js" crossorigin>
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/member.css">
+  <link rel="stylesheet" href="../css/new-gym-theme.css?v=1">
+</head>
+<body class="member-body">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header is-scrolled">
+    <div class="shell header-row">
+      <a class="brand" href="../index.html"><span class="brand-word">NEW GYM<span>.</span></span><small>Fitness · Club</small></a>
+      <a class="button button--ghost" href="../index.html">Back to Website</a>
+    </div>
+  </header>
+
+  <main class="member-main" id="main-content">
+    <div class="member-shell">
+      <section class="member-card member-loading" id="member-loading" aria-live="polite">
+        <p class="eyebrow">Member account</p>
+        <h1>Checking your session…</h1>
+      </section>
+
+      <section class="member-card" id="member-signed-out" hidden>
+        <div id="phone-step">
+          <p class="eyebrow">Active members only</p>
+          <h1>Member Login</h1>
+          <p class="member-intro">Enter the mobile number registered with New Gym. There is no public registration.</p>
+          <form class="member-form" id="phone-form" autocomplete="off" novalidate>
+            <label for="member-phone">Mobile number</label>
+            <div class="phone-control">
+              <span aria-hidden="true">+91</span>
+              <input id="member-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="18" placeholder="98765 43210" required>
+            </div>
+            <button class="button" id="phone-submit" type="submit">Continue</button>
+          </form>
+          <p class="member-status" id="phone-status" role="status" aria-live="polite"></p>
+          <p class="member-privacy">If the number is eligible, an OTP will be sent. This message does not confirm whether a number exists in New Gym records.</p>
+        </div>
+
+        <div id="otp-step" hidden>
+          <button class="back-button" id="change-number" type="button">← Change number</button>
+          <p class="eyebrow">Verify your mobile</p>
+          <h1>Enter the OTP</h1>
+          <p class="member-intro">Enter the six-digit code sent to <strong id="masked-phone">your mobile</strong>.</p>
+          <form class="member-form" id="otp-form" novalidate>
+            <label for="member-otp">Verification code</label>
+            <input class="otp-input" id="member-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required>
+            <button class="button" id="otp-submit" type="submit">Verify & Login</button>
+          </form>
+          <div class="otp-actions">
+            <button class="text-link" id="resend-otp" type="button" disabled>Resend OTP in 60s</button>
+          </div>
+          <p class="member-status" id="otp-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div id="recaptcha-container" aria-hidden="true"></div>
+
+        <div class="member-contact">
+          <p>Not an active New Gym member?</p>
+          <a href="../index.html#enquiry">Contact New Gym</a>
+        </div>
+      </section>
+
+      <section class="member-account" id="member-account" hidden>
+        <div class="account-heading">
+          <div><p class="eyebrow">Member account</p><h1>Welcome, <span id="account-name">Member</span></h1><p id="account-phone"></p></div>
+          <button class="button button--outline" id="logout-button" type="button">Log Out</button>
+        </div>
+
+        <section class="account-card" aria-labelledby="current-heading">
+          <div class="account-card__head"><div><span>Membership</span><h2 id="current-heading">Current Membership</h2></div><strong class="membership-state" id="current-state">Checking</strong></div>
+          <div class="account-grid" id="current-membership"></div>
+          <p class="account-empty" id="current-empty" hidden>No current membership information is available. Contact New Gym for help.</p>
+          <div class="balance-note" id="balance-note" hidden><strong id="pending-balance"></strong><span>Please settle any pending amount at New Gym or contact the gym.</span></div>
+        </section>
+
+        <section class="account-card" id="upcoming-card" aria-labelledby="upcoming-heading" hidden>
+          <div class="account-card__head"><div><span>Scheduled</span><h2 id="upcoming-heading">Upcoming Membership</h2></div></div>
+          <div class="account-grid" id="upcoming-membership"></div>
+        </section>
+
+        <section class="account-card" id="history-card" aria-labelledby="history-heading" hidden>
+          <div class="account-card__head"><div><span>History</span><h2 id="history-heading">Previous Memberships</h2></div></div>
+          <div class="history-list" id="membership-history"></div>
+        </section>
+
+        <p class="member-status" id="account-status" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+  <script src="../js/gym-config.js"></script>
+  <script src="../js/analytics.js?v=new-gym-1" defer></script>
+  <script src="../js/member-account.js?v=new-gym-1" defer></script>
+</body>
+</html>

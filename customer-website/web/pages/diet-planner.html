@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Gym Smart Diet | Indian Fitness Diet Planner</title>
+  <meta name="description" content="Create an approximate Indian fitness meal plan using your body measurements, activity, goal, food preference and daily budget.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b0d10">
+  <link rel="canonical" href="https://new-gym.invalid/pages/diet-planner.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/diet-planner.css">
+  <link rel="stylesheet" href="../css/new-gym-theme.css?v=1">
+</head>
+<body class="diet-body">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header is-scrolled">
+    <div class="shell header-row">
+      <a class="brand" href="../index.html" aria-label="New Gym home">
+        <span class="brand-word">NEW GYM<span>.</span></span>
+        <small>Fitness · Club</small>
+      </a>
+      <div class="planner-header-actions">
+        <a class="header-text-link" href="../index.html#nutrition">Nutrition</a>
+        <a class="button button--ghost" href="../index.html">Back to Website</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="planner-hero">
+      <div class="shell planner-hero__grid">
+        <div>
+          <p class="eyebrow">New Gym Smart Diet</p>
+          <h1>Your Indian fitness diet, built around real life.</h1>
+          <p>Enter your body measurements, routine, food preference and daily budget. The planner estimates your needs, then builds a food-first Indian meal structure for a healthy adult.</p>
+        </div>
+        <aside class="planner-trust" aria-label="Planner principles">
+          <span>Designed for healthy adults 18–65</span>
+          <strong>Indian foods. Practical portions. No supplements required.</strong>
+          <p>Your answers stay in this browser. They are not saved or sent to New Gym.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="planner-section">
+      <div class="shell planner-layout">
+        <form class="planner-form" id="diet-form" novalidate>
+          <div class="form-heading">
+            <p class="eyebrow">Step 1</p>
+            <h2>Tell us about you</h2>
+            <p>All fields are required because activity, age and sex materially affect calorie estimates.</p>
+          </div>
+
+          <fieldset>
+            <legend>Body measurements</legend>
+            <div class="planner-fields planner-fields--four">
+              <label class="planner-field" for="diet-age"><span>Age</span><input id="diet-age" name="age" type="number" inputmode="numeric" min="18" max="65" step="1" placeholder="29" required><small>18–65 years</small></label>
+              <label class="planner-field" for="diet-sex"><span>Sex for calorie estimate</span><select id="diet-sex" name="sex" required><option value="">Choose</option><option value="male">Male</option><option value="female">Female</option></select><small>Used only in the energy equation</small></label>
+              <label class="planner-field" for="diet-weight"><span>Weight</span><div class="input-unit"><input id="diet-weight" name="weight" type="number" inputmode="decimal" min="35" max="200" step="0.1" placeholder="78" required><b>kg</b></div><small>Current morning weight</small></label>
+              <label class="planner-field" for="diet-height"><span>Height</span><div class="input-unit"><input id="diet-height" name="height" type="number" inputmode="decimal" min="135" max="215" step="0.5" placeholder="175" required><b>cm</b></div><small>Without footwear</small></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Goal and routine</legend>
+            <div class="planner-fields planner-fields--three">
+              <label class="planner-field" for="diet-goal"><span>Primary goal</span><select id="diet-goal" name="goal" required><option value="">Choose your goal</option><option value="loss">Lose fat</option><option value="gain">Build muscle</option><option value="recomp">Body recomposition</option><option value="maintain">Maintain fitness</option></select></label>
+              <label class="planner-field" for="diet-activity"><span>Daily activity</span><select id="diet-activity" name="activity" required><option value="">Choose activity</option><option value="sedentary">Mostly sitting</option><option value="light">Light walking / everyday movement</option><option value="moderate">Moderately active daily routine</option><option value="active">Physical job / high daily movement</option></select></label>
+              <label class="planner-field" for="diet-days"><span>Gym days per week</span><select id="diet-days" name="gymDays" required><option value="">Choose</option><option value="0">Not currently training</option><option value="2">1–2 days</option><option value="4">3–4 days</option><option value="6">5–6 days</option><option value="7">Daily</option></select></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Food and budget</legend>
+            <div class="planner-fields planner-fields--four">
+              <label class="planner-field" for="diet-type"><span>Diet preference</span><select id="diet-type" name="diet" required><option value="">Choose</option><option value="vegetarian">Vegetarian</option><option value="eggetarian">Eggetarian</option><option value="nonveg">Non-vegetarian</option><option value="vegan">Vegan</option></select></label>
+              <label class="planner-field" for="diet-budget"><span>Preferred food budget/day</span><div class="input-unit input-unit--prefix"><b>₹</b><input id="diet-budget" name="budget" type="number" inputmode="numeric" min="100" max="1000" step="10" placeholder="180" required></div><small id="diet-budget-help">Current meal library starts around ₹100–₹150/day depending on diet and calorie needs.</small></label>
+              <label class="planner-field" for="diet-meals"><span>Meals per day</span><select id="diet-meals" name="meals" required><option value="3">3 meals</option><option value="4" selected>4 meals</option><option value="5">5 meals</option></select></label>
+              <label class="planner-field" for="diet-workout"><span>Usual workout time</span><select id="diet-workout" name="workout" required><option value="none">Not applicable</option><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening" selected>Evening</option></select></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="safety-fieldset">
+            <legend>Safety check</legend>
+            <label class="safety-choice" for="diet-safety">
+              <input id="diet-safety" name="safety" type="checkbox" required>
+              <span><strong>I confirm that none of these apply to me:</strong> pregnancy or breastfeeding; kidney or liver disease; diabetes treated with medication or insulin; an eating-disorder history; a major food allergy; a prescribed medical diet; or another condition requiring personalised clinical nutrition.</span>
+            </label>
+            <p>If any apply, this automatic fitness planner is not suitable. Please consult a registered dietitian or qualified healthcare professional.</p>
+          </fieldset>
+
+          <button class="button planner-submit" type="submit">Create My Indian Diet Plan</button>
+          <p class="planner-status" id="planner-status" role="status" aria-live="polite"></p>
+        </form>
+
+        <aside class="planner-method">
+          <p class="eyebrow">How it works</p>
+          <ol>
+            <li><span>01</span><div><strong>Estimate energy</strong><p>Mifflin–St Jeor resting energy × your daily movement plus training-frequency adjustment.</p></div></li>
+            <li><span>02</span><div><strong>Apply your goal</strong><p>A moderate deficit, small surplus or maintenance target.</p></div></li>
+            <li><span>03</span><div><strong>Build Indian meals</strong><p>Food-first meals using dal, roti, rice, dairy, eggs, soya, chicken and seasonal produce as appropriate.</p></div></li>
+            <li><span>04</span><div><strong>Check your budget</strong><p>If the estimate is above your amount, we automatically use the next practical approximate daily budget.</p></div></li>
+          </ol>
+          <div class="method-note"><strong>Estimates, not prescriptions</strong><p>Calories, nutrients and local food costs naturally vary. Use the result as a starting structure and review progress with a qualified professional or New Gym coach.</p></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="plan-result" id="plan-result" hidden tabindex="-1">
+      <div class="shell">
+        <div class="result-heading">
+          <div><p class="eyebrow">Your New Gym Smart Diet</p><h2 id="result-title">Your daily plan</h2><p id="result-summary"></p></div>
+          <div class="result-actions"><button class="button" id="download-plan" type="button">Download Diet PDF</button><button class="button button--outline" id="print-plan" type="button">Print Plan</button><button class="text-link" id="reset-plan" type="button">Start again</button></div>
+        </div>
+
+        <div class="result-alert" id="result-alert" hidden></div>
+
+        <div id="result-content">
+          <div class="profile-strip" id="profile-strip"></div>
+          <div class="target-grid" id="target-grid"></div>
+
+          <section class="budget-panel" aria-labelledby="budget-heading">
+            <div><p class="eyebrow">Budget check</p><h3 id="budget-heading">Designed to stay practical</h3><p id="budget-copy"></p></div>
+            <div class="budget-meter"><span id="budget-meter-fill"></span></div>
+            <strong id="budget-total"></strong>
+          </section>
+
+          <section class="meals-section" aria-labelledby="meals-heading">
+            <div class="meals-heading"><div><p class="eyebrow">One-day Indian meal structure</p><h3 id="meals-heading">Meals and raw ingredient portions</h3></div><p id="workout-note"></p></div>
+            <div class="meal-grid" id="meal-grid"></div>
+            <p class="portion-note">Ingredient weights are approximate raw quantities unless a cooked item or household serving is explicitly stated. Nutrition values vary by recipe, brand and preparation.</p>
+          </section>
+
+          <section class="swaps-section" aria-labelledby="swaps-heading">
+            <div><p class="eyebrow">Flexible choices</p><h3 id="swaps-heading">Practical Indian food swaps</h3><p>These are category-level alternatives, not exact gram-for-gram replacements. Keep portions sensible and recheck the daily structure after a major swap.</p></div>
+            <div class="swap-grid" id="swap-grid"></div>
+          </section>
+
+          <section class="plan-notes">
+            <article><span>Indian plate guardrails</span><h3>Keep vegetables, fruit and variety non-negotiable.</h3><ul><li>Aim for vegetables and fruit across the day.</li><li>Prefer whole grains, millets, pulses and minimally processed foods.</li><li>Use iodised salt sparingly and keep fried/packaged foods occasional.</li></ul></article>
+            <article><span>Progress rule</span><h3>Adjust from trends, not one weigh-in.</h3><ul><li>Track a 7-day average for 2–3 weeks.</li><li>Review hunger, energy and gym performance.</li><li>Change calories gradually with qualified guidance.</li></ul></article>
+          </section>
+
+          <div class="coach-cta">
+            <div><p class="eyebrow">Want a human review?</p><h3>Discuss this starting plan with New Gym.</h3></div>
+            <a class="button" href="../index.html#enquiry">Send a Nutrition Enquiry</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="evidence-section">
+      <div class="shell evidence-grid">
+        <div><p class="eyebrow">Research basis</p><h2>Indian guidance first, with transparent calculations.</h2><p>This tool uses deterministic rules rather than asking an AI to invent a diet. It does not reproduce the full Indian Food Composition Tables.</p></div>
+        <div class="evidence-links">
+          <a href="https://www.nin.res.in/dietaryguidelines/pdfjs/locale/DGI24thJune2024fin.pdf" target="_blank" rel="noopener noreferrer"><strong>ICMR–NIN</strong><span>Dietary Guidelines for Indians 2024</span></a>
+          <a href="https://nin.res.in/rdabook/brief_note.pdf" target="_blank" rel="noopener noreferrer"><strong>ICMR–NIN</strong><span>Nutrient Requirements for Indians 2020</span></a>
+          <a href="https://www.who.int/news-room/fact-sheets/detail/healthy-diet" target="_blank" rel="noopener noreferrer"><strong>World Health Organization</strong><span>Healthy diet principles</span></a>
+          <a href="https://pubmed.ncbi.nlm.nih.gov/2305711/" target="_blank" rel="noopener noreferrer"><strong>PubMed</strong><span>Mifflin–St Jeor energy equation</span></a>
+          <a href="https://pubmed.ncbi.nlm.nih.gov/28642676/" target="_blank" rel="noopener noreferrer"><strong>PubMed</strong><span>Protein and exercise position stand</span></a>
+          <a href="https://www.nin.res.in/ebooks/IFCT2017_16122024.pdf" target="_blank" rel="noopener noreferrer"><strong>ICMR–NIN</strong><span>Indian Food Composition Tables 2017</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <div><a class="brand brand--footer" href="../index.html"><span class="brand-word">NEW GYM<span>.</span></span><small>Fitness · Club</small></a><p>General fitness nutrition information and enquiry support.</p></div>
+      <div><h2>Explore</h2><a href="../index.html#membership">Membership</a><a href="../index.html#bmi">BMI Check</a><a href="../index.html#nutrition">Nutrition</a></div>
+      <div><h2>Contact</h2><a href="../index.html#enquiry">Contact details pending</a><a href="../index.html#enquiry" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="member-login.html">Member Login</a></div>
+    </div>
+  </footer>
+  <script src="../js/gym-config.js"></script>
+  <script src="../js/analytics.js?v=new-gym-1" defer></script>
+  <script src="../js/diet-planner.js?v=20260903-download1" defer></script>
+</body>
+</html>

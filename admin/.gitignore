@@ -1,0 +1,36 @@
+# Firebase-generated files
+.firebase/
+firebase-debug.log*
+
+# Local dependencies and environment files
+node_modules/
+.env
+.env.*
+!.env.example
+.venv/
+
+# Gravity runtime state
+.gravity/
+data/
+logs/
+backups/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+*.log
+*.egg-info/
+
+# Private deployment credentials (examples remain trackable)
+deploy/private/
+*-service-account.json
+*-credentials.json
+*-tunnel-token
+*.token

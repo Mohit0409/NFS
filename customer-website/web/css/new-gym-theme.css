@@ -1,0 +1,333 @@
+/* New gym visual theme.
+   Keeps Gravity-derived structure/behavior while making the public experience visually distinct. */
+:root {
+  --bg: #f4efe6;
+  --bg-soft: #ece5d9;
+  --panel: #fffaf1;
+  --panel-2: #e8ded0;
+  --line: rgba(25, 41, 55, 0.16);
+  --text: #172733;
+  --muted: #65737c;
+  --lime: #e85d3f;
+  --lime-strong: #cc452a;
+  --lime-ink: #fffaf3;
+  --radius: 24px;
+  --shadow: 0 24px 70px rgba(48, 43, 34, 0.12);
+  --shell: min(1180px, calc(100% - 42px));
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.site-header {
+  background: linear-gradient(180deg, rgba(244, 239, 230, 0.98), rgba(244, 239, 230, 0.76), transparent);
+}
+
+.site-header.is-scrolled {
+  border-color: rgba(25, 41, 55, 0.12);
+  background: rgba(255, 250, 241, 0.92);
+  box-shadow: 0 10px 35px rgba(37, 45, 48, 0.08);
+}
+
+.desktop-nav a {
+  color: #40505a;
+}
+
+.mobile-menu {
+  background: rgba(255, 250, 241, 0.98);
+}
+
+.menu-button,
+.button--outline,
+.button--ghost {
+  background: rgba(255,255,255,.35);
+  color: var(--text);
+}
+
+.button--outline:hover,
+.button--ghost:hover {
+  border-color: rgba(232, 93, 63, 0.45);
+  background: rgba(232, 93, 63, 0.08);
+}
+
+.brand-word {
+  color: #142a38;
+  letter-spacing: -.035em;
+}
+
+.brand small {
+  color: #748086;
+}
+
+.hero {
+  min-height: 760px;
+  border-bottom-color: rgba(25, 41, 55, 0.12);
+  background:
+    radial-gradient(circle at 75% 23%, rgba(232, 93, 63, 0.18), transparent 26%),
+    linear-gradient(130deg, #f8f3eb 0 47%, #e5ddd0 100%);
+}
+
+.hero::before {
+  content: "MOVE";
+  left: auto;
+  right: -0.02em;
+  bottom: -0.12em;
+  color: rgba(23, 39, 51, 0.045);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -.08em;
+}
+
+.hero::after {
+  background: linear-gradient(transparent, var(--bg));
+}
+
+.hero-media {
+  inset: 96px 3vw 0 53%;
+  border-radius: 44px 44px 0 0;
+}
+
+.hero-media::before {
+  background:
+    linear-gradient(90deg, rgba(244,239,230,.92), rgba(244,239,230,.08) 38%, transparent 68%),
+    linear-gradient(0deg, var(--bg) 0%, transparent 24%);
+}
+
+.hero-media img {
+  border-radius: 44px 44px 0 0;
+  filter: saturate(.7) sepia(.08) contrast(.98);
+}
+
+.hero h1,
+.section-heading h2,
+.nutrition-intro h2,
+.enquiry-copy h2,
+.bmi-copy h2 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -.045em;
+}
+
+.hero h1 {
+  max-width: 760px;
+  font-size: clamp(3.25rem, 7.3vw, 7rem);
+  line-height: .88;
+}
+
+.hero h1 span {
+  color: #b6442e;
+}
+
+.hero-copy,
+.about-copy,
+.section-heading > p:not(.eyebrow),
+.section-heading--row > p,
+.nutrition-intro p:not(.eyebrow) {
+  color: #66757c;
+}
+
+.hero-note {
+  color: #718087;
+}
+
+.section--panel {
+  background: var(--bg-soft);
+  border-color: rgba(25, 41, 55, 0.1);
+}
+
+.membership-pricing,
+.bmi-section {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(232, 93, 63, 0.10), transparent 29%),
+    var(--bg-soft);
+}
+
+.price-card,
+.info-card,
+.training-card,
+.bmi-card,
+.nutrition-board,
+.enquiry-form,
+.visit-details,
+.map-frame,
+.exercise-preview-card,
+.member-card,
+.account-card {
+  border-color: rgba(25, 41, 55, 0.13) !important;
+  background: rgba(255, 250, 241, 0.94) !important;
+  box-shadow: var(--shadow);
+}
+
+.price-card {
+  min-height: 480px;
+  border-radius: 28px;
+}
+
+.price-card--free,
+.price-card--featured {
+  border-color: rgba(232, 93, 63, 0.58) !important;
+  background:
+    linear-gradient(155deg, rgba(232, 93, 63, 0.10), rgba(255, 250, 241, .98) 50%) !important;
+}
+
+.price-kicker,
+.price-cycle,
+.pricing-note {
+  color: #6f7c82;
+}
+
+.price-features,
+.info-card ul {
+  color: #40515a;
+}
+
+.nutrition {
+  background:
+    radial-gradient(circle at 82% 20%, rgba(232, 93, 63, 0.13), transparent 30%),
+    #f7f1e8;
+}
+
+.nutrition-board {
+  color: var(--text);
+}
+
+.nutrition-types article {
+  border-color: rgba(25, 41, 55, 0.10);
+  background: rgba(226, 215, 199, .48);
+}
+
+.nutrition-types strong,
+.nutrition-process p,
+.bmi-fields label {
+  color: #263b46;
+}
+
+.nutrition-types span {
+  color: #6d7c82;
+}
+
+.bmi-fields input,
+.enquiry-form input,
+.enquiry-form select,
+.enquiry-form textarea,
+.member-form input,
+.phone-control,
+.account-fact {
+  border-color: rgba(25, 41, 55, 0.16);
+  background: #fffdf8;
+  color: var(--text);
+}
+
+.bmi-card__heading,
+.nutrition-board__top {
+  border-color: rgba(25, 41, 55, 0.13);
+}
+
+.bmi-result,
+.balance-note {
+  border-color: rgba(232, 93, 63, 0.22);
+  background: rgba(232, 93, 63, 0.07);
+}
+
+.bmi-result p {
+  color: #3f5159;
+}
+
+.gallery-tile {
+  border-radius: 28px;
+}
+
+.gallery-tile img {
+  filter: saturate(.72) contrast(.96);
+}
+
+.info-pills span,
+.exercise-preview-tags span {
+  border-color: rgba(232, 93, 63, 0.2);
+  background: rgba(232, 93, 63, 0.07);
+  color: #b44731;
+}
+
+.site-footer {
+  border-top-color: rgba(255,255,255,.12);
+  background: #172733;
+  color: #f7f0e6;
+}
+
+.site-footer .brand-word,
+.site-footer h2 {
+  color: #fff7eb;
+}
+
+.site-footer a,
+.site-footer p,
+.footer-bottom {
+  color: #c5cecf;
+}
+
+.floating-contact,
+.mobile-actions {
+  box-shadow: 0 14px 36px rgba(28, 48, 58, .18);
+}
+
+.member-body,
+.exercise-body,
+.diet-body {
+  background:
+    radial-gradient(circle at 86% 8%, rgba(232, 93, 63, 0.14), transparent 28%),
+    var(--bg) !important;
+}
+
+.member-privacy,
+.member-status,
+.member-intro,
+.account-heading > div > p:last-child,
+.account-empty {
+  color: #66757c;
+}
+
+.account-fact strong,
+.account-card__head h2 {
+  color: #223843;
+}
+
+.exercise-modal,
+.diet-planner-card,
+.plan-result,
+.planner-trust,
+.planner-method {
+  border-color: rgba(25, 41, 55, 0.14) !important;
+  background: #fffaf1 !important;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 820px) {
+  .hero {
+    min-height: auto;
+  }
+  .hero-media {
+    inset: 0;
+    opacity: .18;
+    border-radius: 0;
+  }
+  .hero-media img {
+    border-radius: 0;
+  }
+  .hero-media::before {
+    background: linear-gradient(90deg, rgba(244,239,230,.96), rgba(244,239,230,.72));
+  }
+}
+
+@media (max-width: 560px) {
+  :root { --shell: min(100% - 28px, 1180px); }
+  .hero h1 { font-size: clamp(3rem, 16vw, 5rem); }
+  .price-card { min-height: 420px; }
+}

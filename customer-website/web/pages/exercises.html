@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exercise Library | New Gym</title>
+  <meta name="description" content="Browse New Gym exercise categories and watch animated movement demonstrations for push, pull, legs, chest, back, arms, shoulders, core and more.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b0d10">
+  <link rel="canonical" href="https://new-gym.invalid/pages/exercises.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/exercises.css">
+  <link rel="stylesheet" href="../css/new-gym-theme.css?v=1">
+</head>
+<body class="exercise-body">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header is-scrolled">
+    <div class="shell header-row">
+      <a class="brand" href="../index.html" aria-label="New Gym home"><span class="brand-word">NEW GYM<span>.</span></span><small>Fitness · Club</small></a>
+      <div class="exercise-header-actions">
+        <a class="header-text-link" href="diet-planner.html">Indian Diet Plan</a>
+        <a class="button button--ghost" href="../index.html">Back to Website</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="exercise-hero">
+      <div class="shell exercise-hero__grid">
+        <div>
+          <p class="eyebrow">New Gym Exercise Library</p>
+          <h1>See the movement.<br>Then train it.</h1>
+          <p>Choose a training day or muscle group, open any exercise and watch a looping animated movement guide before you start.</p>
+        </div>
+        <aside class="exercise-hero-card">
+          <span>Animated movement guide</span>
+          <strong id="exercise-count">70+ exercises</strong>
+          <p>Push, pull, legs, chest, back, arms, shoulders, forearms, calves, neck, core and more.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="exercise-library-section">
+      <div class="shell">
+        <div class="exercise-tools">
+          <label class="exercise-search" for="exercise-search"><span>Search exercises</span><input id="exercise-search" type="search" placeholder="Try bench press, biceps, squat..." autocomplete="off"></label>
+          <p id="exercise-result-count" aria-live="polite"></p>
+        </div>
+        <div class="category-tabs" id="category-tabs" role="tablist" aria-label="Exercise categories"></div>
+        <div class="exercise-section-heading">
+          <div><p class="eyebrow" id="active-category-kicker">Training day</p><h2 id="active-category-title">Push Day</h2></div>
+          <p id="active-category-copy">Chest, shoulders and triceps pressing movements.</p>
+        </div>
+        <div class="exercise-grid" id="exercise-grid"></div>
+        <div class="exercise-safety"><strong>Use the animation as a movement guide, not a technique assessment.</strong><p>Choose a load you can control, use the equipment safely and ask a New Gym coach if you are unsure about setup or form. Stop an exercise if it causes sharp or unusual pain.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="exercise-modal" id="exercise-modal" aria-labelledby="exercise-modal-title">
+    <div class="exercise-modal__panel">
+      <button class="exercise-modal__close" id="exercise-modal-close" type="button" aria-label="Close exercise demonstration">×</button>
+      <div class="exercise-modal__visual">
+        <div class="model-stage">
+          <canvas id="exercise-model" width="640" height="640" aria-label="Animated exercise movement demonstration"></canvas>
+          <span class="model-stage__badge">Animated movement guide</span>
+          <button class="model-stage__replay" id="exercise-replay" type="button">Replay movement</button>
+        </div>
+      </div>
+      <div class="exercise-modal__content">
+        <p class="eyebrow" id="exercise-modal-category">Exercise</p>
+        <h2 id="exercise-modal-title">Exercise name</h2>
+        <div class="exercise-meta"><span id="exercise-modal-target"></span><span id="exercise-modal-equipment"></span></div>
+        <div class="exercise-instructions">
+          <article><span>01</span><div><strong>Setup</strong><p id="exercise-modal-setup"></p></div></article>
+          <article><span>02</span><div><strong>Move</strong><p id="exercise-modal-move"></p></div></article>
+          <article><span>03</span><div><strong>Key cue</strong><p id="exercise-modal-tip"></p></div></article>
+          <article><span>04</span><div><strong>Common mistake</strong><p id="exercise-modal-mistake"></p></div></article>
+        </div>
+        <p class="exercise-modal__note" id="exercise-modal-note">The animation is simplified for learning the movement pattern. Ask a coach for individual technique feedback.</p>
+      </div>
+    </div>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <div><a class="brand brand--footer" href="../index.html"><span class="brand-word">NEW GYM<span>.</span></span><small>Fitness · Club</small></a><p>Training, nutrition and membership guidance for New Gym members and visitors.</p></div>
+      <div><h2>Explore</h2><a href="exercises.html">Exercise Library</a><a href="diet-planner.html">Indian Diet Plan</a><a href="../index.html#membership">Membership</a></div>
+      <div><h2>Contact</h2><a href="../index.html#enquiry">Contact details pending</a><a href="../index.html#enquiry" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="member-login.html">Member Login</a></div>
+    </div>
+  </footer>
+  <script src="../js/gym-config.js"></script>
+  <script src="../js/analytics.js?v=new-gym-1" defer></script>
+  <script src="../js/exercises.js?v=20260904-exercises1" defer></script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Member Account — Gravity Fitness Neemuch</title>
+  <meta name="description" content="Securely sign in to or manage your Gravity Fitness member account."/>
+  <meta name="robots" content="noindex,follow"/>
+  <link rel="icon" href="/assets/icons/gravity-mark.svg" type="image/svg+xml"/>
+  <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png"/>
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180"/>
+  <link rel="stylesheet" href="/css/style.css?v=gravity2-rc2"/>
+  <link rel="stylesheet" href="/css/account.css?v=gravity2-rc3"/>
+  <meta name="theme-color" content="#11130f"/>
+  <link rel="manifest" href="/site.webmanifest"/>
+</head>
+<body>
+<header class="header" id="header">
+  <div class="header-inner">
+    <a href="/" class="logo" aria-label="Gravity Fitness home">GRAVITY<span>.</span></a>
+    <ul class="nav-tabs">
+      <li><a href="/#training">Explore</a></li>
+      <li><a href="/#membership">Membership</a></li>
+      <li><a href="/coaching">Coaching</a></li>
+      <li><a href="/gallery">Gallery</a></li>
+      <li><a href="/account" class="active">Account</a></li>
+    </ul>
+    <div class="header-right">
+      <a class="btn btn-primary account-header-link" href="/?request=trial_visit">Request a visit</a>
+      <button class="hamburger" type="button" aria-label="Open navigation" aria-controls="mobile-nav" aria-expanded="false" id="account-menu-button"><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+  <button type="button" class="mobile-nav-close" aria-label="Close navigation" id="account-menu-close">Close</button>
+  <ul>
+    <li><a href="/#training">Explore</a></li>
+    <li><a href="/#membership">Membership</a></li>
+    <li><a href="/coaching">Coaching</a></li>
+    <li><a href="/gallery">Gallery</a></li>
+    <li><a href="/account" class="active">Member account</a></li>
+  </ul>
+</nav>
+
+<main class="account-page" id="main-content">
+  <div class="account-wrap">
+    <p class="account-kicker">Gravity members</p>
+    <h1 class="account-title">Your member space.</h1>
+    <p class="account-lead">A private place for membership and profile details when member access is available.</p>
+
+    <section class="account-card" aria-label="Member account">
+      <div class="account-state" id="account-checking" aria-busy="true">
+        <h2>Checking account service…</h2>
+        <div class="account-skeleton"></div><div class="account-skeleton"></div><div class="account-skeleton"></div>
+      </div>
+
+      <div class="account-state" id="account-unavailable" hidden role="alert">
+        <h2>Member access is paused.</h2>
+        <p>Sign-in is not available right now. You can still explore membership, request a visit or call Gravity Fitness.</p>
+        <div class="account-form-actions account-actions-spaced">
+          <a class="btn btn-primary" href="/?request=trial_visit">Request a visit</a>
+          <button class="btn btn-outline" type="button" id="account-retry">Retry</button>
+        </div>
+      </div>
+
+      <div class="account-state" id="account-signed-out" hidden>
+        <nav class="account-mode-links" aria-label="Account mode">
+          <a href="/account?mode=login" id="mode-login">Login</a>
+          <a href="/account?mode=register" id="mode-register">Register</a>
+        </nav>
+
+        <form class="account-form" id="login-form" novalidate>
+          <h2>Welcome back</h2>
+          <div class="account-field">
+            <label for="login-email">Email address</label>
+            <input id="login-email" name="email" type="email" autocomplete="email" required/>
+            <div class="account-field-error" id="login-email-error"></div>
+          </div>
+          <div class="account-field">
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" minlength="8" required/>
+            <div class="account-field-error" id="login-password-error"></div>
+          </div>
+          <div class="account-form-actions">
+            <button class="btn btn-primary" type="submit">Sign in</button>
+            <button class="btn btn-ghost" type="button" id="forgot-password">Forgot password?</button>
+          </div>
+        </form>
+
+        <form class="account-form" id="register-form" novalidate hidden>
+          <h2>Create a member account</h2>
+          <div class="account-field">
+            <label for="register-name">Full name</label>
+            <input id="register-name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" required/>
+            <div class="account-field-error" id="register-name-error"></div>
+          </div>
+          <div class="account-field">
+            <label for="register-email">Email address</label>
+            <input id="register-email" name="email" type="email" autocomplete="email" required/>
+            <div class="account-field-error" id="register-email-error"></div>
+          </div>
+          <div class="account-form-row">
+            <div class="account-field">
+              <label for="register-password">Password</label>
+              <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" required/>
+              <div class="account-field-error" id="register-password-error"></div>
+            </div>
+            <div class="account-field">
+              <label for="register-confirm">Confirm password</label>
+              <input id="register-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required/>
+              <div class="account-field-error" id="register-confirm-error"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="submit">Create account</button>
+        </form>
+
+        <div class="account-separator" id="provider-separator">Choose a secure sign-in method</div>
+        <div class="account-provider-grid">
+          <button class="btn btn-outline" type="button" id="google-sign-in">Google</button>
+          <button class="btn btn-outline" type="button" id="phone-sign-in-toggle">Mobile number</button>
+        </div>
+
+        <form class="account-form" id="phone-form" hidden novalidate>
+          <div class="account-field">
+            <label for="phone-number">Mobile number</label>
+            <input id="phone-number" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="10-digit mobile or +91..." required/>
+            <div class="account-field-error" id="phone-number-error">Indian 10-digit numbers are converted to +91 automatically.</div>
+          </div>
+          <button class="btn btn-primary" type="submit" id="send-phone-code">Send verification code</button>
+          <div id="phone-code-wrap" class="account-field" hidden>
+            <label for="phone-code">Verification code</label>
+            <input id="phone-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"/>
+            <button class="btn btn-primary" type="button" id="confirm-phone-code">Verify and sign in</button>
+          </div>
+          <div id="recaptcha-container"></div>
+        </form>
+        <p class="account-status" id="signed-out-status" aria-live="polite" tabindex="-1"></p>
+      </div>
+
+      <div class="account-state" id="account-verification" hidden>
+        <h2>Verify your email</h2>
+        <p>Open the verification link sent to your email, then return here and sign in.</p>
+        <div class="account-alert"><strong>Your account is still pending.</strong>Your member profile becomes available only after your email is verified.</div>
+        <a class="btn btn-primary account-back-link" href="/account?mode=login">Back to login</a>
+      </div>
+
+      <div class="account-state" id="account-signed-in" hidden>
+        <h2 id="member-heading">Member account</h2>
+        <p id="member-guidance">Review and complete your profile. Verified email and mobile identifiers can only be changed through Firebase.</p>
+        <dl class="account-summary">
+          <dt>Email</dt><dd id="member-email">—</dd>
+          <dt>Mobile</dt><dd id="member-phone">—</dd>
+          <dt>Profile</dt><dd id="member-profile-state">Incomplete</dd>
+        </dl>
+        <section class="membership-card" aria-labelledby="membership-heading">
+          <div class="membership-card-head"><div><span class="membership-label">MEMBERSHIP</span><h3 id="membership-heading">Your Gravity access</h3></div><a href="/#membership">View plans</a></div>
+          <div id="membership-loading" class="membership-muted">Checking your membership…</div>
+          <div id="membership-empty" hidden><strong>No active membership</strong><p>Your account is ready. Gravity staff can activate a confirmed membership from the secure control room.</p></div>
+          <div id="membership-current" hidden>
+            <div class="membership-primary"><div><span id="membership-status" class="membership-pill">ACTIVE</span><h4 id="membership-plan">—</h4><small id="membership-number">—</small></div><div class="membership-days"><strong id="membership-days">0</strong><span>days left</span></div></div>
+            <div class="membership-dates"><span>Started <strong id="membership-start">—</strong></span><span>Valid until <strong id="membership-end">—</strong></span></div>
+          </div>
+          <div id="membership-upcoming" class="membership-upcoming" hidden><span>UPCOMING</span><strong id="membership-upcoming-plan">—</strong><small id="membership-upcoming-date">—</small></div>
+          <details id="membership-history-wrap" class="membership-history" hidden><summary>Membership history</summary><div id="membership-history"></div></details>
+        </section>
+        <section class="account-security-card" aria-labelledby="account-security-heading">
+          <div class="account-security-head">
+            <div><span class="membership-label">ACCOUNT SECURITY</span><h3 id="account-security-heading">Verified sign-in methods</h3></div>
+            <span class="account-security-count" id="security-provider-count">0 linked</span>
+          </div>
+          <div class="account-security-grid">
+            <div><span>Email</span><strong id="security-email">Not linked</strong></div>
+            <div><span>Mobile</span><strong id="security-phone">Not linked</strong></div>
+          </div>
+          <p class="membership-muted" id="security-provider-summary">Checking verified providers...</p>
+          <div class="account-form-actions account-security-actions" id="security-link-actions">
+            <button class="btn btn-outline" type="button" id="link-google">Add verified Google email</button>
+            <button class="btn btn-outline" type="button" id="link-phone-toggle">Add mobile number</button>
+          </div>
+          <form class="account-form account-link-form" id="link-phone-form" hidden novalidate>
+            <div class="account-field">
+              <label for="link-phone-number">Mobile number</label>
+              <input id="link-phone-number" type="tel" autocomplete="tel" inputmode="tel" placeholder="10-digit mobile or +91..." required/>
+              <div class="account-field-error" id="link-phone-error">Indian 10-digit numbers are converted to +91 automatically.</div>
+            </div>
+            <button class="btn btn-primary" type="submit">Send verification code</button>
+            <div class="account-field" id="link-phone-code-wrap" hidden>
+              <label for="link-phone-code">Verification code</label>
+              <input id="link-phone-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required/>
+              <button class="btn btn-primary" type="button" id="link-phone-confirm">Verify and link mobile</button>
+            </div>
+            <p class="account-consent">By requesting a code, you may receive an SMS used only to verify this sign-in method. Carrier rates may apply.</p>
+            <div id="link-recaptcha-container"></div>
+          </form>
+          <p class="account-status" id="security-status" aria-live="polite" tabindex="-1"></p>
+        </section>
+        <form class="account-form" id="profile-form" novalidate>
+          <div class="account-field">
+            <label for="profile-name">Full name</label>
+            <input id="profile-name" name="displayName" type="text" autocomplete="name" minlength="2" maxlength="80" required/>
+            <div class="account-field-error" id="profile-name-error"></div>
+          </div>
+          <div class="account-form-row">
+            <div class="account-field">
+              <label for="profile-birth">Date of birth</label>
+              <input id="profile-birth" name="dateOfBirth" type="date" autocomplete="bday"/>
+            </div>
+            <div class="account-field">
+              <label for="profile-gender">Gender</label>
+              <select id="profile-gender" name="gender">
+                <option value="">Prefer not to set</option>
+                <option value="female">Female</option><option value="male">Male</option>
+                <option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+          <div class="account-field">
+            <label for="profile-address">Address</label>
+            <textarea id="profile-address" name="address" autocomplete="street-address" maxlength="300"></textarea>
+          </div>
+          <div class="account-form-row">
+            <div class="account-field">
+              <label for="profile-emergency-name">Emergency contact</label>
+              <input id="profile-emergency-name" name="emergencyContactName" type="text" maxlength="80"/>
+            </div>
+            <div class="account-field">
+              <label for="profile-emergency-phone">Emergency phone</label>
+              <input id="profile-emergency-phone" name="emergencyContactPhone" type="tel" inputmode="tel" placeholder="+919000000000"/>
+            </div>
+          </div>
+          <div class="account-field">
+            <label for="profile-health">Health notes <span class="optional-label">(optional)</span></label>
+            <textarea id="profile-health" name="healthNotes" maxlength="1000"></textarea>
+          </div>
+          <div class="account-form-actions">
+            <button class="btn btn-primary" type="submit">Save profile</button>
+            <button class="btn btn-outline" type="button" id="logout-button">Log out</button>
+            <button class="btn btn-ghost" type="button" id="logout-all-button">Log out all devices</button>
+          </div>
+        </form>
+        <p class="account-status" id="signed-in-status" aria-live="polite" tabindex="-1"></p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="/js/account-page.js?v=phase17" type="module"></script>
+<script src="/js/account-notifications.js" defer></script>
+<script src="/js/account-payments.js" defer></script>
+<script src="/js/account-coaching.js" defer></script>
+</body>
+</html>

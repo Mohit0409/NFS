@@ -1,0 +1,1037 @@
+from __future__ import annotations
+
+from email.utils import formatdate
+from html import escape
+from http import HTTPStatus
+from http.cookies import SimpleCookie
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from ipaddress import ip_address, ip_network
+from pathlib import Path
+from time import perf_counter
+from typing import Callable
+from urllib.parse import unquote, urlsplit
+from uuid import uuid4
+import json
+import logging
+import mimetypes
+import sys
+
+from .auth import (
+    AccountDisabled,
+    AccountNotProvisioned,
+    AuthService,
+    AuthenticationError,
+    AuthenticationUnavailable,
+    IdentityConflict,
+    InvalidCsrf,
+    InvalidSession,
+    ProfileValidationError,
+    RateLimitExceeded,
+    SessionIdentity,
+    SessionIssue,
+)
+from .admin import AdminService
+from .admin_software import AdminSoftwareService
+from .admin_http import handle_admin_request
+from .operations_http import handle_operations_request
+from .config import Settings
+from .database import Database
+from .membership import MembershipService
+from .pool import PoolService
+from .kitchen import KitchenService
+from .notification import NotificationService
+from .payment import PaymentService
+from .coaching import CoachingService
+from .biometric import BiometricService
+from .readiness import ReadinessService
+from .enquiry import EnquiryService
+from .enquiry_http import handle_enquiry_request
+from .coaching_http import handle_coaching_request
+from .payment_http import handle_payment_request
+from .firebase_auth import (
+    FirebaseAccountDisabled,
+    FirebaseAdminVerifier,
+    FirebaseIdentityUnverified,
+    FirebaseUnavailable,
+    IdentityVerifier,
+    InvalidFirebaseToken,
+)
+
+
+LOGGER = logging.getLogger("gravity.http")
+PUBLIC_PREFIXES = {"assets", "css", "js", "pages"}
+STATIC_ROUTE_ALIASES = {
+    "/account": "pages/account.html",
+    "/admin": "pages/admin.html",
+    "/trainers": "pages/trainers.html",
+    "/coaching": "pages/trainers.html",
+    "/gallery": "pages/gallery.html",
+    "/privacy": "pages/privacy.html",
+    "/favicon.ico": "assets/icons/gravity-mark.svg",
+    "/site.webmanifest": "assets/site.webmanifest",
+}
+SENSITIVE_QUERY_KEYS = {"access_token", "code", "id_token", "session", "token"}
+MAX_REQUEST_BODY = 1_048_576
+MAX_PROFILE_BODY = 16_384
+AUTH_ROUTES: dict[str, set[str]] = {
+    "/api/auth/config": {"GET", "HEAD"},
+    "/api/auth/session": {"GET", "HEAD", "POST"},
+    "/api/auth/logout": {"POST"},
+    "/api/auth/logout-all": {"POST"},
+    "/api/auth/link": {"POST"},
+    "/api/membership/plans": {"GET", "HEAD"},
+    "/api/me": {"GET", "HEAD", "PATCH"},
+    "/api/me/membership": {"GET", "HEAD"},
+    "/api/me/notifications": {"GET", "HEAD"},
+}
+
+
+def _safe_path_for_log(raw_path: str) -> str:
+    parsed = urlsplit(raw_path)
+    if not parsed.query:
+        return parsed.path
+    pairs = []
+    for part in parsed.query.split("&"):
+        key, _separator, _value = part.partition("=")
+        pairs.append(f"{key}=[REDACTED]" if key.lower() in SENSITIVE_QUERY_KEYS else part)
+    return parsed.path + "?" + "&".join(pairs)
+
+
+class GravityHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = False
+
+    def __init__(
+        self,
+        address: tuple[str, int],
+        handler: type[BaseHTTPRequestHandler],
+        settings: Settings,
+        database: Database,
+        auth_service: AuthService,
+        admin_service: AdminService,
+        admin_software_service: AdminSoftwareService,
+        membership_service: MembershipService,
+        pool_service: PoolService,
+        kitchen_service: KitchenService,
+        notification_service: NotificationService,
+        payment_service: PaymentService,
+        coaching_service: CoachingService,
+        biometric_service: BiometricService,
+        readiness_service: ReadinessService,
+        enquiry_service: EnquiryService,
+    ) -> None:
+        super().__init__(address, handler)
+        self.settings = settings
+        self.database = database
+        self.auth_service = auth_service
+        self.admin_service = admin_service
+        self.admin_software_service = admin_software_service
+        self.membership_service = membership_service
+        self.pool_service = pool_service
+        self.kitchen_service = kitchen_service
+        self.notification_service = notification_service
+        self.payment_service = payment_service
+        self.coaching_service = coaching_service
+        self.biometric_service = biometric_service
+        self.readiness_service = readiness_service
+        self.enquiry_service = enquiry_service
+
+    def handle_error(self, request: object, client_address: object) -> None:
+        error = sys.exc_info()[1]
+        if isinstance(error, (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, TimeoutError)):
+            LOGGER.debug("client_connection_closed", extra={"event_data": {"client": str(client_address)}})
+            return
+        super().handle_error(request, client_address)
+
+
+class GravityRequestHandler(BaseHTTPRequestHandler):
+    server: GravityHTTPServer
+    server_version = "GravityFitness"
+    sys_version = ""
+    protocol_version = "HTTP/1.1"
+
+    def setup(self) -> None:
+        super().setup()
+        self.connection.settimeout(15)
+
+    def version_string(self) -> str:
+        return "GravityFitness"
+
+    def log_message(self, _format: str, *_args: object) -> None:
+        return
+
+    def do_GET(self) -> None:
+        self._dispatch(send_body=True)
+
+    def do_HEAD(self) -> None:
+        self._dispatch(send_body=False)
+
+    def do_POST(self) -> None:
+        self._dispatch(send_body=True)
+
+    def do_PATCH(self) -> None:
+        self._dispatch(send_body=True)
+
+    def do_PUT(self) -> None:
+        self._dispatch(send_body=True)
+
+    def do_DELETE(self) -> None:
+        self._dispatch(send_body=True)
+
+    def _dispatch(self, *, send_body: bool) -> None:
+        started = perf_counter()
+        request_id = uuid4().hex
+        status: int | HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR
+        try:
+            if self.command not in {"GET", "HEAD"}:
+                try:
+                    declared_length = self._content_length()
+                    if declared_length > MAX_REQUEST_BODY:
+                        self._drain_body(min(declared_length, MAX_REQUEST_BODY + 1))
+                        status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+                        self._json_response(
+                            status,
+                            {"error": "request_too_large"},
+                            request_id=request_id,
+                            send_body=send_body,
+                        )
+                        return
+                except RequestError as error:
+                    status = error.status
+                    self._json_response(status, {"error": error.code}, request_id=request_id, send_body=send_body)
+                    return
+            path = urlsplit(self.path).path
+            if path == "/api/health":
+                if self.command not in {"GET", "HEAD"}:
+                    status = self._method_not_allowed({"GET", "HEAD"}, request_id, send_body)
+                    return
+                health = self.server.database.health()
+                healthy = health["database"] == "ok"
+                status = HTTPStatus.OK if healthy else HTTPStatus.SERVICE_UNAVAILABLE
+                self._json_response(
+                    status,
+                    {
+                        "status": "ok" if healthy else "error",
+                        "service": self.server.settings.business_name,
+                        "database": health["database"],
+                    },
+                    request_id=request_id,
+                    send_body=send_body,
+                )
+                return
+            if path in {"/api/enquiries", "/api/enquiries/token"} or path.startswith("/api/admin/enquiries"):
+                try:
+                    enquiry_status = handle_enquiry_request(self, path, request_id, send_body)
+                except RequestError as error:
+                    status = error.status
+                    self._json_response(status, {"error": error.code}, request_id=request_id, send_body=send_body)
+                    return
+                if enquiry_status is not None:
+                    status = enquiry_status
+                    return
+            if path in {"/robots.txt", "/sitemap.xml"}:
+                if self.command not in {"GET", "HEAD"}:
+                    status = self._method_not_allowed({"GET", "HEAD"}, request_id, send_body)
+                    return
+                status = self._crawl_response(path, request_id=request_id, send_body=send_body)
+                return
+            if (
+                path == "/api/payment/config"
+                or path == "/api/payments/razorpay/webhook"
+                or path.startswith("/api/me/payments")
+                or path.startswith("/api/me/invoices")
+            ):
+                try:
+                    payment_status = handle_payment_request(self, path, request_id, send_body)
+                except RequestError as error:
+                    status = error.status
+                    self._json_response(status, {"error": error.code}, request_id=request_id, send_body=send_body)
+                    return
+                if payment_status is not None:
+                    status = payment_status
+                    return
+            if path == "/api/me/coaching" or path.startswith("/api/admin/coaching"):
+                try:
+                    coaching_status = handle_coaching_request(self, path, request_id, send_body)
+                except RequestError as error:
+                    status = error.status
+                    self._json_response(status, {"error": error.code}, request_id=request_id, send_body=send_body)
+                    return
+                if coaching_status is not None:
+                    status = coaching_status
+                    return
+            if path in AUTH_ROUTES:
+                if self.command not in AUTH_ROUTES[path]:
+                    status = self._method_not_allowed(AUTH_ROUTES[path], request_id, send_body)
+                    return
+                status = self._auth_response(path, request_id=request_id, send_body=send_body)
+                return
+            if path.startswith("/api/admin/"):
+                try:
+                    operations_status = handle_operations_request(self, path, request_id, send_body)
+                    if operations_status is not None:
+                        status = operations_status
+                        return
+                    admin_status = handle_admin_request(self, path, request_id, send_body)
+                except RequestError as error:
+                    status = error.status
+                    self._json_response(status, {"error": error.code}, request_id=request_id, send_body=send_body)
+                    return
+                if admin_status is not None:
+                    status = admin_status
+                    return
+            if path.startswith("/api/"):
+                status = HTTPStatus.NOT_FOUND
+                self._json_response(status, {"error": "not_found"}, request_id=request_id, send_body=send_body)
+                return
+            if self.command not in {"GET", "HEAD"}:
+                status = self._discard_bounded_body(request_id=request_id, send_body=send_body)
+                return
+            if path == "/" and self.server.settings.admin_portal_root_redirect:
+                status = HTTPStatus.FOUND
+                self.send_response(status)
+                self._security_headers(request_id)
+                self.send_header("Location", "/admin")
+                self.send_header("Content-Length", "0")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                return
+            status = self._static_response(path, request_id=request_id, send_body=send_body)
+        except (BrokenPipeError, ConnectionResetError):
+            status = 499
+        except Exception:
+            LOGGER.exception("request_failed", extra={"event_data": {"request_id": request_id}})
+            status = HTTPStatus.INTERNAL_SERVER_ERROR
+            self._json_response(status, {"error": "internal_error"}, request_id=request_id, send_body=send_body)
+        finally:
+            if self.command not in {"GET", "HEAD"}:
+                self.close_connection = True
+            LOGGER.info(
+                "request_completed",
+                extra={
+                    "event_data": {
+                        "request_id": request_id,
+                        "method": self.command,
+                        "path": _safe_path_for_log(self.path),
+                        "status": int(status),
+                        "duration_ms": round((perf_counter() - started) * 1000, 2),
+                    }
+                },
+            )
+
+    def _auth_response(self, path: str, *, request_id: str, send_body: bool) -> HTTPStatus:
+        if path == "/api/auth/config":
+            return self._auth_config(request_id, send_body)
+        if path == "/api/auth/session" and self.command in {"GET", "HEAD"}:
+            return self._session_status(request_id, send_body)
+        if path == "/api/auth/session" and self.command == "POST":
+            return self._exchange_session(request_id, send_body)
+        if path == "/api/membership/plans" and self.command in {"GET", "HEAD"}:
+            self._json_response(
+                HTTPStatus.OK,
+                {"plans": self.server.membership_service.list_plans(active_only=True)},
+                request_id=request_id,
+                send_body=send_body,
+            )
+            return HTTPStatus.OK
+        if path == "/api/me/membership" and self.command in {"GET", "HEAD"}:
+            session, failure_status = self._require_session(request_id, send_body)
+            if not session:
+                return failure_status
+            self._json_response(
+                HTTPStatus.OK,
+                {"membership": self.server.membership_service.customer_summary(session.customer_id)},
+                request_id=request_id,
+                send_body=send_body,
+            )
+            return HTTPStatus.OK
+        if path == "/api/me/notifications" and self.command in {"GET", "HEAD"}:
+            session, failure_status = self._require_session(request_id, send_body)
+            if not session:
+                return failure_status
+            self._json_response(
+                HTTPStatus.OK,
+                {"notifications": self.server.notification_service.list_customer(session.customer_id)},
+                request_id=request_id,
+                send_body=send_body,
+            )
+            return HTTPStatus.OK
+        if path == "/api/me" and self.command in {"GET", "HEAD"}:
+            session, failure_status = self._require_session(request_id, send_body)
+            if not session:
+                return failure_status
+            self._json_response(
+                HTTPStatus.OK,
+                {"user": session.user},
+                request_id=request_id,
+                send_body=send_body,
+            )
+            return HTTPStatus.OK
+        if path == "/api/me" and self.command == "PATCH":
+            return self._update_profile(request_id, send_body)
+        if path in {"/api/auth/logout", "/api/auth/logout-all"}:
+            return self._logout(request_id, send_body, all_sessions=path.endswith("logout-all"))
+        if path == "/api/auth/link":
+            return self._link_identity(request_id, send_body)
+        self._json_response(HTTPStatus.NOT_FOUND, {"error": "not_found"}, request_id=request_id)
+        return HTTPStatus.NOT_FOUND
+
+    def _auth_config(self, request_id: str, send_body: bool) -> HTTPStatus:
+        settings = self.server.settings
+        enabled = settings.firebase_client_configured and self.server.auth_service.configured
+        payload: dict[str, object] = {"enabled": enabled}
+        if enabled:
+            payload["firebase"] = {
+                "apiKey": settings.firebase_web_api_key,
+                "authDomain": settings.firebase_auth_domain,
+                "projectId": settings.firebase_project_id,
+                "appId": settings.firebase_app_id,
+            }
+            payload["providers"] = ["google.com", "phone"]
+        self._json_response(HTTPStatus.OK, payload, request_id=request_id, send_body=send_body)
+        return HTTPStatus.OK
+
+    def _session_status(self, request_id: str, send_body: bool) -> HTTPStatus:
+        try:
+            token = self._cookie_value(self.server.settings.session_cookie_name)
+            session = self.server.auth_service.resolve_session(token)
+            payload: dict[str, object] = {"authenticated": True, "user": session.user}
+        except (InvalidSession, AccountDisabled):
+            payload = {"authenticated": False}
+        except RequestError as error:
+            self._json_response(error.status, {"error": error.code}, request_id=request_id, send_body=send_body)
+            return error.status
+        self._json_response(HTTPStatus.OK, payload, request_id=request_id, send_body=send_body)
+        return HTTPStatus.OK
+
+    def _exchange_session(self, request_id: str, send_body: bool) -> HTTPStatus:
+        if not self._same_origin():
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_origin"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        try:
+            self._require_empty_body()
+            id_token = self._bearer_token()
+            issue = self.server.auth_service.exchange(
+                id_token,
+                remote_addr=self._client_ip(),
+                user_agent=self.headers.get("User-Agent", "")[:1000],
+                request_id=request_id,
+                prior_session_token=self._cookie_value(self.server.settings.session_cookie_name),
+            )
+        except RateLimitExceeded as error:
+            self._json_response(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                {"error": "rate_limited"},
+                request_id=request_id,
+                headers=[("Retry-After", str(error.retry_after))],
+            )
+            return HTTPStatus.TOO_MANY_REQUESTS
+        except (AuthenticationUnavailable, FirebaseUnavailable):
+            self._json_response(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                {"error": "authentication_unavailable"},
+                request_id=request_id,
+            )
+            return HTTPStatus.SERVICE_UNAVAILABLE
+        except (FirebaseAccountDisabled, AccountDisabled):
+            self._json_response(
+                HTTPStatus.FORBIDDEN,
+                {"error": "account_disabled"},
+                request_id=request_id,
+            )
+            return HTTPStatus.FORBIDDEN
+        except IdentityConflict:
+            self._json_response(
+                HTTPStatus.CONFLICT,
+                {"error": "account_link_required"},
+                request_id=request_id,
+            )
+            return HTTPStatus.CONFLICT
+        except AccountNotProvisioned:
+            self._json_response(
+                HTTPStatus.FORBIDDEN,
+                {"error": "account_not_provisioned"},
+                request_id=request_id,
+            )
+            return HTTPStatus.FORBIDDEN
+        except (InvalidFirebaseToken, FirebaseIdentityUnverified, AuthenticationError, ValueError):
+            self._json_response(
+                HTTPStatus.UNAUTHORIZED,
+                {"error": "invalid_credentials"},
+                request_id=request_id,
+            )
+            return HTTPStatus.UNAUTHORIZED
+        except RequestError as error:
+            self._json_response(error.status, {"error": error.code}, request_id=request_id)
+            return error.status
+        self._json_response(
+            HTTPStatus.OK,
+            {"authenticated": True, "user": issue.user, "csrfToken": issue.csrf_token},
+            request_id=request_id,
+            send_body=send_body,
+            headers=self._auth_cookie_headers(issue),
+        )
+        return HTTPStatus.OK
+
+    def _update_profile(self, request_id: str, send_body: bool) -> HTTPStatus:
+        if not self._same_origin():
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_origin"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        session, failure_status = self._require_session(request_id, send_body)
+        if not session:
+            return failure_status
+        try:
+            self._require_csrf(session)
+            payload = self._json_body(maximum=MAX_PROFILE_BODY)
+            user = self.server.auth_service.update_profile(session, payload, request_id=request_id)
+        except InvalidCsrf:
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_csrf"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        except ProfileValidationError as error:
+            self._json_response(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                {"error": "invalid_profile", "fields": error.fields},
+                request_id=request_id,
+            )
+            return HTTPStatus.UNPROCESSABLE_ENTITY
+        except AccountDisabled:
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "account_disabled"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        except RequestError as error:
+            self._json_response(error.status, {"error": error.code}, request_id=request_id)
+            return error.status
+        self._json_response(HTTPStatus.OK, {"user": user}, request_id=request_id, send_body=send_body)
+        return HTTPStatus.OK
+
+    def _link_identity(self, request_id: str, send_body: bool) -> HTTPStatus:
+        if not self._same_origin():
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_origin"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        session, failure_status = self._require_session(request_id, send_body)
+        if not session:
+            return failure_status
+        try:
+            self._require_empty_body()
+            self._require_csrf(session)
+            id_token = self._bearer_token()
+            current_token = self._cookie_value(self.server.settings.session_cookie_name)
+            if not current_token:
+                raise InvalidSession("Session is missing")
+            issue = self.server.auth_service.link_identity(
+                session,
+                id_token,
+                current_session_token=current_token,
+                remote_addr=self._client_ip(),
+                user_agent=self.headers.get("User-Agent", "")[:1000],
+                request_id=request_id,
+            )
+        except RateLimitExceeded as error:
+            self._json_response(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                {"error": "rate_limited"},
+                request_id=request_id,
+                headers=[("Retry-After", str(error.retry_after))],
+            )
+            return HTTPStatus.TOO_MANY_REQUESTS
+        except InvalidCsrf:
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_csrf"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        except (AuthenticationUnavailable, FirebaseUnavailable):
+            self._json_response(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                {"error": "authentication_unavailable"},
+                request_id=request_id,
+            )
+            return HTTPStatus.SERVICE_UNAVAILABLE
+        except (FirebaseAccountDisabled, AccountDisabled):
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "account_disabled"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        except IdentityConflict:
+            self._json_response(HTTPStatus.CONFLICT, {"error": "account_conflict"}, request_id=request_id)
+            return HTTPStatus.CONFLICT
+        except (InvalidFirebaseToken, FirebaseIdentityUnverified, AuthenticationError, ValueError):
+            self._json_response(HTTPStatus.UNAUTHORIZED, {"error": "invalid_credentials"}, request_id=request_id)
+            return HTTPStatus.UNAUTHORIZED
+        except RequestError as error:
+            self._json_response(error.status, {"error": error.code}, request_id=request_id)
+            return error.status
+        self._json_response(
+            HTTPStatus.OK,
+            {"authenticated": True, "user": issue.user, "csrfToken": issue.csrf_token},
+            request_id=request_id,
+            send_body=send_body,
+            headers=self._auth_cookie_headers(issue),
+        )
+        return HTTPStatus.OK
+
+    def _logout(self, request_id: str, send_body: bool, *, all_sessions: bool) -> HTTPStatus:
+        if not self._same_origin():
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_origin"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        session, failure_status = self._require_session(request_id, send_body)
+        if not session:
+            return failure_status
+        try:
+            self._require_empty_body()
+            self._require_csrf(session)
+            self.server.auth_service.logout(session, request_id=request_id, all_sessions=all_sessions)
+        except InvalidCsrf:
+            self._json_response(HTTPStatus.FORBIDDEN, {"error": "invalid_csrf"}, request_id=request_id)
+            return HTTPStatus.FORBIDDEN
+        except RequestError as error:
+            self._json_response(error.status, {"error": error.code}, request_id=request_id)
+            return error.status
+        self._json_response(
+            HTTPStatus.OK,
+            {"authenticated": False},
+            request_id=request_id,
+            send_body=send_body,
+            headers=self._clear_auth_cookie_headers(),
+        )
+        return HTTPStatus.OK
+
+    def _require_session(
+        self, request_id: str, send_body: bool
+    ) -> tuple[SessionIdentity | None, HTTPStatus]:
+        try:
+            token = self._cookie_value(self.server.settings.session_cookie_name)
+            return self.server.auth_service.resolve_session(token), HTTPStatus.OK
+        except AccountDisabled:
+            self._json_response(
+                HTTPStatus.FORBIDDEN,
+                {"error": "account_disabled"},
+                request_id=request_id,
+                send_body=send_body,
+                headers=self._clear_auth_cookie_headers(),
+            )
+            return None, HTTPStatus.FORBIDDEN
+        except InvalidSession:
+            self._json_response(
+                HTTPStatus.UNAUTHORIZED,
+                {"error": "unauthenticated"},
+                request_id=request_id,
+                send_body=send_body,
+                headers=self._clear_auth_cookie_headers(),
+            )
+            return None, HTTPStatus.UNAUTHORIZED
+        except RequestError as error:
+            self._json_response(
+                error.status,
+                {"error": error.code},
+                request_id=request_id,
+                send_body=send_body,
+                headers=self._clear_auth_cookie_headers(),
+            )
+            return None, error.status
+
+    def _require_csrf(self, session: SessionIdentity) -> None:
+        header_values = self.headers.get_all("X-CSRF-Token", [])
+        if len(header_values) != 1:
+            raise InvalidCsrf("CSRF header is invalid")
+        cookie_token = self._cookie_value(self.server.settings.csrf_cookie_name)
+        self.server.auth_service.verify_csrf(session, header_values[0], cookie_token)
+
+    def _same_origin(self) -> bool:
+        origins = self.headers.get_all("Origin", [])
+        if len(origins) != 1:
+            return False
+        actual = urlsplit(origins[0])
+        canonical = False
+        if actual.scheme in {"http", "https"} and not actual.path and not actual.query and not actual.fragment:
+            for configured_origin in (
+                self.server.settings.app_base_url,
+                *self.server.settings.additional_origins,
+            ):
+                expected = urlsplit(configured_origin)
+                if actual.scheme == expected.scheme and actual.netloc == expected.netloc:
+                    canonical = True
+                    break
+        if canonical:
+            return True
+        return self._local_loopback_request(actual)
+
+    def _local_loopback_request(self, origin: object | None = None) -> bool:
+        actual = origin if origin is not None else urlsplit("")
+        host_values = self.headers.get_all("Host", [])
+        if len(host_values) != 1 or not host_values[0] or any(character.isspace() for character in host_values[0]):
+            return False
+        host = urlsplit(f"//{host_values[0]}")
+        try:
+            host_loopback = host.hostname == "localhost" or ip_address(host.hostname or "").is_loopback
+            peer_loopback = ip_address(self.client_address[0]).is_loopback
+        except ValueError:
+            return False
+        if not host_loopback or not peer_loopback:
+            return False
+        if origin is None:
+            return True
+        return (
+            getattr(actual, "scheme", "") == "http"
+            and getattr(actual, "netloc", "") == host_values[0]
+            and not getattr(actual, "path", "")
+            and not getattr(actual, "query", "")
+            and not getattr(actual, "fragment", "")
+        )
+
+    def _bearer_token(self) -> str:
+        values = self.headers.get_all("Authorization", [])
+        if len(values) != 1 or len(values[0]) > 16_391 or not values[0].startswith("Bearer "):
+            raise RequestError(HTTPStatus.UNAUTHORIZED, "invalid_credentials")
+        token = values[0][7:]
+        if not token or token != token.strip() or any(character.isspace() for character in token):
+            raise RequestError(HTTPStatus.UNAUTHORIZED, "invalid_credentials")
+        return token
+
+    def _cookie_value(self, name: str) -> str | None:
+        raw_values = self.headers.get_all("Cookie", [])
+        if not raw_values:
+            return None
+        if len(raw_values) != 1 or len(raw_values[0]) > 8192:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        names = []
+        for part in raw_values[0].split(";"):
+            key, separator, _value = part.strip().partition("=")
+            if separator:
+                names.append(key)
+        if len(names) != len(set(names)):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        cookie = SimpleCookie()
+        try:
+            cookie.load(raw_values[0])
+        except Exception as error:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request") from error
+        morsel = cookie.get(name)
+        return morsel.value if morsel else None
+
+    def _client_ip(self) -> str:
+        peer = ip_address(self.client_address[0])
+        trusted = self.server.settings.trust_proxy and any(
+            peer in ip_network(cidr, strict=False) for cidr in self.server.settings.trusted_proxy_cidrs
+        )
+        if trusted:
+            forwarded_values = self.headers.get_all("X-Forwarded-For", [])
+            if len(forwarded_values) == 1:
+                first = forwarded_values[0].split(",", 1)[0].strip()
+                try:
+                    return ip_address(first).compressed
+                except ValueError:
+                    pass
+        return peer.compressed
+
+    def _require_empty_body(self) -> None:
+        if self.headers.get("Transfer-Encoding"):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        length = self._content_length()
+        if length:
+            if length > MAX_REQUEST_BODY:
+                self._drain_body(min(length, MAX_REQUEST_BODY + 1))
+                raise RequestError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "request_too_large")
+            self._drain_body(length)
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+
+    def _json_body(self, *, maximum: int) -> dict[str, object]:
+        if self.headers.get("Transfer-Encoding"):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        if content_type != "application/json":
+            raise RequestError(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_media_type")
+        length = self._content_length()
+        if length <= 0:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        if length > maximum:
+            raise RequestError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "request_too_large")
+        try:
+            payload = json.loads(self.rfile.read(length))
+        except (UnicodeError, json.JSONDecodeError) as error:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_json") from error
+        if not isinstance(payload, dict):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_json")
+        return payload
+
+    def _raw_body(self, *, maximum: int, content_type: str | None = None) -> bytes:
+        if self.headers.get("Transfer-Encoding"):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        if content_type is not None:
+            actual = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            if actual != content_type:
+                raise RequestError(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_media_type")
+        length = self._content_length()
+        if length <= 0:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        if length > maximum:
+            raise RequestError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "request_too_large")
+        body = self.rfile.read(length)
+        if len(body) != length:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        return body
+
+    def _content_length(self) -> int:
+        values = self.headers.get_all("Content-Length", [])
+        if not values:
+            return 0
+        if len(values) != 1:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        try:
+            length = int(values[0])
+        except ValueError as error:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request") from error
+        if length < 0:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "invalid_request")
+        return length
+
+    def _discard_bounded_body(self, *, request_id: str, send_body: bool) -> HTTPStatus:
+        try:
+            length = self._content_length()
+            if length > MAX_REQUEST_BODY:
+                self._drain_body(min(length, MAX_REQUEST_BODY + 1))
+                self._json_response(
+                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                    {"error": "request_too_large"},
+                    request_id=request_id,
+                    send_body=send_body,
+                )
+                return HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+            if length:
+                self._drain_body(length)
+            self._json_response(
+                HTTPStatus.NOT_FOUND,
+                {"error": "not_found"},
+                request_id=request_id,
+                send_body=send_body,
+            )
+            return HTTPStatus.NOT_FOUND
+        except RequestError as error:
+            self._json_response(error.status, {"error": error.code}, request_id=request_id, send_body=send_body)
+            return error.status
+
+    def _drain_body(self, length: int) -> None:
+        remaining = length
+        while remaining:
+            chunk = self.rfile.read(min(65_536, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+
+    def _crawl_response(self, path: str, *, request_id: str, send_body: bool) -> HTTPStatus:
+        base = self.server.settings.app_base_url.rstrip("/")
+        if path == "/robots.txt":
+            body = (
+                "User-agent: *\n"
+                "Disallow: /account\n"
+                "Disallow: /admin\n"
+                "Disallow: /api/\n"
+                f"Sitemap: {base}/sitemap.xml\n"
+            )
+            content_type = "text/plain; charset=utf-8"
+        else:
+            urls = [f"{base}/", f"{base}/coaching", f"{base}/gallery", f"{base}/privacy"]
+            items = "".join(f"<url><loc>{url}</loc></url>" for url in urls)
+            body = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>'
+            content_type = "application/xml; charset=utf-8"
+        data = body.encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        self._security_headers(request_id)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=300")
+        self.end_headers()
+        if send_body:
+            self.wfile.write(data)
+        return HTTPStatus.OK
+
+    def _static_response(self, raw_path: str, *, request_id: str, send_body: bool) -> HTTPStatus:
+        try:
+            decoded = unquote(raw_path, errors="strict")
+        except UnicodeDecodeError:
+            return self._not_found(request_id, send_body)
+        if "\x00" in decoded or "\\" in decoded:
+            return self._not_found(request_id, send_body)
+        route_key = decoded.rstrip("/") or "/"
+        relative = STATIC_ROUTE_ALIASES.get(route_key, decoded.lstrip("/") or "index.html")
+        parts = Path(relative).parts
+        if any(part in {"", ".", ".."} or part.startswith(".") for part in parts):
+            return self._not_found(request_id, send_body)
+        if relative != "index.html" and parts[0] not in PUBLIC_PREFIXES:
+            return self._not_found(request_id, send_body)
+        candidate = (self.server.settings.web_dir / relative).resolve()
+        try:
+            candidate.relative_to(self.server.settings.web_dir)
+        except ValueError:
+            return self._not_found(request_id, send_body)
+        if not candidate.is_file():
+            return self._not_found(request_id, send_body)
+
+        data = candidate.read_bytes()
+        if candidate.suffix == ".html" and b"{{APP_BASE_URL}}" in data:
+            safe_base = escape(self.server.settings.app_base_url.rstrip("/"), quote=True).encode("utf-8")
+            data = data.replace(b"{{APP_BASE_URL}}", safe_base)
+        mime, _encoding = mimetypes.guess_type(candidate.name)
+        if candidate.suffix == ".js":
+            mime = "application/javascript"
+        elif candidate.suffix == ".webmanifest":
+            mime = "application/manifest+json"
+        content_type = mime or "application/octet-stream"
+        if content_type.startswith("text/") or content_type in {"application/javascript", "application/json"}:
+            content_type += "; charset=utf-8"
+        self.send_response(HTTPStatus.OK)
+        self._security_headers(request_id)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Last-Modified", formatdate(candidate.stat().st_mtime, usegmt=True))
+        cache_control = (
+            "no-cache"
+            if candidate.name.endswith(".html") or not self.server.settings.production
+            else "public, max-age=3600"
+        )
+        self.send_header("Cache-Control", cache_control)
+        self.end_headers()
+        if send_body:
+            self.wfile.write(data)
+        return HTTPStatus.OK
+
+    def _not_found(self, request_id: str, send_body: bool) -> HTTPStatus:
+        self._json_response(HTTPStatus.NOT_FOUND, {"error": "not_found"}, request_id=request_id, send_body=send_body)
+        return HTTPStatus.NOT_FOUND
+
+    def _method_not_allowed(self, allowed: set[str], request_id: str, send_body: bool) -> HTTPStatus:
+        self._json_response(
+            HTTPStatus.METHOD_NOT_ALLOWED,
+            {"error": "method_not_allowed"},
+            request_id=request_id,
+            send_body=send_body,
+            headers=[("Allow", ", ".join(sorted(allowed)))],
+        )
+        return HTTPStatus.METHOD_NOT_ALLOWED
+
+    def _auth_cookie_headers(self, issue: SessionIssue) -> list[tuple[str, str]]:
+        settings = self.server.settings
+        max_age = max(0, issue.absolute_expires_at - int(self.server.auth_service.clock()))
+        attributes = f"Path=/; Max-Age={max_age}; Expires={formatdate(issue.absolute_expires_at, usegmt=True)}; SameSite=Lax"
+        if settings.production:
+            attributes += "; Secure"
+        return [
+            ("Set-Cookie", f"{settings.session_cookie_name}={issue.session_token}; {attributes}; HttpOnly"),
+            ("Set-Cookie", f"{settings.csrf_cookie_name}={issue.csrf_token}; {attributes}"),
+        ]
+
+    def _clear_auth_cookie_headers(self) -> list[tuple[str, str]]:
+        settings = self.server.settings
+        attributes = "Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax"
+        if settings.production:
+            attributes += "; Secure"
+        return [
+            ("Set-Cookie", f"{settings.session_cookie_name}=; {attributes}; HttpOnly"),
+            ("Set-Cookie", f"{settings.csrf_cookie_name}=; {attributes}"),
+        ]
+
+    def _json_response(
+        self,
+        status: HTTPStatus | int,
+        payload: dict[str, object],
+        *,
+        request_id: str | None = None,
+        send_body: bool = True,
+        headers: list[tuple[str, str]] | None = None,
+    ) -> None:
+        data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        self.send_response(int(status))
+        self._security_headers(request_id or uuid4().hex)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        for name, value in headers or []:
+            self.send_header(name, value)
+        self.end_headers()
+        if send_body:
+            self.wfile.write(data)
+
+    def _security_headers(self, request_id: str) -> None:
+        self.send_header("X-Request-ID", request_id)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+            "script-src 'self' 'sha256-JzzOEVfQFE3m1nzmouGyDTsVkd/OZr7ITj2TNykRv4g=' "
+            "https://apis.google.com https://www.gstatic.com https://www.google.com https://recaptcha.net https://www.recaptcha.net https://checkout.razorpay.com; "
+            "style-src 'self'; "
+            "font-src 'self'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' "
+            "https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.google.com https://www.recaptcha.net https://api.razorpay.com https://checkout.razorpay.com; "
+            "frame-src https://accounts.google.com https://www.google.com https://recaptcha.google.com https://recaptcha.net https://www.recaptcha.net https://*.firebaseapp.com https://api.razorpay.com https://checkout.razorpay.com; "
+            "form-action 'self'; upgrade-insecure-requests",
+        )
+        if self.server.settings.production and self.server.settings.app_base_url.startswith("https://"):
+            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+
+
+class RequestError(Exception):
+    def __init__(self, status: HTTPStatus, code: str) -> None:
+        super().__init__(code)
+        self.status = status
+        self.code = code
+
+
+def create_server(
+    settings: Settings | None = None,
+    *,
+    verifier: IdentityVerifier | None = None,
+    clock: Callable[[], float] | None = None,
+) -> GravityHTTPServer:
+    configured = settings or Settings.load()
+    configured.ensure_directories()
+    database = Database(configured.database_path, configured.migrations_dir)
+    database.migrate()
+    identity_verifier = verifier or FirebaseAdminVerifier(configured)
+    auth_service = AuthService(database, configured, identity_verifier, **({"clock": clock} if clock else {}))
+    admin_service = AdminService(database, configured, **({"clock": clock} if clock else {}))
+    membership_service = MembershipService(database, **({"clock": clock} if clock else {}))
+    pool_service = PoolService(database, admin_service, **({"clock": clock} if clock else {}))
+    kitchen_service = KitchenService(database, admin_service, **({"clock": clock} if clock else {}))
+    notification_service = NotificationService(database, membership_service, configured, **({"clock": clock} if clock else {}))
+    admin_software_service = AdminSoftwareService(
+        database,
+        membership_service,
+        admin_service,
+        notification_service,
+        **({"clock": clock} if clock else {}),
+    )
+    payment_service = PaymentService(database, configured, membership_service, **({"clock": clock} if clock else {}))
+    coaching_service = CoachingService(database, **({"clock": clock} if clock else {}))
+    biometric_service = BiometricService(database, configured, admin_service, **({"clock": clock} if clock else {}))
+    readiness_service = ReadinessService(configured)
+    enquiry_service = EnquiryService(
+        database,
+        configured,
+        admin_service,
+        **({"clock": clock} if clock else {}),
+    )
+    purged_enquiries = enquiry_service.purge_expired()
+    if purged_enquiries:
+        logging.getLogger("gravity.privacy").info(
+            "expired_enquiries_purged",
+            extra={"event_data": {"count": purged_enquiries}},
+        )
+    return GravityHTTPServer(
+        (configured.host, configured.port),
+        GravityRequestHandler,
+        configured,
+        database,
+        auth_service,
+        admin_service,
+        admin_software_service,
+        membership_service,
+        pool_service,
+        kitchen_service,
+        notification_service,
+        payment_service,
+        coaching_service,
+        biometric_service,
+        readiness_service,
+        enquiry_service,
+    )
