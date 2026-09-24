@@ -208,6 +208,19 @@ class OperationsHttpTests(unittest.TestCase):
             self.assertEqual(payload["bill"]["session"]["paymentStatus"], "paid")
             self.assertEqual(payload["bill"]["session"]["paymentMethod"], "cash")
 
+            status, payload = request_json(
+                base,
+                "/api/admin/operations/report",
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            report = payload["report"]
+            self.assertEqual(report["summary"]["completedPoolSessions"], 1)
+            self.assertEqual(report["summary"]["poolBilledPaise"], 6000)
+            self.assertEqual(report["summary"]["kitchenSalesPaise"], 16000)
+            self.assertEqual(report["summary"]["settledRevenuePaise"], 22000)
+            self.assertEqual(report["summary"]["outstandingPaise"], 0)
+
     def test_invalid_pool_and_kitchen_inputs_fail_closed(self):
         with running_server() as (server, base):
             headers = owner_headers(server, base)

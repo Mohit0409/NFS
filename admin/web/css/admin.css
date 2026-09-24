@@ -747,3 +747,32 @@ button:disabled { cursor: not-allowed; opacity: .52; filter: none; }
 @media (max-width: 700px) {
   .pool-bill-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
+
+.operations-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(130px,1fr));
+  gap: 10px;
+}
+.operations-status-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #2d3742;
+  border-radius: 8px;
+  background: #0f151c;
+}
+.operations-status-card span {
+  color: #8793a1;
+  font-size: .62rem;
+  letter-spacing: .08em;
+}
+.operations-status-card strong {
+  color: #dce3e9;
+  font-size: .8rem;
+}
+.operations-status-card em {
+  color: #f1f4f7;
+  font-size: 1.2rem;
+  font-style: normal;
+  font-weight: 700;
+}

@@ -285,8 +285,12 @@ class HttpFoundationTests(unittest.TestCase):
                 b'id="kitchenView"',
                 b'id="kitchenInventoryCreateForm"',
                 b'id="kitchenInventoryAdjustForm"',
+                b'id="operationsNav"',
+                b'id="operationsView"',
+                b'id="operationsReportSummary"',
                 b'/js/admin-pool.js?v=new-gym-pool-v2',
                 b'/js/admin-kitchen.js?v=new-gym-kitchen-v2',
+                b'/js/admin-operations-report.js?v=new-gym-report-v1',
             ):
                 self.assertIn(marker, admin)
 
@@ -303,6 +307,11 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn(b"/api/admin/kitchen/inventory", kitchen_script)
             self.assertIn(b"/adjust", kitchen_script)
+
+            status, _headers, report_script = fetch(base, "/js/admin-operations-report.js")
+            self.assertEqual(status, 200)
+            self.assertIn(b"/api/admin/operations/report", report_script)
+            self.assertIn(b"settledRevenuePaise", report_script)
 
     def test_readiness_ui_contract_is_wired(self):
         with running_server() as (base, _settings):

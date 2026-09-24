@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Mapping
 from ipaddress import ip_network
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import os
 import re
 
@@ -107,6 +108,7 @@ class Settings:
     business_gstin: str
     tax_invoice_enabled: bool
     business_instagram: str
+    business_timezone: str
     google_analytics_id: str
     meta_pixel_id: str
     session_idle_seconds: int
@@ -173,6 +175,13 @@ class Settings:
         )
         for cidr in trusted_proxy_cidrs:
             ip_network(cidr, strict=False)
+        business_timezone = values.get("BUSINESS_TIMEZONE", "Asia/Kolkata").strip() or "Asia/Kolkata"
+        if business_timezone != "Asia/Kolkata":
+            try:
+                ZoneInfo(business_timezone)
+            except ZoneInfoNotFoundError as error:
+                raise ValueError("BUSINESS_TIMEZONE must be a valid IANA timezone") from error
+
         additional_origins = tuple(
             value.strip().rstrip("/")
             for value in values.get("GRAVITY_ADDITIONAL_ORIGINS", "").split(",")
@@ -243,6 +252,7 @@ class Settings:
             business_gstin=values.get("BUSINESS_GSTIN", "").strip().upper(),
             tax_invoice_enabled=_boolean(values.get("TAX_INVOICE_ENABLED"), False),
             business_instagram=values.get("BUSINESS_INSTAGRAM", "").strip(),
+            business_timezone=business_timezone,
             google_analytics_id=values.get("GOOGLE_ANALYTICS_ID", "").strip(),
             meta_pixel_id=values.get("META_PIXEL_ID", "").strip(),
             session_idle_seconds=idle_seconds,

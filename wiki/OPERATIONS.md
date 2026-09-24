@@ -36,6 +36,17 @@
 
 Automatic recipe deduction is intentionally not active yet.
 
+## Daily operations report
+
+1. Open **Operations Report** in the admin portal.
+2. Select the business date.
+3. Review operations sales, settled revenue and outstanding amount.
+4. Review each pool table's sessions/minutes/billed/paid totals.
+5. Review top kitchen items and reservation/order status counts.
+6. Review payment-method totals and current low-stock items.
+
+The report uses `BUSINESS_TIMEZONE` for business-day boundaries. The New Gym default is `Asia/Kolkata`.
+
 ## Backup rule
 
 Production deployment must configure a dedicated New Gym off-device backup target.

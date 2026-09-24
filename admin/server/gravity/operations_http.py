@@ -266,10 +266,30 @@ def _kitchen_inventory_adjust(
     return _json(handler, HTTPStatus.OK, {"item": item}, request_id, send_body)
 
 
+def _operations_report(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    handler.server.admin_service.require_permission(session, "operations.report")
+    params = parse_qs(urlsplit(handler.path).query)
+    report = handler.server.operations_report_service.daily(
+        params.get("date", [""])[0] or None
+    )
+    return _json(handler, HTTPStatus.OK, {"report": report}, request_id, send_body)
+
+
 def handle_operations_request(handler: Any, path: str, request_id: str, send_body: bool) -> HTTPStatus | None:
-    if not (path.startswith("/api/admin/pool") or path.startswith("/api/admin/kitchen")):
+    if not (
+        path.startswith("/api/admin/pool")
+        or path.startswith("/api/admin/kitchen")
+        or path == "/api/admin/operations/report"
+    ):
         return None
     try:
+        if path == "/api/admin/operations/report":
+            if handler.command in {"GET", "HEAD"}:
+                return _operations_report(handler, request_id, send_body)
+            return handler._method_not_allowed({"GET", "HEAD"}, request_id, send_body)
         if path == "/api/admin/pool/tables":
             if handler.command in {"GET", "HEAD"}:
                 return _pool_tables(handler, request_id, send_body)

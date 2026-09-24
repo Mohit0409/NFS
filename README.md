@@ -73,6 +73,21 @@ Implemented:
 
 Automatic recipe-based ingredient deduction is intentionally deferred until menu recipes are defined.
 
+## Daily operations report
+
+The admin portal now includes a date-based Pool & Kitchen Operations Report with:
+- pool sessions, minutes, billed and paid amounts by table
+- kitchen order count and sales
+- combined operations sales
+- settled revenue by payment method
+- selected-day outstanding amount
+- current active pool/open kitchen counts
+- reservation and kitchen status counts
+- top kitchen items
+- current low-stock inventory
+
+Business-day boundaries use `BUSINESS_TIMEZONE`, defaulting to `Asia/Kolkata`.
+
 ## Database
 
 New Gym operations migrations:
@@ -179,7 +194,8 @@ Current verified state:
 - clean migration through `001-016`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **223/223 PASS**
+- full admin/backend regression: **227/227 PASS**
+- local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**
 - diet planner tests: **PASS**
@@ -187,7 +203,7 @@ Current verified state:
 - New Gym Termux isolation tests: PASS
 - customer-site scan for Gravity live Firebase/auth/phone/gateway values: CLEAN
 
-Browser E2E has not yet been run in this isolated copy because the copied `node_modules` directory was intentionally excluded.
+Local Chromium E2E has now been run in this isolated copy. Final-domain E2E remains pending until the real New Gym domains, Firebase configuration and tunnel exist.
 
 ## Current state
 

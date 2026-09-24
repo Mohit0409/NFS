@@ -121,6 +121,46 @@ function operationState() {
 }
 
 async function mockOperations(page, state) {
+  await page.route('**/api/admin/operations/report*', (route) => {
+    const report = {
+      date: '2026-09-24',
+      timezone: 'Asia/Kolkata',
+      generatedAt: Math.floor(Date.now() / 1000),
+      summary: {
+        completedPoolSessions: 1,
+        poolMinutes: 60,
+        poolBilledPaise: 12000,
+        poolPaidPaise: 12000,
+        kitchenOrders: 2,
+        kitchenSalesPaise: 24000,
+        kitchenPaidPaise: 16000,
+        operationsSalesPaise: 36000,
+        settledRevenuePaise: 28000,
+        outstandingPaise: 8000,
+        activePoolSessions: 1,
+        openKitchenOrders: 1,
+        lowStockItems: 1,
+      },
+      poolTables: [
+        { id: 'pool-private-1', name: 'Private Table', type: 'private', sessions: 1, minutes: 60, billedPaise: 12000, paidPaise: 12000 },
+        { id: 'pool-common-1', name: 'Common Table 1', type: 'common', sessions: 0, minutes: 0, billedPaise: 0, paidPaise: 0 },
+        { id: 'pool-common-2', name: 'Common Table 2', type: 'common', sessions: 0, minutes: 0, billedPaise: 0, paidPaise: 0 },
+      ],
+      reservations: { reserved: 2, checked_in: 1, completed: 1 },
+      kitchenStatuses: { new: 1, served: 1 },
+      topKitchenItems: [
+        { name: 'Cold Coffee', quantity: 3, salesPaise: 24000 },
+      ],
+      paymentMethods: [
+        { method: 'upi', amountPaise: 28000 },
+      ],
+      lowStock: [
+        { id: 'stock-milk', name: 'Milk', unit: 'litre', quantityMilli: 1500, lowStockMilli: 2000 },
+      ],
+    };
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ report }) });
+  });
+
   await page.route('**/api/admin/pool/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -319,6 +359,26 @@ test('New Gym pool reservation and combined bill work in the browser', async ({ 
   await page.locator('#settlePoolBill').click();
   await expect(page.locator('#poolBillSummary')).toContainText('₹0.00');
   await expect(page.locator('#settlePoolBill')).toBeHidden();
+});
+
+test('New Gym daily operations report is readable in the browser', async ({ page }) => {
+  const state = operationState();
+  await mockAdminShell(page);
+  await mockOperations(page, state);
+
+  await page.goto('/admin');
+  await page.locator('#operationsNav').click();
+  await expect(page.locator('#viewTitle')).toHaveText('Operations Report');
+  await expect(page.locator('#operationsReportDate')).toHaveValue('2026-09-24');
+  await expect(page.locator('#operationsReportSummary')).toContainText('₹360');
+  await expect(page.locator('#operationsReportSummary')).toContainText('₹280');
+  await expect(page.locator('#operationsReportSummary')).toContainText('₹80');
+  await expect(page.locator('#operationsPoolBody')).toContainText('Private Table');
+  await expect(page.locator('#operationsKitchenItemsBody')).toContainText('Cold Coffee');
+  await expect(page.locator('#operationsPaymentBody')).toContainText('UPI');
+  await expect(page.locator('#operationsLowStockBody')).toContainText('1.5 litre');
+  await expect(page.locator('#operationsStatusSummary')).toContainText('Reserved');
+  await expect(page.locator('#operationsStatusSummary')).toContainText('Served');
 });
 
 test('New Gym kitchen order and inventory flows work in the browser', async ({ page }) => {

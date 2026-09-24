@@ -28,13 +28,14 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "membership_plans.manage", "payments.read", "payments.record", "notifications.manage", "diet.manage",
         "progress.manage", "content.manage", "attendance.view", "biometric.manage", "audit.read", "system.readiness",
         "enquiries.read", "enquiries.manage",
+        "pool.read", "pool.manage", "kitchen.read", "kitchen.manage", "operations.report",
     }),
     "trainer": frozenset({"dashboard.view", "members.read", "attendance.view", "diet.manage", "progress.manage"}),
     "reception": frozenset({
         "dashboard.view", "members.read", "members.manage",
         "memberships.manage", "payments.read", "payments.record", "attendance.view",
         "enquiries.read", "enquiries.manage", "pool.read", "pool.manage",
-        "kitchen.read", "kitchen.manage",
+        "kitchen.read", "kitchen.manage", "operations.report",
     }),
 }
 USERNAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.@+-]{2,63}$")

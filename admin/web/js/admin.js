@@ -249,9 +249,9 @@
   }
 
   async function showView(view) {
-    const allowed = new Set(['dashboard', 'attendance', 'enquiries', 'members', 'memberships', 'fees', 'pool', 'kitchen', 'coaching', 'biometric', 'notifications', 'readiness', 'admins', 'audit']);
+    const allowed = new Set(['dashboard', 'attendance', 'enquiries', 'members', 'memberships', 'fees', 'pool', 'kitchen', 'operations', 'coaching', 'biometric', 'notifications', 'readiness', 'admins', 'audit']);
     state.view = allowed.has(view) ? view : 'dashboard';
-    const titles = { dashboard: 'Home', attendance: 'Attendance', enquiries: 'Enquiries', members: 'People', memberships: 'Memberships', fees: 'Fees', pool: 'Pool', kitchen: 'Kitchen', coaching: 'Coaching', biometric: 'Biometric Devices', notifications: 'Follow-ups', readiness: 'Readiness', admins: 'Team access', audit: 'Audit trail' };
+    const titles = { dashboard: 'Home', attendance: 'Attendance', enquiries: 'Enquiries', members: 'People', memberships: 'Memberships', fees: 'Fees', pool: 'Pool', kitchen: 'Kitchen', operations: 'Operations Report', coaching: 'Coaching', biometric: 'Biometric Devices', notifications: 'Follow-ups', readiness: 'Readiness', admins: 'Team access', audit: 'Audit trail' };
     document.querySelectorAll('.view').forEach((node) => { node.hidden = node.id !== `${state.view}View`; });
     document.querySelectorAll('nav [data-view]').forEach((node) => node.classList.toggle('active', node.dataset.view === state.view));
     $('viewTitle').textContent = titles[state.view];
@@ -267,6 +267,7 @@
     if (state.view === 'fees' && window.GravityPaymentAdmin) await window.GravityPaymentAdmin.renderWorkspace();
     if (state.view === 'pool' && window.NewGymPoolAdmin) await window.NewGymPoolAdmin.renderWorkspace();
     if (state.view === 'kitchen' && window.NewGymKitchenAdmin) await window.NewGymKitchenAdmin.renderWorkspace();
+    if (state.view === 'operations' && window.NewGymOperationsReport) await window.NewGymOperationsReport.renderWorkspace();
     if (state.view === 'coaching' && window.GravityCoachingAdmin) await window.GravityCoachingAdmin.renderWorkspace();
     if (state.view === 'biometric' && window.GravityBiometricAdmin) await window.GravityBiometricAdmin.renderDeviceWorkspace();
     if (state.view === 'notifications' && window.GravityFollowupAdmin) await window.GravityFollowupAdmin.renderWorkspace();
@@ -289,6 +290,7 @@
     $('feesNav').hidden = !hasPermission('payments.read');
     $('poolNav').hidden = !hasPermission('pool.read');
     $('kitchenNav').hidden = !hasPermission('kitchen.read');
+    $('operationsNav').hidden = !hasPermission('operations.report');
     $('notificationsNav').hidden = !hasPermission('notifications.manage');
     $('coachingNav').hidden = !(hasPermission('diet.manage') || hasPermission('progress.manage'));
     $('biometricNav').hidden = !hasPermission('attendance.view');

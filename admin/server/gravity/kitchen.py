@@ -13,6 +13,7 @@ from .database import Database
 
 ORDER_STATUSES = {"new", "preparing", "ready", "served", "cancelled"}
 PAYMENT_STATUSES = {"unpaid", "paid", "void"}
+PAYMENT_METHODS = {"cash", "upi", "card", "bank_transfer", "other"}
 INVENTORY_REASONS = {"purchase", "usage", "waste", "adjustment"}
 STATUS_TRANSITIONS = {
     "new": {"preparing", "cancelled"},
@@ -141,6 +142,8 @@ class KitchenService:
             "customerName": row["customer_name"],
             "status": row["status"],
             "paymentStatus": row["payment_status"],
+            "paymentMethod": row["payment_method"] if "payment_method" in row.keys() else None,
+            "paidAt": int(row["paid_at"]) if "paid_at" in row.keys() and row["paid_at"] is not None else None,
             "totalPaise": int(row["total_paise"]),
             "note": row["note"],
             "createdAt": int(row["created_at"]),
@@ -262,20 +265,35 @@ class KitchenService:
                     raise AdminSoftwareConflict(f"Cannot move order from {status} to {requested}")
                 status = requested
             payment = row["payment_status"]
+            payment_method = row["payment_method"] if "payment_method" in row.keys() else None
+            paid_at = row["paid_at"] if "paid_at" in row.keys() else None
             if "paymentStatus" in payload:
                 payment = str(payload.get("paymentStatus") or "").strip().casefold()
                 if payment not in PAYMENT_STATUSES:
                     raise AdminSoftwareValidationError({"paymentStatus": "Invalid payment status"})
                 if status == "cancelled" and payment == "paid":
                     raise AdminSoftwareConflict("Cancelled order cannot be marked paid")
+                if payment == "paid" and row["payment_status"] != "paid":
+                    paid_at = now
+                elif payment != "paid":
+                    paid_at = None
+                    if payment == "unpaid":
+                        payment_method = None
+            if "paymentMethod" in payload:
+                requested_method = str(payload.get("paymentMethod") or "").strip().casefold()
+                if requested_method and requested_method not in PAYMENT_METHODS:
+                    raise AdminSoftwareValidationError({"paymentMethod": "Invalid payment method"})
+                if requested_method and payment != "paid":
+                    raise AdminSoftwareConflict("Payment method can only be set on a paid order")
+                payment_method = requested_method or None
             connection.execute(
-                "UPDATE kitchen_orders SET status=?,payment_status=?,updated_at=? WHERE id=?",
-                (status, payment, now, order_id),
+                "UPDATE kitchen_orders SET status=?,payment_status=?,payment_method=?,paid_at=?,updated_at=? WHERE id=?",
+                (status, payment, payment_method, paid_at, now, order_id),
             )
             self.admin_service._audit(
                 connection, actor_admin_user_id, "kitchen_order_updated",
                 target_type="kitchen_order", target_id=order_id,
-                metadata={"status": status, "paymentStatus": payment},
+                metadata={"status": status, "paymentStatus": payment, "paymentMethod": payment_method},
             )
             connection.commit()
             updated = connection.execute("SELECT * FROM kitchen_orders WHERE id=?", (order_id,)).fetchone()

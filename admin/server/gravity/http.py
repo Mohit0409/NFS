@@ -39,6 +39,7 @@ from .database import Database
 from .membership import MembershipService
 from .pool import PoolService
 from .kitchen import KitchenService
+from .operations_report import OperationsReportService
 from .notification import NotificationService
 from .payment import PaymentService
 from .coaching import CoachingService
@@ -113,6 +114,7 @@ class GravityHTTPServer(ThreadingHTTPServer):
         membership_service: MembershipService,
         pool_service: PoolService,
         kitchen_service: KitchenService,
+        operations_report_service: OperationsReportService,
         notification_service: NotificationService,
         payment_service: PaymentService,
         coaching_service: CoachingService,
@@ -129,6 +131,7 @@ class GravityHTTPServer(ThreadingHTTPServer):
         self.membership_service = membership_service
         self.pool_service = pool_service
         self.kitchen_service = kitchen_service
+        self.operations_report_service = operations_report_service
         self.notification_service = notification_service
         self.payment_service = payment_service
         self.coaching_service = coaching_service
@@ -993,6 +996,7 @@ def create_server(
     membership_service = MembershipService(database, **({"clock": clock} if clock else {}))
     pool_service = PoolService(database, admin_service, **({"clock": clock} if clock else {}))
     kitchen_service = KitchenService(database, admin_service, **({"clock": clock} if clock else {}))
+    operations_report_service = OperationsReportService(database, configured, **({"clock": clock} if clock else {}))
     notification_service = NotificationService(database, membership_service, configured, **({"clock": clock} if clock else {}))
     admin_software_service = AdminSoftwareService(
         database,
@@ -1028,6 +1032,7 @@ def create_server(
         membership_service,
         pool_service,
         kitchen_service,
+        operations_report_service,
         notification_service,
         payment_service,
         coaching_service,

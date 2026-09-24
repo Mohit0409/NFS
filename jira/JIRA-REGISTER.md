@@ -16,9 +16,9 @@
 | NG-012 | Create/configure dedicated New Gym Firebase Auth | BLOCKED — credentials/project required | Not deployed |
 | NG-013 | Create/configure dedicated Cloudflare Tunnel/domains | BLOCKED — domain/tunnel required | Not deployed |
 | NG-014 | Configure dedicated off-device backups | BLOCKED — backup remote required | Not deployed |
-| NG-015 | Browser E2E on final admin/customer origins | IN PROGRESS — local admin Chromium 5/5 PASS; final-origin run still required | Not deployed |
+| NG-015 | Browser E2E on final admin/customer origins | IN PROGRESS — local admin Chromium 6/6 PASS; final-origin run still required | Not deployed |
 | NG-016 | Kitchen recipe definitions + automatic ingredient deduction | BACKLOG | Not deployed |
-| NG-017 | Pool/Kitchen daily revenue and operational reports | BACKLOG | Not deployed |
+| NG-017 | Pool/Kitchen daily revenue and operational reports | DONE | Not deployed |
 | NG-018 | Production deployment to Redmi | BLOCKED by NG-010..015 | Not deployed |
 | NG-019 | Remove copied Gravity Firebase default aliases and add regression guard | DONE | Not deployed |
 
@@ -28,7 +28,8 @@ Local Git commit:
 `7a18718 Add combined pool kitchen settlement`
 
 Verification at this point:
-- backend: 223/223 PASS
+- backend: 227/227 PASS
+- local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS
 - diet planner: PASS

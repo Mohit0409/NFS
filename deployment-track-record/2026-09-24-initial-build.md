@@ -36,6 +36,8 @@ This record documents local development milestones only.
 - Firebase isolation regression: PASS
 - inherited admin reliability Chromium suite: 3/3 PASS
 - New Gym Pool/Kitchen Chromium suite: 2/2 PASS
+- daily Operations Report Chromium flow included
+- local admin Chromium total: 6/6 PASS
 - final-domain E2E remains pending until domains/configuration exist
 
 ## Customer verification
