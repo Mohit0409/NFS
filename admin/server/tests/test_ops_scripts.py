@@ -5,6 +5,8 @@ import subprocess
 import sys
 import unittest
 
+from server.gravity.database import Database
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ENV_RUNNER = ROOT / "scripts" / "gravity-env.py"
@@ -426,11 +428,26 @@ class OperationsScriptTests(unittest.TestCase):
         memberGatewayBase: 'https://gym.example.org',
         projectId: 'new-gym-auth',
         """
+        ready_database = {
+            "exists": True,
+            "schemaVersion": 17,
+            "integrityOk": True,
+            "foreignKeysOk": True,
+            "legacyPlanDrafts": 0,
+            "activePlans": 2,
+            "invalidActivePlans": 0,
+            "poolTables": 3,
+            "poolTablesMissingRates": 0,
+            "availableMenuItems": 4,
+            "activeInventoryItems": 6,
+            "invalidRecipes": 0,
+        }
         launch = module.validate(
             launch_values,
             stage="launch",
             customer_config_text=customer_config,
             path_exists=lambda _value: True,
+            database_state=ready_database,
         )
         self.assertTrue(launch["ready"])
 
@@ -439,6 +456,7 @@ class OperationsScriptTests(unittest.TestCase):
             stage="launch",
             customer_config_text="name: 'New Gym', phoneDisplay: '', projectId: ''",
             path_exists=lambda _value: True,
+            database_state=ready_database,
         )
         self.assertFalse(blocked["ready"])
         self.assertIn("business_name", blocked["blockers"])
@@ -447,6 +465,31 @@ class OperationsScriptTests(unittest.TestCase):
 
         serialized = __import__("json").dumps(blocked)
         self.assertNotIn(launch_values["SECRET_KEY"], serialized)
+
+    def test_new_gym_database_preflight_detects_legacy_unconfigured_defaults(self) -> None:
+        spec = importlib.util.spec_from_file_location("new_gym_preflight_db", NEW_GYM_PREFLIGHT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with TemporaryDirectory() as temporary:
+            path = Path(temporary) / "new-gym.sqlite3"
+            database = Database(path, ROOT / "server" / "migrations")
+            database.migrate()
+            state = module.inspect_database(path)
+
+        self.assertTrue(state["exists"])
+        self.assertGreaterEqual(state["schemaVersion"], 17)
+        self.assertTrue(state["integrityOk"])
+        self.assertTrue(state["foreignKeysOk"])
+        self.assertEqual(state["legacyPlanDrafts"], 3)
+        self.assertEqual(state["activePlans"], 3)
+        self.assertEqual(state["invalidActivePlans"], 0)
+        self.assertEqual(state["poolTables"], 3)
+        self.assertEqual(state["poolTablesMissingRates"], 3)
+        self.assertEqual(state["availableMenuItems"], 0)
+        self.assertEqual(state["activeInventoryItems"], 0)
 
     def test_new_gym_installer_requires_staged_preflight_before_tunnel(self) -> None:
         profile = ROOT / "deploy" / "new-gym-termux"

@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import json
 import re
+import sqlite3
 import sys
 
 
@@ -17,6 +18,7 @@ GRAVITY_MARKERS = (
     "917999526112",
     "foyer-amenity-staff.ngrok-free.dev",
 )
+MINIMUM_SCHEMA_VERSION = 17
 
 
 def load_env(path: Path) -> dict[str, str]:
@@ -60,12 +62,83 @@ def _bool(value: str) -> bool:
     return value.strip().lower() in TRUTHY
 
 
+def inspect_database(path: Path) -> dict[str, object]:
+    state: dict[str, object] = {
+        "exists": path.is_file(),
+        "schemaVersion": 0,
+        "integrityOk": False,
+        "foreignKeysOk": False,
+        "legacyPlanDrafts": 0,
+        "activePlans": 0,
+        "invalidActivePlans": 0,
+        "poolTables": 0,
+        "poolTablesMissingRates": 0,
+        "availableMenuItems": 0,
+        "activeInventoryItems": 0,
+        "invalidRecipes": 0,
+    }
+    if not path.is_file():
+        return state
+
+    try:
+        connection = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        connection.row_factory = sqlite3.Row
+        try:
+            version = connection.execute(
+                "SELECT COALESCE(MAX(CAST(version AS INTEGER)),0) FROM schema_migrations"
+            ).fetchone()[0]
+            state["schemaVersion"] = int(version or 0)
+            state["integrityOk"] = connection.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+            state["foreignKeysOk"] = not connection.execute("PRAGMA foreign_key_check").fetchall()
+
+            state["legacyPlanDrafts"] = int(connection.execute(
+                "SELECT COUNT(*) FROM membership_plans WHERE "
+                "(id='plan-basic-monthly' AND name='1 Month' AND price_paise=120000 AND duration_months=1) OR "
+                "(id='plan-pro-monthly' AND name='3 Months' AND price_paise=300000 AND duration_months=3) OR "
+                "(id='plan-elite-monthly' AND name='1 Year' AND price_paise=1000000 AND duration_months=12)"
+            ).fetchone()[0])
+            state["activePlans"] = int(connection.execute(
+                "SELECT COUNT(*) FROM membership_plans WHERE status='active'"
+            ).fetchone()[0])
+            state["invalidActivePlans"] = int(connection.execute(
+                "SELECT COUNT(*) FROM membership_plans "
+                "WHERE status='active' AND (price_paise<=0 OR currency!='INR' OR duration_months<=0)"
+            ).fetchone()[0])
+
+            state["poolTables"] = int(connection.execute(
+                "SELECT COUNT(*) FROM pool_tables"
+            ).fetchone()[0])
+            state["poolTablesMissingRates"] = int(connection.execute(
+                "SELECT COUNT(*) FROM pool_tables "
+                "WHERE status!='disabled' AND (default_rate_paise IS NULL OR default_rate_paise<=0)"
+            ).fetchone()[0])
+
+            state["availableMenuItems"] = int(connection.execute(
+                "SELECT COUNT(*) FROM kitchen_menu_items WHERE status='available'"
+            ).fetchone()[0])
+            state["activeInventoryItems"] = int(connection.execute(
+                "SELECT COUNT(*) FROM kitchen_inventory_items WHERE status='active'"
+            ).fetchone()[0])
+            state["invalidRecipes"] = int(connection.execute(
+                "SELECT COUNT(*) FROM kitchen_recipes r "
+                "LEFT JOIN kitchen_menu_items m ON m.id=r.menu_item_id "
+                "LEFT JOIN kitchen_inventory_items i ON i.id=r.inventory_item_id "
+                "WHERE m.id IS NULL OR i.id IS NULL OR i.status!='active' OR r.quantity_milli<=0"
+            ).fetchone()[0])
+        finally:
+            connection.close()
+    except (sqlite3.Error, OSError):
+        state["readError"] = True
+    return state
+
+
 def validate(
     values: dict[str, str],
     *,
     stage: str,
     customer_config_text: str = "",
     path_exists=lambda value: Path(value).is_file(),
+    database_state: dict[str, object] | None = None,
 ) -> dict[str, object]:
     blockers: list[str] = []
     checks: list[dict[str, object]] = []
@@ -202,6 +275,43 @@ def validate(
             "Fill customer gym-config.js with verified identity/contact/gateway/Firebase values",
         )
 
+        if database_state is not None:
+            check(
+                "database_exists",
+                bool(database_state.get("exists")) and not database_state.get("readError"),
+                "Production New Gym database must exist and be readable",
+            )
+            check(
+                "database_schema",
+                int(database_state.get("schemaVersion") or 0) >= MINIMUM_SCHEMA_VERSION,
+                f"Database must be migrated through schema {MINIMUM_SCHEMA_VERSION:03d}",
+            )
+            check(
+                "database_integrity",
+                bool(database_state.get("integrityOk")) and bool(database_state.get("foreignKeysOk")),
+                "SQLite quick_check and foreign-key check must pass",
+            )
+            check(
+                "membership_plan_data",
+                int(database_state.get("activePlans") or 0) > 0
+                and int(database_state.get("invalidActivePlans") or 0) == 0
+                and int(database_state.get("legacyPlanDrafts") or 0) == 0,
+                "Configure at least one real active membership plan and replace all copied Gravity default plan signatures",
+            )
+            check(
+                "pool_rate_data",
+                int(database_state.get("poolTables") or 0) == 3
+                and int(database_state.get("poolTablesMissingRates") or 0) == 0,
+                "All three pool tables must exist with positive hourly rates",
+            )
+            check(
+                "kitchen_live_data",
+                int(database_state.get("availableMenuItems") or 0) > 0
+                and int(database_state.get("activeInventoryItems") or 0) > 0
+                and int(database_state.get("invalidRecipes") or 0) == 0,
+                "Confirmed kitchen setup requires an available menu, active stock and valid recipes",
+            )
+
     return {
         "stage": stage,
         "ready": not blockers,
@@ -230,7 +340,20 @@ def main() -> int:
         else project_root / "customer-website" / "web" / "js" / "gym-config.js"
     )
     customer_text = customer_config_path.read_text(encoding="utf-8") if customer_config_path.is_file() else ""
-    result = validate(values, stage=args.stage, customer_config_text=customer_text)
+    database_state = None
+    if args.stage == "launch":
+        configured_database = values.get("NEW_GYM_MEMBER_DATABASE", "").strip()
+        if configured_database:
+            database_path = Path(configured_database).expanduser()
+        else:
+            database_path = Path(values.get("GRAVITY_DATA_DIR", "")).expanduser() / "gravity.sqlite3"
+        database_state = inspect_database(database_path)
+    result = validate(
+        values,
+        stage=args.stage,
+        customer_config_text=customer_text,
+        database_state=database_state,
+    )
     print(json.dumps(result, separators=(",", ":"), sort_keys=True))
     return 0 if result["ready"] else 2
 
