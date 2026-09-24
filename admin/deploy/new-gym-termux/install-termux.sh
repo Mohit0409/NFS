@@ -28,7 +28,7 @@ SERVICE_ROOT="$PREFIX/var/service"
 
 if $INSTALL_PACKAGES; then
   pkg update
-  pkg install -y python git termux-services curl rclone cloudflared iproute2
+  pkg install -y python python-cryptography git termux-services curl rclone cloudflared iproute2 clang rust libffi openssl
 fi
 for command in python3 git curl ss sv svlogd; do
   command -v "$command" >/dev/null 2>&1 || { echo "Missing command: $command" >&2; exit 1; }
@@ -68,9 +68,17 @@ if any(port < 1024 or port > 65535 for port in ports) or len(set(ports)) != 3:
     raise SystemExit("Admin, member and public ports must be distinct valid high ports")
 '
 
+DEFAULT_PYTHON="$REPO/.venv/bin/python"
 PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
-PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
-[ -x "$PYTHON" ] || { echo "New Gym Python is missing: $PYTHON. Create the admin virtualenv first." >&2; exit 1; }
+PYTHON="${PYTHON:-$DEFAULT_PYTHON}"
+if [ ! -x "$PYTHON" ]; then
+  if [ "$PYTHON" != "$DEFAULT_PYTHON" ]; then
+    echo "Configured GRAVITY_PYTHON does not exist: $PYTHON" >&2
+    exit 1
+  fi
+  NEW_GYM_VENV="$REPO/.venv" bash "$REPO/deploy/new-gym-termux/prepare-python-runtime.sh"
+fi
+[ -x "$PYTHON" ] || { echo "New Gym Python runtime preparation failed: $PYTHON" >&2; exit 1; }
 [ -d "$PROJECT_ROOT/customer-website/web" ] || { echo "Customer website is missing." >&2; exit 1; }
 [ -r "$PROJECT_ROOT/customer-website/gateway/member_gateway.py" ] || { echo "Member gateway is missing." >&2; exit 1; }
 

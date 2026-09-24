@@ -546,11 +546,23 @@ class OperationsScriptTests(unittest.TestCase):
         profile = ROOT / "deploy" / "new-gym-termux"
         installer = (profile / "install-termux.sh").read_text(encoding="utf-8")
         backup = (profile / "backup-offdevice.sh").read_text(encoding="utf-8")
+        runtime = (profile / "prepare-python-runtime.sh").read_text(encoding="utf-8")
         example = (profile / "new-gym.env.example").read_text(encoding="utf-8")
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn("preflight-new-gym.py", installer)
         self.assertIn("--stage install", installer)
         self.assertIn("--stage launch", installer)
         self.assertLess(installer.index("--stage launch"), installer.index("sv-enable new-gym-tunnel"))
+        self.assertIn("prepare-python-runtime.sh", installer)
+        self.assertIn("python-cryptography", installer)
+        self.assertIn("python3 -m venv --system-site-packages", runtime)
+        self.assertIn('pip install --upgrade -e "$REPO[firebase]"', runtime)
+        self.assertIn('"firebase_admin"', runtime)
+        self.assertIn('"server.gravity"', runtime)
+        self.assertLess(installer.index("prepare-python-runtime.sh"), installer.index("install_service()"))
+        self.assertIn('GRAVITY_PYTHON=', example)
+        self.assertNotIn('GRAVITY_PYTHON=/data/data/', example)
+        self.assertIn('name = "new-gym-platform"', pyproject)
         for key in (
             "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED=false",
             "NEW_GYM_POOL_RATES_CONFIRMED=false",

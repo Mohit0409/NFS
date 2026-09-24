@@ -1,7 +1,7 @@
 [project]
-name = "gravity-fitness"
+name = "new-gym-platform"
 version = "0.1.0"
-description = "Portable Gravity Fitness web application"
+description = "Portable New Gym admin and operations backend"
 requires-python = ">=3.11"
 dependencies = ["cryptography>=46,<51"]
 
@@ -15,5 +15,5 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["server*"]
 
-[tool.gravity]
+[tool.new-gym]
 entrypoint = "python -m server.gravity"
