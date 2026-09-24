@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+umask 077
+
+CONFIG="${NEW_GYM_ENV_FILE:-$HOME/.config/new-gym/new-gym.env}"
+REPO="$(cat "$HOME/.config/new-gym/repository")"
+[ -r "$CONFIG" ] || { echo "New Gym config is missing" >&2; exit 1; }
+
+INTERVAL_SECONDS=3600
+while true; do
+  GRAVITY_ENV_FILE="$CONFIG" sh "$REPO/scripts/run-notifications.sh" || true
+  sleep "$INTERVAL_SECONDS"
+done

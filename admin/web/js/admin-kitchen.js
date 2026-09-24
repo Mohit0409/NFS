@@ -3,6 +3,7 @@
 
   const $ = (id) => document.getElementById(id);
   const rupees = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
+  const quantity = (milli, unit) => `${(Number(milli || 0) / 1000).toLocaleString('en-IN', { maximumFractionDigits: 3 })} ${unit}`;
   const nextStatus = { new: 'preparing', preparing: 'ready', ready: 'served' };
 
   function core() { return window.GravityAdminCore; }
@@ -157,14 +158,103 @@
     return card;
   }
 
+  function renderInventory(items) {
+    const body = $('kitchenInventoryBody');
+    const select = $('kitchenInventoryAdjustItem');
+    if (!body || !select) return;
+    body.replaceChildren();
+    const selected = select.value;
+    select.replaceChildren();
+
+    for (const item of items || []) {
+      const option = new Option(`${item.name} · ${quantity(item.quantityMilli, item.unit)}`, item.id);
+      option.disabled = item.status !== 'active';
+      select.append(option);
+
+      const row = document.createElement('tr');
+      row.innerHTML = '<td></td><td></td><td></td><td></td>';
+      row.children[0].textContent = item.name;
+      row.children[1].textContent = quantity(item.quantityMilli, item.unit);
+      row.children[2].textContent = quantity(item.lowStockMilli, item.unit);
+      const status = document.createElement('span');
+      status.className = 'ops-status';
+      status.dataset.status = item.lowStock ? 'low-stock' : item.status;
+      status.textContent = item.lowStock ? 'low stock' : item.status;
+      row.children[3].append(status);
+      body.append(row);
+    }
+
+    if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+    if (!body.children.length) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="4" class="empty">No kitchen stock items yet.</td>';
+      body.append(row);
+    }
+  }
+
+  function decimalToMilli(value, field) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new Error(`Enter a valid ${field}.`);
+    }
+    return Math.round(amount * 1000);
+  }
+
+  async function createInventoryItem(event) {
+    event.preventDefault();
+    const quantityMilli = decimalToMilli($('kitchenInventoryQuantity').value || '0', 'initial quantity');
+    const lowStockMilli = decimalToMilli($('kitchenInventoryLowStock').value || '0', 'low-stock level');
+    await core().api('/api/admin/kitchen/inventory', {
+      method: 'POST',
+      body: {
+        name: $('kitchenInventoryName').value.trim(),
+        unit: $('kitchenInventoryUnit').value.trim(),
+        quantityMilli,
+        lowStockMilli,
+      },
+    });
+    $('kitchenInventoryCreateForm').reset();
+    $('kitchenInventoryQuantity').value = '0';
+    $('kitchenInventoryLowStock').value = '0';
+    core().flash('Kitchen stock item added.');
+    await render();
+  }
+
+  async function adjustInventory(event) {
+    event.preventDefault();
+    const raw = Number($('kitchenInventoryDelta').value);
+    if (!Number.isFinite(raw) || raw === 0) {
+      core().flash('Enter a non-zero stock change.', 'error');
+      return;
+    }
+    const deltaMilli = Math.round(raw * 1000);
+    if (deltaMilli === 0) {
+      core().flash('Stock change is too small.', 'error');
+      return;
+    }
+    await core().api(`/api/admin/kitchen/inventory/${encodeURIComponent($('kitchenInventoryAdjustItem').value)}/adjust`, {
+      method: 'POST',
+      body: {
+        deltaMilli,
+        reason: $('kitchenInventoryReason').value,
+        note: $('kitchenInventoryNote').value.trim() || null,
+      },
+    });
+    $('kitchenInventoryAdjustForm').reset();
+    core().flash('Kitchen stock updated.');
+    await render();
+  }
+
   async function render() {
     const root = $('kitchenOrdersGrid');
     if (!root) return;
-    const [menuData, orderData] = await Promise.all([
+    const [menuData, orderData, inventoryData] = await Promise.all([
       core().api('/api/admin/kitchen/menu'),
       core().api('/api/admin/kitchen/orders?limit=50'),
+      core().api('/api/admin/kitchen/inventory'),
     ]);
     renderMenu(menuData.items || []);
+    renderInventory(inventoryData.items || []);
     root.replaceChildren(...(orderData.orders || []).map(orderCard));
     if (!root.children.length) {
       const empty = document.createElement('p');
@@ -175,8 +265,10 @@
     await loadPoolChoices();
   }
 
-  $('kitchenMenuForm')?.addEventListener('submit', (event) => addMenuItem(event).catch((error) => core().flash(error.message, 'error')));
+  $('kitchenMenuForm')?.addEventListener('submit', (event) => addMenuItem(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
   $('kitchenOrderForm')?.addEventListener('submit', (event) => createOrder(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+  $('kitchenInventoryCreateForm')?.addEventListener('submit', (event) => createInventoryItem(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+  $('kitchenInventoryAdjustForm')?.addEventListener('submit', (event) => adjustInventory(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
 
   window.NewGymKitchenAdmin = { renderWorkspace: render };
 })();

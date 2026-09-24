@@ -52,6 +52,9 @@ test('an open member session is revalidated when the current membership expires'
   assert.match(js, /Your membership is no longer active/);
 });
 
-test('member login page cache-busts the expiry authorization fix', () => {
-  assert.match(html, /member-account\.js\?v=20260831-expiry1/);
+test('member login page loads New Gym runtime config before the member account bundle', () => {
+  const configIndex = html.indexOf('../js/gym-config.js');
+  const runtimeIndex = html.indexOf('../js/runtime-config.js');
+  const accountIndex = html.indexOf('../js/member-account.js?v=new-gym-1');
+  assert.ok(configIndex >= 0 && runtimeIndex > configIndex && accountIndex > runtimeIndex);
 });

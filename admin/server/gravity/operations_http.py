@@ -112,6 +112,47 @@ def _pool_end(handler: Any, session_id: str, request_id: str, send_body: bool) -
     return _json(handler, HTTPStatus.OK, {"session": item}, request_id, send_body)
 
 
+def _pool_reservations(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    if handler.command in {"GET", "HEAD"}:
+        handler.server.admin_service.require_permission(session, "pool.read")
+        params = parse_qs(urlsplit(handler.path).query)
+        rows = handler.server.pool_service.list_reservations(
+            status=params.get("status", [""])[0] or None,
+            from_at=params.get("fromAt", [""])[0] or None,
+            to_at=params.get("toAt", [""])[0] or None,
+            limit=params.get("limit", ["100"])[0],
+        )
+        return _json(handler, HTTPStatus.OK, {"reservations": rows}, request_id, send_body)
+    _require_write(handler, session, "pool.manage")
+    payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
+    item = handler.server.pool_service.create_reservation(
+        payload, actor_admin_user_id=session.admin_user_id
+    )
+    return _json(handler, HTTPStatus.CREATED, {"reservation": item}, request_id, send_body)
+
+
+def _pool_reservation_update(
+    handler: Any,
+    reservation_id: str,
+    request_id: str,
+    send_body: bool,
+) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    _require_write(handler, session, "pool.manage")
+    payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
+    item = handler.server.pool_service.update_reservation_status(
+        reservation_id,
+        str(payload.get("status") or ""),
+        actor_admin_user_id=session.admin_user_id,
+    )
+    return _json(handler, HTTPStatus.OK, {"reservation": item}, request_id, send_body)
+
+
 def _kitchen_menu(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
     session, failure = _authenticated(handler, request_id, send_body)
     if session is None:
@@ -171,6 +212,39 @@ def _kitchen_order_update(handler: Any, order_id: str, request_id: str, send_bod
     return _json(handler, HTTPStatus.OK, {"order": order}, request_id, send_body)
 
 
+def _kitchen_inventory(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    if handler.command in {"GET", "HEAD"}:
+        handler.server.admin_service.require_permission(session, "kitchen.read")
+        rows = handler.server.kitchen_service.list_inventory()
+        return _json(handler, HTTPStatus.OK, {"items": rows}, request_id, send_body)
+    _require_write(handler, session, "kitchen.manage")
+    payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
+    item = handler.server.kitchen_service.create_inventory_item(
+        payload, actor_admin_user_id=session.admin_user_id
+    )
+    return _json(handler, HTTPStatus.CREATED, {"item": item}, request_id, send_body)
+
+
+def _kitchen_inventory_adjust(
+    handler: Any,
+    item_id: str,
+    request_id: str,
+    send_body: bool,
+) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    _require_write(handler, session, "kitchen.manage")
+    payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
+    item = handler.server.kitchen_service.adjust_inventory(
+        item_id, payload, actor_admin_user_id=session.admin_user_id
+    )
+    return _json(handler, HTTPStatus.OK, {"item": item}, request_id, send_body)
+
+
 def handle_operations_request(handler: Any, path: str, request_id: str, send_body: bool) -> HTTPStatus | None:
     if not (path.startswith("/api/admin/pool") or path.startswith("/api/admin/kitchen")):
         return None
@@ -185,6 +259,16 @@ def handle_operations_request(handler: Any, path: str, request_id: str, send_bod
                 if handler.command == "PATCH":
                     return _pool_table_update(handler, table_id, request_id, send_body)
                 return handler._method_not_allowed({"PATCH"}, request_id, send_body)
+        if path == "/api/admin/pool/reservations":
+            if handler.command in {"GET", "HEAD", "POST"}:
+                return _pool_reservations(handler, request_id, send_body)
+            return handler._method_not_allowed({"GET", "HEAD", "POST"}, request_id, send_body)
+        if path.startswith("/api/admin/pool/reservations/"):
+            reservation_id = path.removeprefix("/api/admin/pool/reservations/").strip("/")
+            if reservation_id and "/" not in reservation_id:
+                if handler.command == "PATCH":
+                    return _pool_reservation_update(handler, reservation_id, request_id, send_body)
+                return handler._method_not_allowed({"PATCH"}, request_id, send_body)
         if path == "/api/admin/pool/sessions":
             if handler.command in {"GET", "HEAD", "POST"}:
                 return _pool_sessions(handler, request_id, send_body)
@@ -194,6 +278,16 @@ def handle_operations_request(handler: Any, path: str, request_id: str, send_bod
             if session_id and "/" not in session_id:
                 if handler.command == "POST":
                     return _pool_end(handler, session_id, request_id, send_body)
+                return handler._method_not_allowed({"POST"}, request_id, send_body)
+        if path == "/api/admin/kitchen/inventory":
+            if handler.command in {"GET", "HEAD", "POST"}:
+                return _kitchen_inventory(handler, request_id, send_body)
+            return handler._method_not_allowed({"GET", "HEAD", "POST"}, request_id, send_body)
+        if path.startswith("/api/admin/kitchen/inventory/") and path.endswith("/adjust"):
+            item_id = path.removeprefix("/api/admin/kitchen/inventory/").removesuffix("/adjust").strip("/")
+            if item_id and "/" not in item_id:
+                if handler.command == "POST":
+                    return _kitchen_inventory_adjust(handler, item_id, request_id, send_body)
                 return handler._method_not_allowed({"POST"}, request_id, send_body)
         if path == "/api/admin/kitchen/menu":
             if handler.command in {"GET", "HEAD", "POST"}:

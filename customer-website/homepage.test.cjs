@@ -7,6 +7,8 @@ const root = __dirname;
 const homepage = fs.readFileSync(path.join(root, 'web', 'index.html'), 'utf8');
 const siteCss = fs.readFileSync(path.join(root, 'web', 'css', 'style.css'), 'utf8');
 const memberCss = fs.readFileSync(path.join(root, 'web', 'css', 'member.css'), 'utf8');
+const gymConfig = fs.readFileSync(path.join(root, 'web', 'js', 'gym-config.js'), 'utf8');
+const runtimeConfig = fs.readFileSync(path.join(root, 'web', 'js', 'runtime-config.js'), 'utf8');
 
 test('membership is the second homepage section', () => {
   const hero = homepage.indexOf('id="home"');
@@ -15,11 +17,13 @@ test('membership is the second homepage section', () => {
   assert.ok(hero !== -1 && membership > hero && about > membership);
 });
 
-test('restored homepage tools and visit map are present', () => {
+test('homepage tools are present and map stays unconfigured until real gym data exists', () => {
   assert.match(homepage, /id="bmi-form"/);
   assert.match(homepage, /id="bmi-weight"/);
   assert.match(homepage, /id="bmi-height"/);
-  assert.match(homepage, /google\.com\/maps\?q=24\.476,74\.869/);
+  assert.match(homepage, /data-gym-map-frame/);
+  assert.match(homepage, /src="about:blank"/);
+  assert.doesNotMatch(homepage, /24\.476,74\.869|Gravity Fitness/);
   assert.match(homepage, /js\/athlete-animation\.js/);
 });
 
@@ -36,17 +40,29 @@ test('membership stays enquiry-only and contains no payment CTA', () => {
   assert.equal((homepage.match(/class="button[^>]*price-card__cta"[^>]*data-enquiry=/g) || []).length, 4);
 });
 
-test('verified Gravity membership prices are shown', () => {
-  assert.match(homepage, /1 Month[\s\S]*?1,200/);
-  assert.match(homepage, /3 Months[\s\S]*?3,000/);
-  assert.match(homepage, /1 Year[\s\S]*?10,000/);
-  assert.doesNotMatch(homepage, />999<|>1,499<|>2,499</);
+test('membership prices are configuration-driven and never inherit Gravity prices', () => {
+  assert.match(homepage, /data-plan-key="oneMonth"[\s\S]*?data-plan-price>Ask/);
+  assert.match(homepage, /data-plan-key="threeMonths"[\s\S]*?data-plan-price>Ask/);
+  assert.match(homepage, /data-plan-key="oneYear"[\s\S]*?data-plan-price>Ask/);
+  assert.match(gymConfig, /membershipPricesPaise/);
+  assert.match(runtimeConfig, /formatPrice/);
+  assert.doesNotMatch(homepage, /1,200|3,000|10,000/);
 });
 
 test('premium restyle preserves every homepage section and its order', () => {
-  const expected = ['home', 'membership', 'about', 'bmi', 'nutrition', 'inside-gravity', 'enquiry', 'contact'];
+  const expected = ['home', 'membership', 'about', 'bmi', 'nutrition', 'exercise-library', 'inside-gym', 'enquiry', 'contact'];
   const actual = Array.from(homepage.matchAll(/<section[^>]+id="([^"]+)"/g), (match) => match[1]);
   assert.deepEqual(actual, expected);
+});
+
+test('customer business details come from the New Gym runtime config', () => {
+  assert.match(homepage, /js\/gym-config\.js/);
+  assert.match(homepage, /js\/runtime-config\.js/);
+  assert.match(gymConfig, /phoneDisplay: ''/);
+  assert.match(gymConfig, /whatsappNumber: ''/);
+  assert.match(gymConfig, /address: ''/);
+  assert.match(gymConfig, /mapUrl: ''/);
+  assert.doesNotMatch(gymConfig, /gravityfitnessnmh|917999526112|gravity-authe/);
 });
 
 test('hidden login states cannot be overridden by layout rules', () => {

@@ -344,5 +344,53 @@ class OperationsScriptTests(unittest.TestCase):
         for marker in forbidden:
             self.assertNotIn(marker, adapter)
 
+    def test_new_gym_termux_profile_is_isolated_and_loopback_only(self) -> None:
+        profile = ROOT / "deploy" / "new-gym-termux"
+        example = (profile / "new-gym.env.example").read_text(encoding="utf-8")
+        installer = (profile / "install-termux.sh").read_text(encoding="utf-8")
+        boot = (profile / "termux-boot-new-gym.sh").read_text(encoding="utf-8")
+        routes = (profile / "CLOUDFLARE_ROUTES.md").read_text(encoding="utf-8")
+
+        self.assertIn("GRAVITY_PORT=8897", example)
+        self.assertIn("NEW_GYM_MEMBER_GATEWAY_PORT=8898", example)
+        self.assertIn("NEW_GYM_PUBLIC_PORT=8899", example)
+        self.assertIn(".config/new-gym", example)
+        self.assertIn(".local/share/new-gym", example)
+        self.assertNotIn(".config/gravity", example)
+        self.assertNotIn(".local/share/gravity", example)
+
+        for service in ("new-gym-admin", "new-gym-member", "new-gym-web"):
+            runner = (profile / "services" / service / "run").read_text(encoding="utf-8")
+            self.assertIn("127.0.0.1", runner, service)
+            self.assertNotIn("0.0.0.0", runner, service)
+
+        for name in (
+            "new-gym-admin", "new-gym-member", "new-gym-web",
+            "new-gym-health", "new-gym-notifications",
+        ):
+            self.assertIn(name, installer)
+            self.assertIn(name, boot)
+        self.assertIn("Refusing to replace existing service", installer)
+        self.assertIn(".new-gym-managed", installer)
+        self.assertIn("http://127.0.0.1:8897", routes)
+        self.assertIn("http://127.0.0.1:8898", routes)
+        self.assertIn("http://127.0.0.1:8899", routes)
+
+    def test_new_gym_member_gateway_has_no_gravity_live_endpoints(self) -> None:
+        gateway = (ROOT.parent / "customer-website" / "gateway" / "member_gateway.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("NEW_GYM_MEMBER_GATEWAY_PORT", gateway)
+        self.assertIn("NEW_GYM_MEMBER_ALLOWED_ORIGINS", gateway)
+        self.assertIn("http://127.0.0.1:8897", gateway)
+        for marker in (
+            "gravityfitnessnmh",
+            "gravity-authe",
+            "917999526112",
+            "foyer-amenity-staff.ngrok-free.dev",
+        ):
+            self.assertNotIn(marker, gateway)
+
+
 if __name__ == "__main__":
     unittest.main()

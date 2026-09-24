@@ -9,8 +9,18 @@
     phoneHref: '',
     whatsappNumber: '',
     address: '',
+    openingHours: '',
     instagramUrl: '',
+    mapUrl: '',
+    mapEmbedUrl: '',
+    siteUrl: '',
     memberGatewayBase: '',
+    membershipPricesPaise: Object.freeze({
+      trial: null,
+      oneMonth: null,
+      threeMonths: null,
+      oneYear: null
+    }),
     firebase: Object.freeze({
       apiKey: '',
       authDomain: '',

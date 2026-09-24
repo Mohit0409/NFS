@@ -1,0 +1,21 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+umask 077
+
+CONFIG="${NEW_GYM_ENV_FILE:-$HOME/.config/new-gym/new-gym.env}"
+REPO="$(cat "$HOME/.config/new-gym/repository")"
+PROJECT_ROOT="$(CDPATH= cd -- "$REPO/.." && pwd)"
+[ -r "$CONFIG" ] || { echo "New Gym config is missing" >&2; exit 1; }
+[ -r "$PROJECT_ROOT/customer-website/gateway/member_gateway.py" ] || { echo "Member gateway source is missing" >&2; exit 1; }
+BACKEND="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print NEW_GYM_MEMBER_BACKEND)"
+BACKEND="${BACKEND:-http://127.0.0.1:8897}"
+case "$BACKEND" in
+  http://127.0.0.1:*) ;;
+  *) echo "Refusing non-loopback NEW_GYM_MEMBER_BACKEND=$BACKEND" >&2; exit 1 ;;
+esac
+PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
+PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+[ -x "$PYTHON" ] || { echo "New Gym Python is missing: $PYTHON" >&2; exit 1; }
+
+exec python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- \
+  "$PYTHON" "$PROJECT_ROOT/customer-website/gateway/member_gateway.py"

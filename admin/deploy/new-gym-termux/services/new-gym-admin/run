@@ -1,0 +1,26 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+umask 077
+
+CONFIG="${NEW_GYM_ENV_FILE:-$HOME/.config/new-gym/new-gym.env}"
+REPO_FILE="$HOME/.config/new-gym/repository"
+[ -r "$CONFIG" ] || { echo "New Gym config is missing: $CONFIG" >&2; exit 1; }
+[ -r "$REPO_FILE" ] || { echo "New Gym repository marker is missing: $REPO_FILE" >&2; exit 1; }
+REPO="$(cat "$REPO_FILE")"
+[ -d "$REPO/.git" ] || [ -f "$REPO/.git" ] || { echo "New Gym checkout is missing: $REPO" >&2; exit 1; }
+
+value() {
+  python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print "$1"
+}
+HOST="$(value GRAVITY_HOST)"
+HOST="${HOST:-127.0.0.1}"
+[ "$HOST" = "127.0.0.1" ] || { echo "Refusing non-loopback GRAVITY_HOST=$HOST" >&2; exit 1; }
+PORT="$(value GRAVITY_PORT)"
+PORT="${PORT:-8897}"
+PYTHON="$(value GRAVITY_PYTHON)"
+PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+[ -x "$PYTHON" ] || { echo "New Gym Python is missing: $PYTHON" >&2; exit 1; }
+
+cd "$REPO"
+exec python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- \
+  "$PYTHON" -m server.gravity --host 127.0.0.1 --port "$PORT"

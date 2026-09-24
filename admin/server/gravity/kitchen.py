@@ -13,6 +13,7 @@ from .database import Database
 
 ORDER_STATUSES = {"new", "preparing", "ready", "served", "cancelled"}
 PAYMENT_STATUSES = {"unpaid", "paid", "void"}
+INVENTORY_REASONS = {"purchase", "usage", "waste", "adjustment"}
 STATUS_TRANSITIONS = {
     "new": {"preparing", "cancelled"},
     "preparing": {"ready", "cancelled"},
@@ -279,3 +280,161 @@ class KitchenService:
             connection.commit()
             updated = connection.execute("SELECT * FROM kitchen_orders WHERE id=?", (order_id,)).fetchone()
             return self._order_payload(connection, updated)
+
+    @staticmethod
+    def _inventory_payload(row) -> dict[str, object]:
+        quantity = int(row["quantity_milli"])
+        low_stock = int(row["low_stock_milli"])
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "unit": row["unit"],
+            "quantityMilli": quantity,
+            "lowStockMilli": low_stock,
+            "lowStock": quantity <= low_stock,
+            "status": row["status"],
+            "createdAt": int(row["created_at"]),
+            "updatedAt": int(row["updated_at"]),
+        }
+
+    def list_inventory(self, *, include_inactive: bool = True) -> list[dict[str, object]]:
+        where = "" if include_inactive else "WHERE status='active'"
+        with self.database.session() as connection:
+            rows = connection.execute(
+                f"SELECT * FROM kitchen_inventory_items {where} ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+        return [self._inventory_payload(row) for row in rows]
+
+    def create_inventory_item(
+        self,
+        payload: Mapping[str, object],
+        *,
+        actor_admin_user_id: str,
+    ) -> dict[str, object]:
+        name = _text(payload.get("name"), field="name", maximum=100, required=True)
+        unit = _text(payload.get("unit"), field="unit", maximum=30, required=True)
+        quantity = _integer(
+            payload.get("quantityMilli", 0),
+            field="quantityMilli",
+            minimum=0,
+            maximum=1_000_000_000_000,
+        )
+        low_stock = _integer(
+            payload.get("lowStockMilli", 0),
+            field="lowStockMilli",
+            minimum=0,
+            maximum=1_000_000_000_000,
+        )
+        now = self._now()
+        item_id = uuid4().hex
+        with self.database.session() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT 1 FROM kitchen_inventory_items WHERE name=? COLLATE NOCASE",
+                (name,),
+            ).fetchone()
+            if existing:
+                raise AdminSoftwareConflict("Kitchen inventory item already exists")
+            connection.execute(
+                "INSERT INTO kitchen_inventory_items("
+                "id,name,unit,quantity_milli,low_stock_milli,status,created_at,updated_at"
+                ") VALUES(?,?,?,?,?,'active',?,?)",
+                (item_id, name, unit, quantity, low_stock, now, now),
+            )
+            if quantity:
+                connection.execute(
+                    "INSERT INTO kitchen_inventory_movements("
+                    "id,item_id,delta_milli,quantity_after_milli,reason,note,"
+                    "created_by_admin_user_id,created_at"
+                    ") VALUES(?,?,?,?, 'adjustment',?,?,?)",
+                    (
+                        uuid4().hex,
+                        item_id,
+                        quantity,
+                        quantity,
+                        "Initial stock",
+                        actor_admin_user_id,
+                        now,
+                    ),
+                )
+            self.admin_service._audit(
+                connection,
+                actor_admin_user_id,
+                "kitchen_inventory_item_created",
+                target_type="kitchen_inventory_item",
+                target_id=item_id,
+                metadata={"quantityMilli": quantity, "lowStockMilli": low_stock, "unit": unit},
+            )
+            connection.commit()
+            row = connection.execute(
+                "SELECT * FROM kitchen_inventory_items WHERE id=?", (item_id,)
+            ).fetchone()
+        return self._inventory_payload(row)
+
+    def adjust_inventory(
+        self,
+        item_id: str,
+        payload: Mapping[str, object],
+        *,
+        actor_admin_user_id: str,
+    ) -> dict[str, object]:
+        delta = _integer(
+            payload.get("deltaMilli"),
+            field="deltaMilli",
+            minimum=-1_000_000_000_000,
+            maximum=1_000_000_000_000,
+        )
+        if delta == 0:
+            raise AdminSoftwareValidationError({"deltaMilli": "Stock change cannot be zero"})
+        reason = str(payload.get("reason") or "").strip().casefold()
+        if reason not in INVENTORY_REASONS:
+            raise AdminSoftwareValidationError(
+                {"reason": "Choose purchase, usage, waste, or adjustment"}
+            )
+        note = _text(payload.get("note"), field="note", maximum=300)
+        now = self._now()
+        with self.database.session() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM kitchen_inventory_items WHERE id=?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise AdminSoftwareNotFound("Kitchen inventory item not found")
+            if row["status"] != "active":
+                raise AdminSoftwareConflict("Kitchen inventory item is inactive")
+            new_quantity = int(row["quantity_milli"]) + delta
+            if new_quantity < 0:
+                raise AdminSoftwareConflict("Stock cannot go below zero")
+            connection.execute(
+                "UPDATE kitchen_inventory_items SET quantity_milli=?,updated_at=? WHERE id=?",
+                (new_quantity, now, item_id),
+            )
+            connection.execute(
+                "INSERT INTO kitchen_inventory_movements("
+                "id,item_id,delta_milli,quantity_after_milli,reason,note,"
+                "created_by_admin_user_id,created_at"
+                ") VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    uuid4().hex,
+                    item_id,
+                    delta,
+                    new_quantity,
+                    reason,
+                    note,
+                    actor_admin_user_id,
+                    now,
+                ),
+            )
+            self.admin_service._audit(
+                connection,
+                actor_admin_user_id,
+                "kitchen_inventory_adjusted",
+                target_type="kitchen_inventory_item",
+                target_id=item_id,
+                metadata={"deltaMilli": delta, "quantityAfterMilli": new_quantity, "reason": reason},
+            )
+            connection.commit()
+            updated = connection.execute(
+                "SELECT * FROM kitchen_inventory_items WHERE id=?", (item_id,)
+            ).fetchone()
+        return self._inventory_payload(updated)

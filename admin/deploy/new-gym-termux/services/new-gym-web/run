@@ -1,0 +1,16 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+umask 077
+
+CONFIG="${NEW_GYM_ENV_FILE:-$HOME/.config/new-gym/new-gym.env}"
+REPO="$(cat "$HOME/.config/new-gym/repository")"
+PROJECT_ROOT="$(CDPATH= cd -- "$REPO/.." && pwd)"
+WEB_ROOT="$PROJECT_ROOT/customer-website/web"
+[ -d "$WEB_ROOT" ] || { echo "Customer website is missing: $WEB_ROOT" >&2; exit 1; }
+PORT="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print NEW_GYM_PUBLIC_PORT)"
+PORT="${PORT:-8899}"
+PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
+PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+[ -x "$PYTHON" ] || { echo "New Gym Python is missing: $PYTHON" >&2; exit 1; }
+
+exec "$PYTHON" -m http.server "$PORT" --bind 127.0.0.1 --directory "$WEB_ROOT"

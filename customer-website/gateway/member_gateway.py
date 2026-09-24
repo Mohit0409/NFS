@@ -13,16 +13,14 @@ import time
 from pathlib import Path
 
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("GRAVITY_MEMBER_GATEWAY_PORT", "8788"))
-BACKEND = os.environ.get("GRAVITY_MEMBER_BACKEND", "http://127.0.0.1:8787").rstrip("/")
+PORT = int(os.environ.get("NEW_GYM_MEMBER_GATEWAY_PORT", "8898"))
+BACKEND = os.environ.get("NEW_GYM_MEMBER_BACKEND", "http://127.0.0.1:8897").rstrip("/")
 BASE_ALLOWED_ORIGINS = {
-    "http://127.0.0.1:8765",
-    "http://localhost:8765",
-    "https://gravityfitnessnmh.web.app",
-    "https://gravityfitnessnmh.firebaseapp.com",
+    "http://127.0.0.1:8899",
+    "http://localhost:8899",
 }
 EXTRA_ALLOWED_ORIGINS = {
-    item.strip() for item in os.environ.get("GRAVITY_MEMBER_ALLOWED_ORIGINS", "").split(",")
+    item.strip() for item in os.environ.get("NEW_GYM_MEMBER_ALLOWED_ORIGINS", "").split(",")
     if item.strip().startswith(("https://", "http://127.0.0.1", "http://localhost"))
 }
 ALLOWED_ORIGINS = BASE_ALLOWED_ORIGINS | EXTRA_ALLOWED_ORIGINS
@@ -30,8 +28,11 @@ MAX_TOKEN_LENGTH = 16_384
 UPSTREAM_TIMEOUT = 8
 MAX_BODY_LENGTH = 512
 PHONE_PATTERN = re.compile(r"^\+[1-9]\d{7,14}$")
-ADMIN_ROOT = Path(os.environ.get("GRAVITY_ADMIN_ROOT", "").strip() or (Path(__file__).resolve().parents[2] / "grevity_fitness")).resolve()
-MEMBER_DATABASE = Path(os.environ.get("GRAVITY_MEMBER_DATABASE", "").strip() or (ADMIN_ROOT / ".gravity" / "data" / "gravity.sqlite3")).resolve()
+ADMIN_ROOT = Path(os.environ.get("NEW_GYM_ADMIN_ROOT", "").strip() or (Path(__file__).resolve().parents[2] / "admin")).resolve()
+MEMBER_DATABASE = Path(
+    os.environ.get("NEW_GYM_MEMBER_DATABASE", "").strip()
+    or (Path.home() / ".local" / "share" / "new-gym" / "data" / "gravity.sqlite3")
+).expanduser().resolve()
 ELIGIBILITY_PATH = "/api/member/eligibility"
 BOOTSTRAP_PATH = "/api/member/bootstrap"
 
@@ -114,7 +115,7 @@ def _read_json(response) -> dict:
 
 
 def _upstream(opener, path: str, *, method: str = "GET", headers=None):
-    request_headers = {"Accept": "application/json", "User-Agent": "GravityMemberGateway/1.0"}
+    request_headers = {"Accept": "application/json", "User-Agent": "NewGymMemberGateway/1.0"}
     request_headers.update(headers or {})
     request = Request(BACKEND + path, data=(b"" if method == "POST" else None), method=method, headers=request_headers)
     try:
@@ -132,7 +133,7 @@ def _logout_async(opener, csrf: str) -> None:
         return
     def cleanup() -> None:
         _upstream(opener, "/api/auth/logout", method="POST", headers={"Origin": BACKEND, "X-CSRF-Token": csrf})
-    threading.Thread(target=cleanup, name="gravity-member-logout", daemon=True).start()
+    threading.Thread(target=cleanup, name="new-gym-member-logout", daemon=True).start()
 
 def _public_error(status: int, payload: dict):
     code = str(payload.get("error") or "")
@@ -145,7 +146,7 @@ def _public_error(status: int, payload: dict):
     return 503, {"error": "authentication_unavailable"}
 
 class MemberGatewayHandler(BaseHTTPRequestHandler):
-    server_version = "GravityMemberGateway"
+    server_version = "NewGymMemberGateway"
     sys_version = ""
 
     def log_message(self, format_string: str, *args) -> None:
@@ -265,7 +266,7 @@ class MemberGatewayHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     server = ThreadingHTTPServer((HOST, PORT), MemberGatewayHandler)
-    print(f"Gravity member gateway listening on http://{HOST}:{PORT}")
+    print(f"New Gym member gateway listening on http://{HOST}:{PORT}")
     server.serve_forever()
 
 

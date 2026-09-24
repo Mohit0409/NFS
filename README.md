@@ -1,61 +1,89 @@
 # New Gym Platform
 
-Separate build derived from the proven Gravity Fitness application structure.
+Independent gym platform built from the proven Gravity Fitness application structure.
 
 ## Safety boundary
 
-This project is isolated at:
+Project root:
 
 `C:\movieXsuggestion\MyProject\new_gym_platform`
 
-The live Gravity Fitness projects, databases, Firebase projects, phone number, analytics configuration, public gateway and deployment state are not used by this copy.
+This repository is separate from live Gravity Fitness and Vibe4You. No live Gravity database, Firebase project, customer phone number, analytics project, gateway, Cloudflare service name, or deployment state is reused.
 
 ## Structure
 
-- `admin/` — copied Gravity admin/backend baseline, with New Gym branding and new Pool + Kitchen modules.
-- `customer-website/` — copied customer website functionality with a visually different theme and independent configuration placeholders.
+- `admin/` — gym backend/admin portal plus Pool and Kitchen operations.
+- `customer-website/` — redesigned public website, member UI, diet planner, exercise library and independent member gateway.
+- `admin/deploy/new-gym-termux/` — isolated Redmi/Termux production profile.
 
-## Admin status
+## Admin portal
 
-Existing gym functionality is preserved:
+Existing gym functionality retained:
 - member/staff directory
-- memberships and plan management
-- fees/payments/receipts
+- membership plans, renewals and expiry
+- fees, payments and receipts
 - attendance
-- biometric device support
+- biometric support
 - enquiries
-- follow-ups/notifications
+- notifications/follow-ups
 - coaching
-- team access
-- audit/readiness
+- admin accounts/permissions
+- audit and readiness
 
-New modules:
-- Pool workspace
-  - Private Table
-  - Common Table 1
-  - Common Table 2
-  - configurable hourly rate per table
-  - start/end timed sessions
-  - server-calculated session duration and charge
-  - recent session history
-- Kitchen workspace
-  - menu items/categories/prices
-  - available/unavailable state
-  - walk-in or pool-session-linked orders
-  - quantity and historical price snapshots
-  - order workflow: new -> preparing -> ready -> served
-  - payment state
+### Pool
 
-Database migration:
+Three seeded tables:
+- Private Table
+- Common Table 1
+- Common Table 2
+
+Implemented:
+- configurable hourly rate
+- walk-in timed sessions
+- server-calculated duration/charge
+- session history
+- advance reservations
+- overlap protection per table/time window
+- guest name/mobile/note
+- reservation-specific rate
+- reservation check-in starts the timer
+- cancel/no-show states
+- reservation automatically completes when its checked-in session ends
+- next reservation visible on the live table card
+
+### Kitchen
+
+Implemented:
+- menu item/category/price management
+- available/unavailable state
+- walk-in and pool-session-linked orders
+- historical price snapshots
+- New -> Preparing -> Ready -> Served order flow
+- payment state
+- manual kitchen inventory
+- unit + quantity + low-stock threshold
+- audited purchase/usage/waste/adjustment movements
+- stock cannot fall below zero
+
+Automatic recipe-based ingredient deduction is intentionally deferred until menu recipes are defined.
+
+## Database
+
+New Gym operations migrations:
 - `014_pool_kitchen.sql`
+- `015_pool_reservations_kitchen_inventory.sql`
 
-Brand:
-- backend default: `BUSINESS_NAME=New Gym`
-- admin login/header/sidebar automatically read the business name from `/api/health`
+Latest schema migration: `015`.
 
-## Customer website status
+## Branding
 
-Functionality retained:
+- Backend default: `BUSINESS_NAME=New Gym`
+- Admin login/header/sidebar derive the display name from backend health/config.
+- Internal `server.gravity` / `GRAVITY_*` names remain for copied-code compatibility; OS-level services/config directories are New Gym-specific.
+
+## Customer website
+
+Retained functionality:
 - membership information
 - BMI calculator
 - Indian diet planner
@@ -63,51 +91,96 @@ Functionality retained:
 - member login UI
 - enquiry UI
 
-Visual identity changed from Gravity's dark performance theme to:
+New visual identity:
 - warm light background
 - deep navy typography
 - coral/orange accent
-- softer rounded cards
-- club/lounge style presentation
+- softer cards
+- club/lounge presentation
 
-Main theme:
-- `customer-website/web/css/new-gym-theme.css`
+Files:
+- theme: `customer-website/web/css/new-gym-theme.css`
+- business config: `customer-website/web/js/gym-config.js`
+- runtime renderer: `customer-website/web/js/runtime-config.js`
 
-Customer configuration:
-- `customer-website/web/js/gym-config.js`
+The single customer config controls:
+- gym name
+- city
+- phone
+- WhatsApp
+- address
+- opening hours
+- Instagram
+- Google Maps URL/embed
+- website URL
+- membership prices
+- member gateway
+- Firebase Auth
+- analytics Firebase
 
-Gravity live Firebase/auth/analytics/contact endpoints were removed from this copy. Member login and analytics intentionally remain disabled until the new gym receives its own configuration.
+Unknown business details remain explicit placeholders. Gravity's live customer endpoints/configuration are not inherited.
 
-## Required business details before deployment
+## Redmi / Termux production profile
+
+Dedicated profile:
+`admin/deploy/new-gym-termux/`
+
+Loopback-only ports:
+- Admin/backend: `127.0.0.1:8897`
+- Member gateway: `127.0.0.1:8898`
+- Public static website: `127.0.0.1:8899`
+
+Dedicated service names:
+- `new-gym-admin`
+- `new-gym-member`
+- `new-gym-web`
+- `new-gym-health`
+- `new-gym-notifications`
+- `new-gym-tunnel`
+
+Dedicated runtime locations:
+- `~/.config/new-gym`
+- `~/.local/state/new-gym`
+- `~/.local/share/new-gym`
+
+The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled.
+
+## Required real business data before deployment
 
 Configure:
 - real gym name
-- city
-- address
-- phone
-- WhatsApp number
-- Instagram URL
+- city/address
+- phone/WhatsApp
+- Instagram
 - opening hours
-- membership pricing
-- pool private/common hourly rates
-- kitchen menu and prices
+- membership prices
+- private/common pool rates
+- kitchen menu
+- initial kitchen stock
 - new Firebase Auth project
-- customer member gateway/public URL
-- analytics project if analytics is required
+- final public/admin domains
+- new Cloudflare Tunnel/token
+- dedicated off-device backup destination
+- analytics project if required
 
-Do not reuse Gravity's Firebase/auth/analytics project or production database.
+Never reuse Gravity's Firebase/auth/analytics project or production database.
 
-## Verification completed
+## Verification
 
-- Python/JS syntax checks: PASS
-- Migration 001-014 on clean DB: PASS
-- Pool/Kitchen focused tests: 4/4 PASS
-- Previously failing compatibility tests after migration 014 update: 6/6 PASS
-- Full backend regression: 214/214 PASS
-- Customer site scan for Gravity Firebase project, old phone, old public Firebase host and old ngrok gateway: CLEAN
+Current verified state:
+- Python/JavaScript syntax checks: PASS
+- clean migration through `001-015`: PASS
+- Pool/Kitchen service + HTTP workflow tests: PASS
+- full admin/backend regression: **221/221 PASS**
+- customer homepage tests: **8/8 PASS**
+- customer member-login tests: **9/9 PASS**
+- diet planner tests: **PASS**
+- member-gateway eligibility tests: **7/7 PASS**
+- New Gym Termux isolation tests: PASS
+- customer-site scan for Gravity live Firebase/auth/phone/gateway values: CLEAN
 
-Browser E2E was not run in this isolated archive copy because `node_modules` was intentionally not copied from the Gravity workspace.
+Browser E2E has not yet been run in this isolated copy because the copied `node_modules` directory was intentionally excluded.
 
 ## Current state
 
-Development only. Nothing from this project has been deployed to Gravity or to a new production host.
+Development only. Nothing in this repository has been deployed to Gravity Fitness or to a New Gym production host.

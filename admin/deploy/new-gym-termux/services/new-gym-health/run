@@ -1,0 +1,77 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+umask 077
+
+CONFIG="${NEW_GYM_ENV_FILE:-$HOME/.config/new-gym/new-gym.env}"
+REPO="$(cat "$HOME/.config/new-gym/repository")"
+[ -r "$CONFIG" ] || { echo "New Gym config is missing" >&2; exit 1; }
+
+if [ "${NEW_GYM_ENV_LOADED:-}" != 1 ]; then
+  exec python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- \
+    env NEW_GYM_ENV_LOADED=1 "$0"
+fi
+
+ADMIN_PORT="${GRAVITY_PORT:-8897}"
+MEMBER_PORT="${NEW_GYM_MEMBER_GATEWAY_PORT:-8898}"
+PUBLIC_PORT="${NEW_GYM_PUBLIC_PORT:-8899}"
+STATE="$HOME/.local/state/new-gym"
+LOG="$STATE/logs/health.log"
+LAST_BACKUP="$STATE/last-backup-date"
+LAST_ATTEMPT="$STATE/last-backup-attempt"
+mkdir -p "$STATE/logs"
+chmod 700 "$STATE" "$STATE/logs"
+
+admin_fail=0
+member_fail=0
+web_fail=0
+
+admin_ok() {
+  curl -fsS --max-time 5 "http://127.0.0.1:$ADMIN_PORT/api/health" |
+    python3 -c 'import json,sys; x=json.load(sys.stdin); raise SystemExit(0 if x.get("status")=="ok" and x.get("database")=="ok" else 1)'
+}
+member_ok() {
+  curl -fsS --max-time 5 "http://127.0.0.1:$MEMBER_PORT/api/health" |
+    python3 -c 'import json,sys; x=json.load(sys.stdin); raise SystemExit(0 if x.get("status")=="ok" else 1)'
+}
+web_ok() {
+  curl -fsS --max-time 5 "http://127.0.0.1:$PUBLIC_PORT/" >/dev/null
+}
+
+while true; do
+  if admin_ok; then admin_fail=0; else
+    admin_fail=$((admin_fail + 1))
+    printf '%s admin health failure %s/3\n' "$(date -Iseconds)" "$admin_fail" >> "$LOG"
+    if [ "$admin_fail" -ge 3 ]; then sv restart new-gym-admin >> "$LOG" 2>&1 || true; admin_fail=0; fi
+  fi
+
+  if member_ok; then member_fail=0; else
+    member_fail=$((member_fail + 1))
+    printf '%s member gateway health failure %s/3\n' "$(date -Iseconds)" "$member_fail" >> "$LOG"
+    if [ "$member_fail" -ge 3 ]; then sv restart new-gym-member >> "$LOG" 2>&1 || true; member_fail=0; fi
+  fi
+
+  if web_ok; then web_fail=0; else
+    web_fail=$((web_fail + 1))
+    printf '%s public website health failure %s/3\n' "$(date -Iseconds)" "$web_fail" >> "$LOG"
+    if [ "$web_fail" -ge 3 ]; then sv restart new-gym-web >> "$LOG" 2>&1 || true; web_fail=0; fi
+  fi
+
+  today="$(date -u +%F)"
+  previous="$(cat "$LAST_BACKUP" 2>/dev/null || true)"
+  now="$(date +%s)"
+  attempted="$(cat "$LAST_ATTEMPT" 2>/dev/null || printf '0')"
+  case "$attempted" in *[!0-9]*|'') attempted=0 ;; esac
+  if [ "$previous" != "$today" ] && [ $((now - attempted)) -ge 3600 ]; then
+    printf '%s\n' "$now" > "$LAST_ATTEMPT"
+    if "$REPO/deploy/new-gym-termux/backup-offdevice.sh" >> "$LOG" 2>&1; then
+      printf '%s\n' "$today" > "$LAST_BACKUP"
+    else
+      printf '%s daily verified backup failed; retry after cooldown\n' "$(date -Iseconds)" >> "$LOG"
+    fi
+  fi
+
+  if [ -f "$LOG" ] && [ "$(wc -l < "$LOG")" -gt 2000 ]; then
+    tail -n 1500 "$LOG" > "$LOG.trim" && mv "$LOG.trim" "$LOG"
+  fi
+  sleep 60
+done

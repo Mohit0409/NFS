@@ -707,3 +707,23 @@ button:disabled { cursor: not-allowed; opacity: .52; filter: none; }
   .kitchen-order-line { grid-template-columns: minmax(0,1fr) auto 64px; }
 }
 
+
+.pool-next-reservation {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #3b4350;
+  border-radius: 8px;
+  background: #111820;
+}
+.pool-next-reservation small { color: #8793a1; }
+.pool-next-reservation strong { color: #f1f4f7; }
+.pool-next-reservation span { color: #c4ccd4; }
+.compact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.compact-actions button { padding: 6px 8px; font-size: .68rem; }
+.ops-status[data-status="low-stock"] {
+  border-color: #7a4b2f;
+  background: #2b1b11;
+  color: #ffb36a;
+}
