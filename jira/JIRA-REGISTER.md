@@ -21,14 +21,15 @@
 | NG-017 | Pool/Kitchen daily revenue and operational reports | DONE | Not deployed |
 | NG-018 | Production deployment to Redmi | BLOCKED by NG-010..015 | Not deployed |
 | NG-019 | Remove copied Gravity Firebase default aliases and add regression guard | DONE | Not deployed |
+| NG-020 | Fail-closed Redmi install/launch preflight with explicit pricing/rate/kitchen confirmation gates | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`d7d7755 Add kitchen recipes and automatic stock usage`
+`9b9b88d Add fail-closed New Gym launch preflight`
 
 Verification at this point:
-- backend: 230/230 PASS
+- backend: 232/232 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

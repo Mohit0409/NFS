@@ -36,20 +36,31 @@ Ports:
 
 1. Copy/clone this isolated project to Redmi.
 2. Create Python virtual environment for the admin/backend.
-3. Run the New Gym Termux installer without enabling the tunnel.
+3. Run the New Gym Termux installer without enabling the tunnel. On first run it creates the protected env template and exits.
 4. Fill and protect `~/.config/new-gym/new-gym.env`.
-5. Run DB migrations and verify integrity.
-6. Start local New Gym services only.
-7. Verify:
+5. Rerun the installer. It must pass:
+   `python3 admin/deploy/new-gym-termux/preflight-new-gym.py --config ~/.config/new-gym/new-gym.env --stage install`
+6. Run DB migrations and verify integrity.
+7. Start local New Gym services only.
+8. Verify:
    - `http://127.0.0.1:8897/api/health`
    - `http://127.0.0.1:8898/api/health`
    - `http://127.0.0.1:8899/`
-8. Create and verify a local backup.
-9. Verify off-device backup.
-10. Configure the dedicated Cloudflare Tunnel routes.
-11. Enable the tunnel.
-12. Run browser regression against the final domains.
-13. Record deployment commit, backup IDs and acceptance results in deployment-track-record.
+9. Create and verify a local backup.
+10. Verify off-device backup.
+11. Configure the dedicated Cloudflare Tunnel routes and final customer `gym-config.js`.
+12. Set the three owner confirmation gates to true only after reviewing membership prices, pool rates, and kitchen/menu/recipe/opening stock.
+13. Run the launch gate:
+   `python3 admin/deploy/new-gym-termux/preflight-new-gym.py --config ~/.config/new-gym/new-gym.env --stage launch`
+14. Enable the tunnel only if the launch gate returns `"ready":true`.
+15. Run browser regression against the final domains.
+16. Record deployment commit, backup IDs and acceptance results in deployment-track-record.
+
+## Preflight behavior
+
+The preflight output is JSON and does not expose secret values. Launch is blocked for placeholder domains/business identity, copied Gravity Firebase values, missing Firebase service-account/tunnel files, missing off-device backup destination, unconfirmed pricing/rates/kitchen setup, or an incomplete customer runtime config.
+
+The installer calls the install-stage preflight automatically. `--enable-tunnel` calls the stricter launch-stage preflight before the tunnel service is enabled.
 
 ## Rollback
 

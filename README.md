@@ -168,7 +168,7 @@ Dedicated runtime locations:
 - `~/.local/state/new-gym`
 - `~/.local/share/new-gym`
 
-The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled.
+The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel.
 
 ## Required real business data before deployment
 
@@ -197,7 +197,7 @@ Current verified state:
 - clean migration through `001-017`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **230/230 PASS**
+- full admin/backend regression: **232/232 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

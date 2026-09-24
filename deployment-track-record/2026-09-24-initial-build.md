@@ -50,6 +50,15 @@ This record documents local development milestones only.
    - migration 017
    - backend regression 230/230 PASS
 
+7. `9b9b88d` — Add fail-closed New Gym launch preflight
+   - staged install and launch preflight
+   - tunnel enable is blocked until launch preflight passes
+   - explicit owner confirmation gates for membership pricing, pool rates and kitchen setup
+   - dedicated Firebase/service-account, Cloudflare token and off-device-backup checks
+   - placeholder identity/domain/customer config rejected
+   - template launch preflight verified to fail closed with explicit blocker codes
+   - backend regression 232/232 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
@@ -78,6 +87,22 @@ None.
 - No production database created.
 - No Firebase project configured.
 - No customer traffic moved.
+
+## Current launch-preflight blockers
+
+The untouched template intentionally fails launch preflight for:
+- production secret key
+- verified gym name/address/owner contact
+- final admin/customer HTTPS origins
+- membership pricing confirmation
+- pool-rate confirmation
+- kitchen/menu/recipe/opening-stock confirmation
+- dedicated Firebase client/service-account configuration
+- dedicated Cloudflare token
+- off-device backup destination
+- final customer runtime config
+
+These are configuration/business-data blockers, not unresolved code failures.
 
 ## Required before first deployment
 
