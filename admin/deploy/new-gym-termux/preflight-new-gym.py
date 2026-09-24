@@ -8,6 +8,7 @@ import json
 import re
 import sqlite3
 import sys
+import time
 
 
 TRUTHY = {"1", "true", "yes", "on"}
@@ -132,6 +133,40 @@ def inspect_database(path: Path) -> dict[str, object]:
     return state
 
 
+def inspect_backup_marker(
+    path: Path,
+    *,
+    expected_remote: str,
+    max_age_seconds: int,
+    now: int | None = None,
+) -> dict[str, object]:
+    state: dict[str, object] = {
+        "exists": path.is_file(),
+        "valid": False,
+        "fresh": False,
+        "remoteMatches": False,
+    }
+    if not path.is_file():
+        return state
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        verified_at = int(payload.get("verifiedAt") or 0)
+        archive_sha = str(payload.get("archiveSha256") or "").strip().lower()
+        remote_path = str(payload.get("remotePath") or "").strip()
+        current = int(time.time()) if now is None else int(now)
+        age = max(0, current - verified_at)
+        expected_prefix = expected_remote.rstrip("/") + "/" if expected_remote else ""
+        state.update({
+            "valid": verified_at > 0 and bool(re.fullmatch(r"[0-9a-f]{64}", archive_sha)),
+            "fresh": verified_at > 0 and age <= max_age_seconds,
+            "remoteMatches": bool(expected_prefix) and remote_path.startswith(expected_prefix),
+            "ageSeconds": age,
+        })
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        state["readError"] = True
+    return state
+
+
 def validate(
     values: dict[str, str],
     *,
@@ -139,6 +174,7 @@ def validate(
     customer_config_text: str = "",
     path_exists=lambda value: Path(value).is_file(),
     database_state: dict[str, object] | None = None,
+    backup_state: dict[str, object] | None = None,
 ) -> dict[str, object]:
     blockers: list[str] = []
     checks: list[dict[str, object]] = []
@@ -253,6 +289,20 @@ def validate(
             (not require_backup) or (bool(backup_remote) and ":" in backup_remote),
             "Configure a dedicated rclone remote:path for off-device backup",
         )
+        if require_backup:
+            marker_ok = (
+                backup_state is not None
+                and bool(backup_state.get("exists"))
+                and bool(backup_state.get("valid"))
+                and bool(backup_state.get("fresh"))
+                and bool(backup_state.get("remoteMatches"))
+                and not backup_state.get("readError")
+            )
+            check(
+                "offdevice_backup_fresh",
+                marker_ok,
+                "A recent verified off-device backup marker matching the configured remote is required",
+            )
 
         config_lower = customer_config_text.casefold()
         no_live_gravity = not any(marker in config_lower for marker in GRAVITY_MARKERS)
@@ -341,6 +391,7 @@ def main() -> int:
     )
     customer_text = customer_config_path.read_text(encoding="utf-8") if customer_config_path.is_file() else ""
     database_state = None
+    backup_state = None
     if args.stage == "launch":
         configured_database = values.get("NEW_GYM_MEMBER_DATABASE", "").strip()
         if configured_database:
@@ -348,11 +399,38 @@ def main() -> int:
         else:
             database_path = Path(values.get("GRAVITY_DATA_DIR", "")).expanduser() / "gravity.sqlite3"
         database_state = inspect_database(database_path)
+
+        if _bool(values.get("NEW_GYM_REQUIRE_OFFDEVICE_BACKUP", "true")):
+            marker_path = Path(
+                values.get(
+                    "NEW_GYM_OFFDEVICE_BACKUP_MARKER",
+                    "~/.local/state/new-gym/offdevice-backup.json",
+                )
+            ).expanduser()
+            try:
+                max_age = int(values.get("NEW_GYM_BACKUP_MAX_AGE_SECONDS", "86400"))
+            except ValueError:
+                max_age = 0
+            if max_age <= 0:
+                backup_state = {
+                    "exists": marker_path.is_file(),
+                    "valid": False,
+                    "fresh": False,
+                    "remoteMatches": False,
+                    "readError": True,
+                }
+            else:
+                backup_state = inspect_backup_marker(
+                    marker_path,
+                    expected_remote=values.get("NEW_GYM_BACKUP_REMOTE", "").strip(),
+                    max_age_seconds=max_age,
+                )
     result = validate(
         values,
         stage=args.stage,
         customer_config_text=customer_text,
         database_state=database_state,
+        backup_state=backup_state,
     )
     print(json.dumps(result, separators=(",", ":"), sort_keys=True))
     return 0 if result["ready"] else 2

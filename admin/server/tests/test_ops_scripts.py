@@ -442,12 +442,19 @@ class OperationsScriptTests(unittest.TestCase):
             "activeInventoryItems": 6,
             "invalidRecipes": 0,
         }
+        ready_backup = {
+            "exists": True,
+            "valid": True,
+            "fresh": True,
+            "remoteMatches": True,
+        }
         launch = module.validate(
             launch_values,
             stage="launch",
             customer_config_text=customer_config,
             path_exists=lambda _value: True,
             database_state=ready_database,
+            backup_state=ready_backup,
         )
         self.assertTrue(launch["ready"])
 
@@ -457,6 +464,7 @@ class OperationsScriptTests(unittest.TestCase):
             customer_config_text="name: 'New Gym', phoneDisplay: '', projectId: ''",
             path_exists=lambda _value: True,
             database_state=ready_database,
+            backup_state=ready_backup,
         )
         self.assertFalse(blocked["ready"])
         self.assertIn("business_name", blocked["blockers"])
@@ -491,9 +499,53 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertEqual(state["availableMenuItems"], 0)
         self.assertEqual(state["activeInventoryItems"], 0)
 
+    def test_new_gym_backup_marker_requires_fresh_verified_matching_remote(self) -> None:
+        spec = importlib.util.spec_from_file_location("new_gym_preflight_backup", NEW_GYM_PREFLIGHT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with TemporaryDirectory() as temporary:
+            marker = Path(temporary) / "offdevice-backup.json"
+            marker.write_text(
+                __import__("json").dumps({
+                    "verifiedAt": 1_900_000_000,
+                    "archiveName": "new-gym-backup.tar.gz",
+                    "archiveSha256": "a" * 64,
+                    "remotePath": "new-gym-backup:daily/new-gym-backup.tar.gz",
+                }),
+                encoding="utf-8",
+            )
+            fresh = module.inspect_backup_marker(
+                marker,
+                expected_remote="new-gym-backup:daily",
+                max_age_seconds=86400,
+                now=1_900_000_100,
+            )
+            stale = module.inspect_backup_marker(
+                marker,
+                expected_remote="new-gym-backup:daily",
+                max_age_seconds=60,
+                now=1_900_000_100,
+            )
+            mismatch = module.inspect_backup_marker(
+                marker,
+                expected_remote="other-remote:daily",
+                max_age_seconds=86400,
+                now=1_900_000_100,
+            )
+
+        self.assertTrue(fresh["valid"])
+        self.assertTrue(fresh["fresh"])
+        self.assertTrue(fresh["remoteMatches"])
+        self.assertFalse(stale["fresh"])
+        self.assertFalse(mismatch["remoteMatches"])
+
     def test_new_gym_installer_requires_staged_preflight_before_tunnel(self) -> None:
         profile = ROOT / "deploy" / "new-gym-termux"
         installer = (profile / "install-termux.sh").read_text(encoding="utf-8")
+        backup = (profile / "backup-offdevice.sh").read_text(encoding="utf-8")
         example = (profile / "new-gym.env.example").read_text(encoding="utf-8")
         self.assertIn("preflight-new-gym.py", installer)
         self.assertIn("--stage install", installer)
@@ -503,8 +555,14 @@ class OperationsScriptTests(unittest.TestCase):
             "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED=false",
             "NEW_GYM_POOL_RATES_CONFIRMED=false",
             "NEW_GYM_KITCHEN_SETUP_CONFIRMED=false",
+            "NEW_GYM_OFFDEVICE_BACKUP_MARKER=",
+            "NEW_GYM_BACKUP_MAX_AGE_SECONDS=86400",
         ):
             self.assertIn(key, example)
+        self.assertIn("rclone check", backup)
+        self.assertIn("archiveSha256", backup)
+        self.assertIn("offdeviceMarker=", backup)
+        self.assertLess(backup.index("rclone check"), backup.index("offdeviceMarker="))
 
     def test_new_gym_firebase_aliases_are_not_bound_to_gravity(self) -> None:
         for path in (ROOT / ".firebaserc", ROOT.parent / "customer-website" / ".firebaserc"):
