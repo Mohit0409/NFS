@@ -60,6 +60,15 @@ Ports:
 
 The preflight output is JSON and does not expose secret values. Launch is blocked for placeholder domains/business identity, copied Gravity Firebase values, missing Firebase service-account/tunnel files, missing off-device backup destination, unconfirmed pricing/rates/kitchen setup, or an incomplete customer runtime config.
 
+At launch stage it also opens the configured New Gym SQLite database read-only and requires:
+- schema migration 017 or newer
+- SQLite quick-check and foreign-key check PASS
+- at least one valid active membership plan
+- none of the three untouched Gravity plan signatures (1 Month ₹1,200; 3 Months ₹3,000; 1 Year ₹10,000)
+- exactly three pool tables with positive hourly rates
+- at least one available kitchen menu item and one active inventory item
+- no recipe referencing missing/inactive stock
+
 The installer calls the install-stage preflight automatically. `--enable-tunnel` calls the stricter launch-stage preflight before the tunnel service is enabled.
 
 ## Rollback

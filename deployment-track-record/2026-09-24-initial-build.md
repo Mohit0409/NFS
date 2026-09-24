@@ -59,6 +59,14 @@ This record documents local development milestones only.
    - template launch preflight verified to fail closed with explicit blocker codes
    - backend regression 232/232 PASS
 
+8. `3fb4494` — Validate live New Gym database before launch
+   - read-only SQLite launch inspection
+   - schema/integrity/foreign-key gates
+   - detects the three inherited Gravity plan signatures from migration 013
+   - requires all three pool hourly rates
+   - requires confirmed live kitchen menu/inventory data and valid recipes
+   - backend regression 233/233 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
