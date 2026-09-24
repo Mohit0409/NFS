@@ -11,6 +11,7 @@ from server.gravity.database import Database
 ROOT = Path(__file__).resolve().parents[2]
 ENV_RUNNER = ROOT / "scripts" / "gravity-env.py"
 NEW_GYM_PREFLIGHT = ROOT / "deploy" / "new-gym-termux" / "preflight-new-gym.py"
+NEW_GYM_ACCEPTANCE = ROOT / "deploy" / "new-gym-termux" / "acceptance-new-gym.py"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -542,6 +543,76 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertFalse(stale["fresh"])
         self.assertFalse(mismatch["remoteMatches"])
 
+    def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
+        spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        values = {
+            "GRAVITY_PORT": "8897",
+            "NEW_GYM_MEMBER_GATEWAY_PORT": "8898",
+            "NEW_GYM_PUBLIC_PORT": "8899",
+        }
+
+        def good_runner(args, **_kwargs):
+            if args[:2] == ["sv", "status"] and args[-1] == "new-gym-tunnel":
+                return subprocess.CompletedProcess(args, 0, stdout="down: /service/new-gym-tunnel: 1s\n", stderr="")
+            if args[:2] == ["sv", "status"]:
+                stdout = "\n".join(
+                    f"run: /service/{name}: (pid 100) 10s"
+                    for name in (
+                        "new-gym-admin",
+                        "new-gym-member",
+                        "new-gym-web",
+                        "new-gym-health",
+                        "new-gym-notifications",
+                    )
+                )
+                return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+            if args[:2] == ["ss", "-ltnH"]:
+                return subprocess.CompletedProcess(
+                    args,
+                    0,
+                    stdout=(
+                        "LISTEN 0 5 127.0.0.1:8897 0.0.0.0:*\n"
+                        "LISTEN 0 5 127.0.0.1:8898 0.0.0.0:*\n"
+                        "LISTEN 0 5 127.0.0.1:8899 0.0.0.0:*\n"
+                    ),
+                    stderr="",
+                )
+            raise AssertionError(args)
+
+        def good_probe(_url, **_kwargs):
+            return True, "HTTP expected"
+
+        good = module.run_acceptance(values, command_runner=good_runner, probe=good_probe)
+        self.assertTrue(good["ready"])
+        self.assertEqual(good["blockers"], [])
+
+        def bad_runner(args, **kwargs):
+            result = good_runner(args, **kwargs)
+            if args[:2] == ["sv", "status"] and args[-1] == "new-gym-tunnel":
+                return subprocess.CompletedProcess(args, 0, stdout="run: /service/new-gym-tunnel: (pid 1) 10s\n", stderr="")
+            if args[:2] == ["ss", "-ltnH"]:
+                return subprocess.CompletedProcess(
+                    args,
+                    0,
+                    stdout=(
+                        "LISTEN 0 5 0.0.0.0:8897 0.0.0.0:*\n"
+                        "LISTEN 0 5 127.0.0.1:8898 0.0.0.0:*\n"
+                        "LISTEN 0 5 127.0.0.1:8899 0.0.0.0:*\n"
+                    ),
+                    stderr="",
+                )
+            return result
+
+        blocked = module.run_acceptance(values, command_runner=bad_runner, probe=good_probe)
+        self.assertFalse(blocked["ready"])
+        self.assertIn("tunnel_disabled", blocked["blockers"])
+        self.assertIn("admin_loopback_listener", blocked["blockers"])
+
     def test_new_gym_installer_requires_staged_preflight_before_tunnel(self) -> None:
         profile = ROOT / "deploy" / "new-gym-termux"
         installer = (profile / "install-termux.sh").read_text(encoding="utf-8")
@@ -552,7 +623,9 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("preflight-new-gym.py", installer)
         self.assertIn("--stage install", installer)
         self.assertIn("--stage launch", installer)
-        self.assertLess(installer.index("--stage launch"), installer.index("sv-enable new-gym-tunnel"))
+        self.assertIn("acceptance-new-gym.py", installer)
+        self.assertLess(installer.index("--stage launch"), installer.index("acceptance-new-gym.py"))
+        self.assertLess(installer.index("acceptance-new-gym.py"), installer.index("sv-enable new-gym-tunnel"))
         self.assertIn("prepare-python-runtime.sh", installer)
         self.assertIn("python-cryptography", installer)
         self.assertIn("python3 -m venv --system-site-packages", runtime)

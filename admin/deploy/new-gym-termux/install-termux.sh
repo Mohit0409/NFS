@@ -122,6 +122,7 @@ if $ENABLE_TUNNEL; then
   [ -s "$CONFIG_DIR/cloudflared-token" ] || { echo "Create the mode-600 Cloudflare token first." >&2; exit 1; }
   chmod 600 "$CONFIG_DIR/cloudflared-token"
   python3 "$REPO/deploy/new-gym-termux/preflight-new-gym.py" --config "$CONFIG" --stage launch
+  python3 "$REPO/deploy/new-gym-termux/acceptance-new-gym.py" --config "$CONFIG" --skip-launch-preflight
   touch "$CONFIG_DIR/enable-tunnel"
   chmod 600 "$CONFIG_DIR/enable-tunnel"
   sv-enable new-gym-tunnel
@@ -136,4 +137,6 @@ echo "Verify:"
 echo "  curl -fsS http://127.0.0.1:8897/api/health"
 echo "  curl -fsS http://127.0.0.1:8898/api/health"
 echo "  curl -I http://127.0.0.1:8899/"
-echo "Enable Cloudflare only after all three are healthy."
+echo "Run local acceptance before Cloudflare:"
+echo "  python3 $REPO/deploy/new-gym-termux/acceptance-new-gym.py --config $CONFIG --skip-launch-preflight"
+echo "Enable Cloudflare only after local acceptance and launch preflight are healthy."
