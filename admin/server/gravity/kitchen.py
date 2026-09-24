@@ -146,6 +146,8 @@ class KitchenService:
             "paidAt": int(row["paid_at"]) if "paid_at" in row.keys() and row["paid_at"] is not None else None,
             "totalPaise": int(row["total_paise"]),
             "note": row["note"],
+            "cancelReason": row["cancel_reason"] if "cancel_reason" in row.keys() else None,
+            "cancelledAt": int(row["cancelled_at"]) if "cancelled_at" in row.keys() and row["cancelled_at"] is not None else None,
             "createdAt": int(row["created_at"]),
             "updatedAt": int(row["updated_at"]),
             "items": [
@@ -257,12 +259,27 @@ class KitchenService:
             if row is None:
                 raise AdminSoftwareNotFound("Kitchen order not found")
             status = row["status"]
+            original_status = status
+            cancel_reason = row["cancel_reason"] if "cancel_reason" in row.keys() else None
+            cancelled_at = row["cancelled_at"] if "cancelled_at" in row.keys() else None
             if "status" in payload:
                 requested = str(payload.get("status") or "").strip().casefold()
                 if requested not in ORDER_STATUSES:
                     raise AdminSoftwareValidationError({"status": "Invalid kitchen order status"})
                 if requested != status and requested not in STATUS_TRANSITIONS[status]:
                     raise AdminSoftwareConflict(f"Cannot move order from {status} to {requested}")
+                if requested == "cancelled" and status != "cancelled":
+                    if row["payment_status"] == "paid":
+                        raise AdminSoftwareConflict(
+                            "Paid kitchen order cannot be cancelled until its payment is voided/refunded"
+                        )
+                    cancel_reason = _text(
+                        payload.get("cancelReason"),
+                        field="cancelReason",
+                        maximum=200,
+                        required=True,
+                    )
+                    cancelled_at = now
                 if requested == "served" and status != "served":
                     self._consume_recipe_inventory(
                         connection,
@@ -293,14 +310,30 @@ class KitchenService:
                 if requested_method and payment != "paid":
                     raise AdminSoftwareConflict("Payment method can only be set on a paid order")
                 payment_method = requested_method or None
+            if status == "cancelled":
+                if payment == "paid":
+                    raise AdminSoftwareConflict("Paid kitchen order cannot be cancelled until its payment is voided/refunded")
+                payment = "void"
+                payment_method = None
+                paid_at = None
             connection.execute(
-                "UPDATE kitchen_orders SET status=?,payment_status=?,payment_method=?,paid_at=?,updated_at=? WHERE id=?",
-                (status, payment, payment_method, paid_at, now, order_id),
+                "UPDATE kitchen_orders SET status=?,payment_status=?,payment_method=?,paid_at=?,cancel_reason=?,cancelled_at=?,updated_at=? WHERE id=?",
+                (status, payment, payment_method, paid_at, cancel_reason, cancelled_at, now, order_id),
+            )
+            audit_action = (
+                "kitchen_order_cancelled"
+                if status == "cancelled" and original_status != "cancelled"
+                else "kitchen_order_updated"
             )
             self.admin_service._audit(
-                connection, actor_admin_user_id, "kitchen_order_updated",
+                connection, actor_admin_user_id, audit_action,
                 target_type="kitchen_order", target_id=order_id,
-                metadata={"status": status, "paymentStatus": payment, "paymentMethod": payment_method},
+                metadata={
+                    "status": status,
+                    "paymentStatus": payment,
+                    "paymentMethod": payment_method,
+                    "cancelReason": cancel_reason if status == "cancelled" else None,
+                },
             )
             connection.commit()
             updated = connection.execute("SELECT * FROM kitchen_orders WHERE id=?", (order_id,)).fetchone()

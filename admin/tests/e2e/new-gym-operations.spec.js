@@ -327,7 +327,16 @@ async function mockOperations(page, state) {
         return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'not_found' }) });
       }
       const patch = request.postDataJSON();
-      if (patch.status) order.status = patch.status;
+      if (patch.status) {
+        order.status = patch.status;
+        if (patch.status === 'cancelled') {
+          order.cancelReason = patch.cancelReason;
+          order.cancelledAt = Math.floor(Date.now() / 1000);
+          order.paymentStatus = 'void';
+          order.paymentMethod = null;
+          order.paidAt = null;
+        }
+      }
       if (patch.paymentStatus) order.paymentStatus = patch.paymentStatus;
       if (patch.paymentMethod !== undefined) order.paymentMethod = patch.paymentMethod;
       if (order.paymentStatus === 'paid') order.paidAt = Math.floor(Date.now() / 1000);
@@ -442,6 +451,19 @@ test('New Gym kitchen order and inventory flows work in the browser', async ({ p
   await orderCard.locator('.kitchen-payment-method').selectOption('upi');
   await orderCard.getByRole('button', { name: 'Mark paid' }).click();
   await expect(page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first()).toContainText('paid · UPI');
+
+  await page.locator('#kitchenCustomerName').fill('Cancel Guest');
+  await page.locator('[data-menu-id="menu-coffee"]').fill('1');
+  await page.locator('#kitchenOrderForm button[type="submit"]').click();
+  const cancelCard = page.locator('.kitchen-order-card').filter({ hasText: 'Cancel Guest' }).first();
+  page.once('dialog', async (dialog) => {
+    await dialog.accept('Customer changed order');
+  });
+  await cancelCard.getByRole('button', { name: 'Cancel order' }).click();
+  const cancelledCard = page.locator('.kitchen-order-card').filter({ hasText: 'Cancel Guest' }).first();
+  await expect(cancelledCard).toContainText('cancelled');
+  await expect(cancelledCard).toContainText('Cancelled: Customer changed order');
+  await expect(cancelledCard).toContainText('void');
 
   await page.locator('#kitchenInventoryName').fill('Bread');
   await page.locator('#kitchenInventoryUnit').fill('piece');

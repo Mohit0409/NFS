@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from server.gravity.admin_software import AdminSoftwareConflict
+from server.gravity.admin_software import AdminSoftwareConflict, AdminSoftwareValidationError
 from server.gravity.database import Database
 from server.gravity.kitchen import KitchenService
 from server.gravity.pool import PoolService
@@ -355,6 +355,99 @@ class OperationsTests(unittest.TestCase):
         current = next(item for item in self.kitchen.list_inventory() if item["id"] == stock["id"])
         self.assertEqual(stored["status"], "ready")
         self.assertEqual(current["quantityMilli"], 500)
+
+    def test_kitchen_order_cancellation_requires_reason_and_voids_unpaid_order(self):
+        menu = self.kitchen.create_menu_item(
+            {"name": "Cancelled Coffee", "category": "Drinks", "pricePaise": 8000},
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {"items": [{"menuItemId": menu["id"], "quantity": 1}]},
+            actor_admin_user_id=None,
+        )
+
+        with self.assertRaises(AdminSoftwareValidationError):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": "cancelled"},
+                actor_admin_user_id=None,
+            )
+
+        cancelled = self.kitchen.update_order(
+            order["id"],
+            {"status": "cancelled", "cancelReason": "Customer changed order"},
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(cancelled["status"], "cancelled")
+        self.assertEqual(cancelled["paymentStatus"], "void")
+        self.assertIsNone(cancelled["paymentMethod"])
+        self.assertEqual(cancelled["cancelReason"], "Customer changed order")
+        self.assertEqual(cancelled["cancelledAt"], self.clock_value)
+
+    def test_paid_kitchen_order_cannot_be_cancelled_until_payment_is_voided(self):
+        menu = self.kitchen.create_menu_item(
+            {"name": "Paid Tea", "category": "Drinks", "pricePaise": 5000},
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {"items": [{"menuItemId": menu["id"], "quantity": 1}]},
+            actor_admin_user_id=None,
+        )
+        self.kitchen.update_order(
+            order["id"],
+            {"paymentStatus": "paid", "paymentMethod": "cash"},
+            actor_admin_user_id=None,
+        )
+        with self.assertRaises(AdminSoftwareConflict):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": "cancelled", "cancelReason": "Customer changed order"},
+                actor_admin_user_id=None,
+            )
+
+    def test_cancelling_ready_recipe_order_does_not_consume_inventory(self):
+        stock = self.kitchen.create_inventory_item(
+            {"name": "Cancellation Milk", "unit": "litre", "quantityMilli": 3000, "lowStockMilli": 500},
+            actor_admin_user_id=None,
+        )
+        menu = self.kitchen.create_menu_item(
+            {"name": "Cancellation Shake", "category": "Drinks", "pricePaise": 9000},
+            actor_admin_user_id=None,
+        )
+        self.kitchen.upsert_recipe(
+            {
+                "menuItemId": menu["id"],
+                "inventoryItemId": stock["id"],
+                "quantityMilli": 250,
+            },
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {"items": [{"menuItemId": menu["id"], "quantity": 2}]},
+            actor_admin_user_id=None,
+        )
+        for status in ("preparing", "ready"):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": status},
+                actor_admin_user_id=None,
+            )
+        cancelled = self.kitchen.update_order(
+            order["id"],
+            {"status": "cancelled", "cancelReason": "Guest left"},
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(cancelled["status"], "cancelled")
+        current = next(item for item in self.kitchen.list_inventory() if item["id"] == stock["id"])
+        self.assertEqual(current["quantityMilli"], 3000)
+        with self.database.session() as connection:
+            self.assertEqual(
+                connection.execute(
+                    "SELECT COUNT(*) FROM kitchen_order_inventory_usage WHERE inventory_item_id=?",
+                    (stock["id"],),
+                ).fetchone()[0],
+                0,
+            )
 
     def test_kitchen_recipe_can_be_removed_with_zero_quantity(self):
         stock = self.kitchen.create_inventory_item(

@@ -433,7 +433,7 @@ class AdminSoftwareServiceTests(unittest.TestCase):
             old_migrations = root / "migrations"
             old_migrations.mkdir()
             for migration in sorted((ROOT / "server" / "migrations").glob("*.sql")):
-                if migration.name.startswith(("010_", "011_", "012_", "013_", "014_", "015_", "016_", "017_")):
+                if migration.name.startswith(("010_", "011_", "012_", "013_", "014_", "015_", "016_", "017_", "018_")):
                     continue
                 shutil.copy2(migration, old_migrations / migration.name)
             database_path = root / "gravity.sqlite3"
@@ -500,8 +500,8 @@ class AdminSoftwareServiceTests(unittest.TestCase):
                      "razorpay", "created", "upgrade-receipt", local_clock.value, local_clock.value),
                 )
             upgraded = Database(database_path, ROOT / "server" / "migrations")
-            self.assertEqual(upgraded.migrate(), ["010", "011", "012", "013", "014", "015", "016", "017"])
-            self.assertEqual(upgraded.health(), {"database": "ok", "migrations": "17"})
+            self.assertEqual(upgraded.migrate(), ["010", "011", "012", "013", "014", "015", "016", "017", "018"])
+            self.assertEqual(upgraded.health(), {"database": "ok", "migrations": "18"})
             with upgraded.session() as connection:
                 self.assertEqual(connection.execute("SELECT value FROM app_metadata WHERE key='schema_stage'").fetchone()[0], "biometric_attendance_v1")
                 for table in (
@@ -525,7 +525,7 @@ class AdminSoftwareServiceTests(unittest.TestCase):
             migrations_010 = root / "migrations-010"
             migrations_010.mkdir()
             for migration in sorted((ROOT / "server" / "migrations").glob("*.sql")):
-                if not migration.name.startswith(("011_", "012_", "013_", "014_", "015_", "016_", "017_")):
+                if not migration.name.startswith(("011_", "012_", "013_", "014_", "015_", "016_", "017_", "018_")):
                     shutil.copy2(migration, migrations_010 / migration.name)
             database_path = root / "gravity.sqlite3"
             database_010 = Database(database_path, migrations_010)
@@ -548,7 +548,7 @@ class AdminSoftwareServiceTests(unittest.TestCase):
                      99900, "INR", 1, "expired", start, now - 15 * 86400, "admin_manual", start, start),
                 )
             upgraded = Database(database_path, ROOT / "server" / "migrations")
-            self.assertEqual(upgraded.migrate(), ["011", "012", "013", "014", "015", "016", "017"])
+            self.assertEqual(upgraded.migrate(), ["011", "012", "013", "014", "015", "016", "017", "018"])
             with upgraded.session() as connection:
                 row = connection.execute(
                     "SELECT person_type,joined_at,staff_designation,admin_note FROM customers WHERE id='live-member'"

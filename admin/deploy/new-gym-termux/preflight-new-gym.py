@@ -19,7 +19,7 @@ GRAVITY_MARKERS = (
     "917999526112",
     "foyer-amenity-staff.ngrok-free.dev",
 )
-MINIMUM_SCHEMA_VERSION = 17
+MINIMUM_SCHEMA_VERSION = 18
 
 
 def load_env(path: Path) -> dict[str, str]:

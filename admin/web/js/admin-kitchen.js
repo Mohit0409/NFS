@@ -127,6 +127,18 @@
     await render();
   }
 
+  async function cancelOrder(order) {
+    const reason = window.prompt('Cancellation reason (required):', '');
+    if (reason == null) return;
+    const cleaned = reason.trim();
+    if (!cleaned) {
+      core().flash('Cancellation reason is required.', 'error');
+      return;
+    }
+    await updateOrder(order, { status: 'cancelled', cancelReason: cleaned });
+    core().flash('Kitchen order cancelled.');
+  }
+
   function orderCard(order) {
     const card = document.createElement('article');
     card.className = 'ops-card kitchen-order-card';
@@ -139,12 +151,16 @@
         <span class="ops-status" data-status="${order.status}">${order.status}</span>
       </div>
       <p class="micro">${order.customerName || (order.poolSessionId ? 'Pool session order' : 'Walk-in order')}</p>
+      <p class="micro kitchen-cancel-reason" ${order.status === 'cancelled' && order.cancelReason ? '' : 'hidden'}></p>
       <ul class="kitchen-lines">${lines}</ul>
       <div class="kitchen-total"><span>Total</span><strong>${rupees(order.totalPaise)}</strong></div>
       <div class="row-actions kitchen-order-actions"></div>
     `;
     const names = card.querySelectorAll('.kitchen-lines strong');
     (order.items || []).forEach((item, index) => { if (names[index]) names[index].textContent = item.name; });
+    if (order.status === 'cancelled' && order.cancelReason) {
+      card.querySelector('.kitchen-cancel-reason').textContent = `Cancelled: ${order.cancelReason}`;
+    }
     const actions = card.querySelector('.kitchen-order-actions');
     if (nextStatus[order.status]) {
       const advance = document.createElement('button');
@@ -152,6 +168,17 @@
       advance.textContent = `Mark ${nextStatus[order.status]}`;
       advance.addEventListener('click', () => updateOrder(order, { status: nextStatus[order.status] }).catch((error) => core().flash(error.data?.message || error.message, 'error')));
       actions.append(advance);
+    }
+    if (
+      order.paymentStatus === 'unpaid'
+      && ['new', 'preparing', 'ready'].includes(order.status)
+    ) {
+      const cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.className = 'ghost';
+      cancel.textContent = 'Cancel order';
+      cancel.addEventListener('click', () => cancelOrder(order).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+      actions.append(cancel);
     }
     if (order.paymentStatus === 'unpaid' && order.status !== 'cancelled') {
       const method = document.createElement('select');

@@ -110,7 +110,7 @@ class BiometricServiceTests(unittest.TestCase):
         )["customer"]
 
     def test_migration_creates_biometric_tables_and_secrets_are_encrypted(self) -> None:
-        self.assertEqual(self.database.health(), {"database": "ok", "migrations": "17"})
+        self.assertEqual(self.database.health(), {"database": "ok", "migrations": "18"})
         device = self.create_device()
         self.assertTrue(device["commKeyConfigured"])
         self.assertNotIn("commKey", device)

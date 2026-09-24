@@ -430,7 +430,7 @@ class OperationsScriptTests(unittest.TestCase):
         """
         ready_database = {
             "exists": True,
-            "schemaVersion": 17,
+            "schemaVersion": 18,
             "integrityOk": True,
             "foreignKeysOk": True,
             "legacyPlanDrafts": 0,
@@ -488,7 +488,7 @@ class OperationsScriptTests(unittest.TestCase):
             state = module.inspect_database(path)
 
         self.assertTrue(state["exists"])
-        self.assertGreaterEqual(state["schemaVersion"], 17)
+        self.assertGreaterEqual(state["schemaVersion"], 18)
         self.assertTrue(state["integrityOk"])
         self.assertTrue(state["foreignKeysOk"])
         self.assertEqual(state["legacyPlanDrafts"], 3)

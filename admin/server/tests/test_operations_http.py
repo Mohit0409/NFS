@@ -245,6 +245,48 @@ class OperationsHttpTests(unittest.TestCase):
             self.assertEqual(status, 422)
             self.assertEqual(payload["error"], "operations_validation")
 
+            status, payload = request_json(
+                base,
+                "/api/admin/kitchen/menu",
+                method="POST",
+                body={"name": "Tea", "category": "Drinks", "pricePaise": 5000},
+                headers=headers,
+            )
+            self.assertEqual(status, 201)
+            menu_id = payload["item"]["id"]
+            status, payload = request_json(
+                base,
+                "/api/admin/kitchen/orders",
+                method="POST",
+                body={"items": [{"menuItemId": menu_id, "quantity": 1}]},
+                headers=headers,
+            )
+            self.assertEqual(status, 201)
+            order_id = payload["order"]["id"]
+
+            status, payload = request_json(
+                base,
+                f"/api/admin/kitchen/orders/{order_id}",
+                method="PATCH",
+                body={"status": "cancelled"},
+                headers=headers,
+            )
+            self.assertEqual(status, 422)
+            self.assertEqual(payload["error"], "operations_validation")
+
+            status, payload = request_json(
+                base,
+                f"/api/admin/kitchen/orders/{order_id}",
+                method="PATCH",
+                body={"status": "cancelled", "cancelReason": "Customer changed order"},
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["order"]["status"], "cancelled")
+            self.assertEqual(payload["order"]["paymentStatus"], "void")
+            self.assertEqual(payload["order"]["cancelReason"], "Customer changed order")
+            self.assertIsNotNone(payload["order"]["cancelledAt"])
+
 
     def test_pool_reservation_and_inventory_http_workflows(self):
         with running_server() as (server, base):
