@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 ENV_RUNNER = ROOT / "scripts" / "gravity-env.py"
+NEW_GYM_PREFLIGHT = ROOT / "deploy" / "new-gym-termux" / "preflight-new-gym.py"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -375,6 +376,92 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("http://127.0.0.1:8897", routes)
         self.assertIn("http://127.0.0.1:8898", routes)
         self.assertIn("http://127.0.0.1:8899", routes)
+
+    def test_new_gym_launch_preflight_is_fail_closed_and_secret_safe(self) -> None:
+        spec = importlib.util.spec_from_file_location("new_gym_preflight", NEW_GYM_PREFLIGHT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        install_values = {
+            "GRAVITY_ENV": "production",
+            "GRAVITY_HOST": "127.0.0.1",
+            "GRAVITY_PORT": "8897",
+            "NEW_GYM_MEMBER_GATEWAY_PORT": "8898",
+            "NEW_GYM_PUBLIC_PORT": "8899",
+            "NEW_GYM_MEMBER_BACKEND": "http://127.0.0.1:8897",
+            "GRAVITY_DATA_DIR": "/home/u/.local/share/new-gym/data",
+            "GRAVITY_LOG_DIR": "/home/u/.local/state/new-gym/logs",
+            "GRAVITY_BACKUP_DIR": "/home/u/.local/share/new-gym/backups",
+            "SECRET_KEY": "x" * 40,
+            "APP_BASE_URL": "https://admin.example.org",
+        }
+        install = module.validate(install_values, stage="install")
+        self.assertTrue(install["ready"])
+
+        launch_values = {
+            **install_values,
+            "BUSINESS_NAME": "Verified Fitness Club",
+            "BUSINESS_ADDRESS": "Verified address",
+            "OWNER_PHONE": "+919876543210",
+            "NEW_GYM_MEMBER_ALLOWED_ORIGINS": "https://gym.example.org",
+            "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED": "true",
+            "NEW_GYM_POOL_RATES_CONFIRMED": "true",
+            "NEW_GYM_KITCHEN_SETUP_CONFIRMED": "true",
+            "FIREBASE_PROJECT_ID": "new-gym-auth",
+            "FIREBASE_WEB_API_KEY": "public-web-key",
+            "FIREBASE_AUTH_DOMAIN": "new-gym-auth.firebaseapp.com",
+            "FIREBASE_APP_ID": "1:123:web:newgym",
+            "FIREBASE_SERVICE_ACCOUNT_PATH": "/private/firebase.json",
+            "CLOUDFLARED_TOKEN_FILE": "/private/cloudflare.token",
+            "NEW_GYM_BACKUP_REMOTE": "new-gym-backup:daily",
+            "NEW_GYM_REQUIRE_OFFDEVICE_BACKUP": "true",
+        }
+        customer_config = """
+        name: 'Verified Fitness Club',
+        phoneDisplay: '+91 98765 43210',
+        whatsappNumber: '919876543210',
+        address: 'Verified address',
+        memberGatewayBase: 'https://gym.example.org',
+        projectId: 'new-gym-auth',
+        """
+        launch = module.validate(
+            launch_values,
+            stage="launch",
+            customer_config_text=customer_config,
+            path_exists=lambda _value: True,
+        )
+        self.assertTrue(launch["ready"])
+
+        blocked = module.validate(
+            {**launch_values, "BUSINESS_NAME": "New Gym", "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED": "false"},
+            stage="launch",
+            customer_config_text="name: 'New Gym', phoneDisplay: '', projectId: ''",
+            path_exists=lambda _value: True,
+        )
+        self.assertFalse(blocked["ready"])
+        self.assertIn("business_name", blocked["blockers"])
+        self.assertIn("membership_pricing_confirmed", blocked["blockers"])
+        self.assertIn("customer_runtime_config", blocked["blockers"])
+
+        serialized = __import__("json").dumps(blocked)
+        self.assertNotIn(launch_values["SECRET_KEY"], serialized)
+
+    def test_new_gym_installer_requires_staged_preflight_before_tunnel(self) -> None:
+        profile = ROOT / "deploy" / "new-gym-termux"
+        installer = (profile / "install-termux.sh").read_text(encoding="utf-8")
+        example = (profile / "new-gym.env.example").read_text(encoding="utf-8")
+        self.assertIn("preflight-new-gym.py", installer)
+        self.assertIn("--stage install", installer)
+        self.assertIn("--stage launch", installer)
+        self.assertLess(installer.index("--stage launch"), installer.index("sv-enable new-gym-tunnel"))
+        for key in (
+            "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED=false",
+            "NEW_GYM_POOL_RATES_CONFIRMED=false",
+            "NEW_GYM_KITCHEN_SETUP_CONFIRMED=false",
+        ):
+            self.assertIn(key, example)
 
     def test_new_gym_firebase_aliases_are_not_bound_to_gravity(self) -> None:
         for path in (ROOT / ".firebaserc", ROOT.parent / "customer-website" / ".firebaserc"):

@@ -47,6 +47,8 @@ if [ ! -e "$CONFIG" ]; then
 fi
 chmod 600 "$CONFIG"
 
+python3 "$REPO/deploy/new-gym-termux/preflight-new-gym.py" --config "$CONFIG" --stage install
+
 python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- python3 -c '
 import os
 from urllib.parse import urlparse
@@ -111,6 +113,7 @@ if $ENABLE_TUNNEL; then
   command -v cloudflared >/dev/null 2>&1 || { echo "cloudflared is required for --enable-tunnel." >&2; exit 1; }
   [ -s "$CONFIG_DIR/cloudflared-token" ] || { echo "Create the mode-600 Cloudflare token first." >&2; exit 1; }
   chmod 600 "$CONFIG_DIR/cloudflared-token"
+  python3 "$REPO/deploy/new-gym-termux/preflight-new-gym.py" --config "$CONFIG" --stage launch
   touch "$CONFIG_DIR/enable-tunnel"
   chmod 600 "$CONFIG_DIR/enable-tunnel"
   sv-enable new-gym-tunnel
