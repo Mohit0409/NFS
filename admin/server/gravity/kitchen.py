@@ -263,6 +263,13 @@ class KitchenService:
                     raise AdminSoftwareValidationError({"status": "Invalid kitchen order status"})
                 if requested != status and requested not in STATUS_TRANSITIONS[status]:
                     raise AdminSoftwareConflict(f"Cannot move order from {status} to {requested}")
+                if requested == "served" and status != "served":
+                    self._consume_recipe_inventory(
+                        connection,
+                        order_id,
+                        now=now,
+                        actor_admin_user_id=actor_admin_user_id,
+                    )
                 status = requested
             payment = row["payment_status"]
             payment_method = row["payment_method"] if "payment_method" in row.keys() else None
@@ -314,6 +321,197 @@ class KitchenService:
             "createdAt": int(row["created_at"]),
             "updatedAt": int(row["updated_at"]),
         }
+
+    def list_recipes(self, *, menu_item_id: str | None = None) -> list[dict[str, object]]:
+        params: tuple[object, ...] = ()
+        where = ""
+        if menu_item_id:
+            where = "WHERE r.menu_item_id=?"
+            params = (menu_item_id,)
+        with self.database.session() as connection:
+            rows = connection.execute(
+                "SELECT r.menu_item_id,r.inventory_item_id,r.quantity_milli,"
+                "m.name AS menu_name,i.name AS inventory_name,i.unit "
+                "FROM kitchen_recipes r "
+                "JOIN kitchen_menu_items m ON m.id=r.menu_item_id "
+                "JOIN kitchen_inventory_items i ON i.id=r.inventory_item_id "
+                f"{where} ORDER BY m.name COLLATE NOCASE,i.name COLLATE NOCASE",
+                params,
+            ).fetchall()
+        return [
+            {
+                "menuItemId": row["menu_item_id"],
+                "menuName": row["menu_name"],
+                "inventoryItemId": row["inventory_item_id"],
+                "inventoryName": row["inventory_name"],
+                "unit": row["unit"],
+                "quantityMilli": int(row["quantity_milli"]),
+            }
+            for row in rows
+        ]
+
+    def upsert_recipe(
+        self,
+        payload: Mapping[str, object],
+        *,
+        actor_admin_user_id: str,
+    ) -> dict[str, object]:
+        menu_item_id = str(payload.get("menuItemId") or "").strip()
+        inventory_item_id = str(payload.get("inventoryItemId") or "").strip()
+        if not menu_item_id:
+            raise AdminSoftwareValidationError({"menuItemId": "Select a menu item"})
+        if not inventory_item_id:
+            raise AdminSoftwareValidationError({"inventoryItemId": "Select an inventory item"})
+        quantity = _integer(
+            payload.get("quantityMilli"),
+            field="quantityMilli",
+            minimum=0,
+            maximum=1_000_000_000,
+        )
+        now = self._now()
+        with self.database.session() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            menu = connection.execute(
+                "SELECT name FROM kitchen_menu_items WHERE id=?", (menu_item_id,)
+            ).fetchone()
+            if menu is None:
+                raise AdminSoftwareNotFound("Kitchen menu item not found")
+            inventory = connection.execute(
+                "SELECT name,unit,status FROM kitchen_inventory_items WHERE id=?",
+                (inventory_item_id,),
+            ).fetchone()
+            if inventory is None:
+                raise AdminSoftwareNotFound("Kitchen inventory item not found")
+            if quantity == 0:
+                connection.execute(
+                    "DELETE FROM kitchen_recipes WHERE menu_item_id=? AND inventory_item_id=?",
+                    (menu_item_id, inventory_item_id),
+                )
+                action = "kitchen_recipe_removed"
+            else:
+                connection.execute(
+                    "INSERT INTO kitchen_recipes("
+                    "menu_item_id,inventory_item_id,quantity_milli,created_at,updated_at"
+                    ") VALUES(?,?,?,?,?) "
+                    "ON CONFLICT(menu_item_id,inventory_item_id) DO UPDATE SET "
+                    "quantity_milli=excluded.quantity_milli,updated_at=excluded.updated_at",
+                    (menu_item_id, inventory_item_id, quantity, now, now),
+                )
+                action = "kitchen_recipe_updated"
+            self.admin_service._audit(
+                connection,
+                actor_admin_user_id,
+                action,
+                target_type="kitchen_menu_item",
+                target_id=menu_item_id,
+                metadata={
+                    "inventoryItemId": inventory_item_id,
+                    "quantityMilli": quantity,
+                },
+            )
+            connection.commit()
+        return {
+            "menuItemId": menu_item_id,
+            "menuName": menu["name"],
+            "inventoryItemId": inventory_item_id,
+            "inventoryName": inventory["name"],
+            "unit": inventory["unit"],
+            "quantityMilli": quantity,
+            "removed": quantity == 0,
+        }
+
+    def _consume_recipe_inventory(
+        self,
+        connection,
+        order_id: str,
+        *,
+        now: int,
+        actor_admin_user_id: str,
+    ) -> None:
+        rows = connection.execute(
+            "SELECT oi.id AS order_item_id,oi.quantity,r.inventory_item_id,"
+            "r.quantity_milli,i.name AS inventory_name,i.status AS inventory_status,"
+            "i.quantity_milli AS available_milli "
+            "FROM kitchen_order_items oi "
+            "JOIN kitchen_recipes r ON r.menu_item_id=oi.menu_item_id "
+            "JOIN kitchen_inventory_items i ON i.id=r.inventory_item_id "
+            "WHERE oi.order_id=? "
+            "ORDER BY oi.id,r.inventory_item_id",
+            (order_id,),
+        ).fetchall()
+        if not rows:
+            return
+
+        pending: list[tuple[object, int]] = []
+        required_by_inventory: dict[str, int] = {}
+        inventory_meta: dict[str, object] = {}
+        for row in rows:
+            existing = connection.execute(
+                "SELECT 1 FROM kitchen_order_inventory_usage "
+                "WHERE order_item_id=? AND inventory_item_id=?",
+                (row["order_item_id"], row["inventory_item_id"]),
+            ).fetchone()
+            if existing:
+                continue
+            required = int(row["quantity"]) * int(row["quantity_milli"])
+            if required <= 0:
+                continue
+            pending.append((row, required))
+            key = row["inventory_item_id"]
+            required_by_inventory[key] = required_by_inventory.get(key, 0) + required
+            inventory_meta[key] = row
+
+        if not pending:
+            return
+
+        for inventory_id, required in required_by_inventory.items():
+            row = inventory_meta[inventory_id]
+            if row["inventory_status"] != "active":
+                raise AdminSoftwareConflict(
+                    f"Recipe ingredient is inactive: {row['inventory_name']}"
+                )
+            if int(row["available_milli"]) < required:
+                raise AdminSoftwareConflict(
+                    f"Insufficient stock for recipe ingredient: {row['inventory_name']}"
+                )
+
+        remaining_after: dict[str, int] = {}
+        for inventory_id, required in required_by_inventory.items():
+            row = inventory_meta[inventory_id]
+            after = int(row["available_milli"]) - required
+            remaining_after[inventory_id] = after
+            connection.execute(
+                "UPDATE kitchen_inventory_items SET quantity_milli=?,updated_at=? WHERE id=?",
+                (after, now, inventory_id),
+            )
+            connection.execute(
+                "INSERT INTO kitchen_inventory_movements("
+                "id,item_id,delta_milli,quantity_after_milli,reason,note,"
+                "created_by_admin_user_id,created_at"
+                ") VALUES(?,?,?,?, 'usage',?,?,?)",
+                (
+                    uuid4().hex,
+                    inventory_id,
+                    -required,
+                    after,
+                    f"Automatic recipe usage for order {order_id}",
+                    actor_admin_user_id,
+                    now,
+                ),
+            )
+
+        for row, required in pending:
+            connection.execute(
+                "INSERT INTO kitchen_order_inventory_usage("
+                "order_item_id,inventory_item_id,quantity_milli,created_at"
+                ") VALUES(?,?,?,?)",
+                (
+                    row["order_item_id"],
+                    row["inventory_item_id"],
+                    required,
+                    now,
+                ),
+            )
 
     def list_inventory(self, *, include_inactive: bool = True) -> list[dict[str, object]]:
         where = "" if include_inactive else "WHERE status='active'"

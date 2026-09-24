@@ -250,5 +250,140 @@ class OperationsTests(unittest.TestCase):
             )
 
 
+    def test_kitchen_recipe_auto_deducts_inventory_once_when_served(self):
+        stock = self.kitchen.create_inventory_item(
+            {
+                "name": "Milk",
+                "unit": "litre",
+                "quantityMilli": 5000,
+                "lowStockMilli": 1000,
+            },
+            actor_admin_user_id=None,
+        )
+        menu = self.kitchen.create_menu_item(
+            {"name": "Cold Coffee", "category": "Drinks", "pricePaise": 8000},
+            actor_admin_user_id=None,
+        )
+        recipe = self.kitchen.upsert_recipe(
+            {
+                "menuItemId": menu["id"],
+                "inventoryItemId": stock["id"],
+                "quantityMilli": 250,
+            },
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(recipe["quantityMilli"], 250)
+
+        order = self.kitchen.create_order(
+            {
+                "items": [{"menuItemId": menu["id"], "quantity": 2}],
+            },
+            actor_admin_user_id=None,
+        )
+        for status in ("preparing", "ready", "served"):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": status},
+                actor_admin_user_id=None,
+            )
+
+        current = next(item for item in self.kitchen.list_inventory() if item["id"] == stock["id"])
+        self.assertEqual(current["quantityMilli"], 4500)
+
+        # Repeating the same terminal state must not deduct a second time.
+        self.kitchen.update_order(
+            order["id"],
+            {"status": "served"},
+            actor_admin_user_id=None,
+        )
+        current = next(item for item in self.kitchen.list_inventory() if item["id"] == stock["id"])
+        self.assertEqual(current["quantityMilli"], 4500)
+
+        with self.database.session() as connection:
+            usage = connection.execute(
+                "SELECT quantity_milli FROM kitchen_order_inventory_usage"
+            ).fetchall()
+            movements = connection.execute(
+                "SELECT delta_milli,reason FROM kitchen_inventory_movements "
+                "WHERE item_id=? AND reason='usage'",
+                (stock["id"],),
+            ).fetchall()
+        self.assertEqual([int(row["quantity_milli"]) for row in usage], [500])
+        self.assertEqual([(int(row["delta_milli"]), row["reason"]) for row in movements], [(-500, "usage")])
+
+    def test_kitchen_recipe_blocks_serving_if_stock_is_insufficient(self):
+        stock = self.kitchen.create_inventory_item(
+            {
+                "name": "Protein Powder",
+                "unit": "kg",
+                "quantityMilli": 500,
+                "lowStockMilli": 200,
+            },
+            actor_admin_user_id=None,
+        )
+        menu = self.kitchen.create_menu_item(
+            {"name": "Protein Shake", "category": "Drinks", "pricePaise": 12000},
+            actor_admin_user_id=None,
+        )
+        self.kitchen.upsert_recipe(
+            {
+                "menuItemId": menu["id"],
+                "inventoryItemId": stock["id"],
+                "quantityMilli": 600,
+            },
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {"items": [{"menuItemId": menu["id"], "quantity": 1}]},
+            actor_admin_user_id=None,
+        )
+        for status in ("preparing", "ready"):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": status},
+                actor_admin_user_id=None,
+            )
+
+        with self.assertRaises(AdminSoftwareConflict):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": "served"},
+                actor_admin_user_id=None,
+            )
+
+        stored = next(item for item in self.kitchen.list_orders() if item["id"] == order["id"])
+        current = next(item for item in self.kitchen.list_inventory() if item["id"] == stock["id"])
+        self.assertEqual(stored["status"], "ready")
+        self.assertEqual(current["quantityMilli"], 500)
+
+    def test_kitchen_recipe_can_be_removed_with_zero_quantity(self):
+        stock = self.kitchen.create_inventory_item(
+            {"name": "Bread", "unit": "piece", "quantityMilli": 10000, "lowStockMilli": 2000},
+            actor_admin_user_id=None,
+        )
+        menu = self.kitchen.create_menu_item(
+            {"name": "Sandwich", "category": "Snacks", "pricePaise": 10000},
+            actor_admin_user_id=None,
+        )
+        self.kitchen.upsert_recipe(
+            {
+                "menuItemId": menu["id"],
+                "inventoryItemId": stock["id"],
+                "quantityMilli": 2000,
+            },
+            actor_admin_user_id=None,
+        )
+        removed = self.kitchen.upsert_recipe(
+            {
+                "menuItemId": menu["id"],
+                "inventoryItemId": stock["id"],
+                "quantityMilli": 0,
+            },
+            actor_admin_user_id=None,
+        )
+        self.assertTrue(removed["removed"])
+        self.assertEqual(self.kitchen.list_recipes(menu_item_id=menu["id"]), [])
+
+
 if __name__ == "__main__":
     unittest.main()

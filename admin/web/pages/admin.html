@@ -124,7 +124,7 @@
 </section>
 </div>
 <section class="panel"><div class="panelhead"><div><h3>Order queue</h3><p class="micro">Newest orders first.</p></div></div><div id="kitchenOrdersGrid" class="ops-grid"></div></section>
-<section class="panel"><div class="panelhead"><div><h3>Kitchen inventory</h3><p class="micro">Manual ingredient/stock tracking. Order recipes are not auto-deducted until recipe definitions are added.</p></div></div>
+<section class="panel"><div class="panelhead"><div><h3>Kitchen inventory</h3><p class="micro">Track ingredients and stock. Defined recipe quantities are deducted automatically when an order is marked served.</p></div></div>
 <div class="ops-two-column">
 <form id="kitchenInventoryCreateForm" class="ops-form">
 <label>Stock item<input id="kitchenInventoryName" maxlength="100" required placeholder="Milk, bread, coffee..."></label>
@@ -142,6 +142,18 @@
 </form>
 </div>
 <div class="tablewrap" tabindex="0"><table class="software-table"><thead><tr><th>Item</th><th>Quantity</th><th>Low-stock level</th><th>Status</th></tr></thead><tbody id="kitchenInventoryBody"></tbody></table></div>
+</section>
+<section class="panel"><div class="panelhead"><div><h3>Menu recipes</h3><p class="micro">Set ingredient usage for one unit of a menu item. Use quantity 0 to remove a recipe ingredient.</p></div></div>
+<div class="ops-two-column">
+<form id="kitchenRecipeForm" class="ops-form">
+<label>Menu item<select id="kitchenRecipeMenuItem" required></select></label>
+<label>Ingredient<select id="kitchenRecipeInventoryItem" required></select></label>
+<label>Quantity per item<input id="kitchenRecipeQuantity" type="number" min="0" step="0.001" required placeholder="0.250"></label>
+<button type="submit">Save recipe ingredient</button>
+</form>
+<div class="software-notice"><strong>Automatic stock use</strong><span>Stock is deducted only when an order reaches Served. If stock is insufficient, serving is blocked and no partial deduction is saved.</span></div>
+</div>
+<div class="tablewrap" tabindex="0"><table class="software-table"><thead><tr><th>Menu item</th><th>Ingredient</th><th>Usage per item</th><th>Action</th></tr></thead><tbody id="kitchenRecipesBody"></tbody></table></div>
 </section>
 </section>
 <section id="operationsView" class="view" hidden>
@@ -192,7 +204,7 @@
 <script src="/js/admin-readiness.js" defer></script>
 <script src="/js/admin-biometric.js?v=biometric-attendance-v1" defer></script>
 <script src="/js/admin-pool.js?v=new-gym-pool-v2" defer></script>
-<script src="/js/admin-kitchen.js?v=new-gym-kitchen-v2" defer></script>
+<script src="/js/admin-kitchen.js?v=new-gym-kitchen-v3" defer></script>
 <script src="/js/admin-operations-report.js?v=new-gym-report-v1" defer></script>
 <script src="/js/admin.js?v=new-gym-ops-v2" defer></script>
 </body></html>

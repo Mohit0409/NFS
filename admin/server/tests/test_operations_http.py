@@ -305,6 +305,39 @@ class OperationsHttpTests(unittest.TestCase):
 
             status, payload = request_json(
                 base,
+                "/api/admin/kitchen/menu",
+                method="POST",
+                body={"name": "Cold Coffee", "category": "Drinks", "pricePaise": 8000},
+                headers=headers,
+            )
+            self.assertEqual(status, 201)
+            menu_id = payload["item"]["id"]
+
+            status, payload = request_json(
+                base,
+                "/api/admin/kitchen/recipes",
+                method="POST",
+                body={
+                    "menuItemId": menu_id,
+                    "inventoryItemId": stock_id,
+                    "quantityMilli": 250,
+                },
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["recipe"]["quantityMilli"], 250)
+
+            status, payload = request_json(
+                base,
+                f"/api/admin/kitchen/recipes?menuItemId={menu_id}",
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(len(payload["recipes"]), 1)
+            self.assertEqual(payload["recipes"][0]["inventoryItemId"], stock_id)
+
+            status, payload = request_json(
+                base,
                 f"/api/admin/kitchen/inventory/{stock_id}/adjust",
                 method="POST",
                 body={"deltaMilli": -3500, "reason": "usage"},

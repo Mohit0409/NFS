@@ -103,6 +103,7 @@ function operationState() {
       },
     ],
     orders: [],
+    recipes: [],
     inventory: [
       {
         id: 'stock-milk',
@@ -267,6 +268,28 @@ async function mockOperations(page, state) {
     if (path === '/api/admin/kitchen/menu' && method === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: state.menu }) });
     }
+    if (path === '/api/admin/kitchen/recipes' && method === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ recipes: state.recipes }) });
+    }
+    if (path === '/api/admin/kitchen/recipes' && method === 'POST') {
+      const payload = request.postDataJSON();
+      const menu = state.menu.find((item) => item.id === payload.menuItemId);
+      const inventory = state.inventory.find((item) => item.id === payload.inventoryItemId);
+      state.recipes = state.recipes.filter((item) => !(
+        item.menuItemId === payload.menuItemId && item.inventoryItemId === payload.inventoryItemId
+      ));
+      const recipe = {
+        menuItemId: payload.menuItemId,
+        menuName: menu?.name || payload.menuItemId,
+        inventoryItemId: payload.inventoryItemId,
+        inventoryName: inventory?.name || payload.inventoryItemId,
+        unit: inventory?.unit || '',
+        quantityMilli: payload.quantityMilli,
+        removed: payload.quantityMilli === 0,
+      };
+      if (payload.quantityMilli > 0) state.recipes.push(recipe);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ recipe }) });
+    }
     if (path === '/api/admin/kitchen/orders' && method === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ orders: state.orders }) });
     }
@@ -405,6 +428,14 @@ test('New Gym kitchen order and inventory flows work in the browser', async ({ p
   await page.locator('#kitchenInventoryLowStock').fill('3');
   await page.locator('#kitchenInventoryCreateForm button[type="submit"]').click();
   await expect(page.locator('#kitchenInventoryBody')).toContainText('Bread');
+
+  await page.locator('#kitchenRecipeMenuItem').selectOption('menu-coffee');
+  await page.locator('#kitchenRecipeInventoryItem').selectOption('stock-milk');
+  await page.locator('#kitchenRecipeQuantity').fill('0.25');
+  await page.locator('#kitchenRecipeForm button[type="submit"]').click();
+  await expect(page.locator('#kitchenRecipesBody')).toContainText('Cold Coffee');
+  await expect(page.locator('#kitchenRecipesBody')).toContainText('Milk');
+  await expect(page.locator('#kitchenRecipesBody')).toContainText('0.25 litre');
 
   await page.locator('#kitchenInventoryAdjustItem').selectOption('stock-milk');
   await page.locator('#kitchenInventoryDelta').fill('-3.5');

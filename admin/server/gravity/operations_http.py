@@ -233,6 +233,25 @@ def _kitchen_order_update(handler: Any, order_id: str, request_id: str, send_bod
     return _json(handler, HTTPStatus.OK, {"order": order}, request_id, send_body)
 
 
+def _kitchen_recipes(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    if handler.command in {"GET", "HEAD"}:
+        handler.server.admin_service.require_permission(session, "kitchen.read")
+        params = parse_qs(urlsplit(handler.path).query)
+        rows = handler.server.kitchen_service.list_recipes(
+            menu_item_id=params.get("menuItemId", [""])[0] or None
+        )
+        return _json(handler, HTTPStatus.OK, {"recipes": rows}, request_id, send_body)
+    _require_write(handler, session, "kitchen.manage")
+    payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
+    recipe = handler.server.kitchen_service.upsert_recipe(
+        payload, actor_admin_user_id=session.admin_user_id
+    )
+    return _json(handler, HTTPStatus.OK, {"recipe": recipe}, request_id, send_body)
+
+
 def _kitchen_inventory(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
     session, failure = _authenticated(handler, request_id, send_body)
     if session is None:
@@ -332,6 +351,10 @@ def handle_operations_request(handler: Any, path: str, request_id: str, send_bod
                 if handler.command == "POST":
                     return _pool_end(handler, session_id, request_id, send_body)
                 return handler._method_not_allowed({"POST"}, request_id, send_body)
+        if path == "/api/admin/kitchen/recipes":
+            if handler.command in {"GET", "HEAD", "POST"}:
+                return _kitchen_recipes(handler, request_id, send_body)
+            return handler._method_not_allowed({"GET", "HEAD", "POST"}, request_id, send_body)
         if path == "/api/admin/kitchen/inventory":
             if handler.command in {"GET", "HEAD", "POST"}:
                 return _kitchen_inventory(handler, request_id, send_body)

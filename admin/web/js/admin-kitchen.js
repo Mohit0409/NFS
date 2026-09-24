@@ -192,6 +192,80 @@
     }
   }
 
+  function populateRecipeChoices(menuItems, inventoryItems) {
+    const menuSelect = $('kitchenRecipeMenuItem');
+    const inventorySelect = $('kitchenRecipeInventoryItem');
+    if (!menuSelect || !inventorySelect) return;
+    const selectedMenu = menuSelect.value;
+    const selectedInventory = inventorySelect.value;
+    menuSelect.replaceChildren();
+    inventorySelect.replaceChildren();
+    for (const item of menuItems || []) {
+      menuSelect.append(new Option(item.name, item.id));
+    }
+    for (const item of inventoryItems || []) {
+      const option = new Option(`${item.name} · ${item.unit}`, item.id);
+      option.disabled = item.status !== 'active';
+      inventorySelect.append(option);
+    }
+    if ([...menuSelect.options].some((option) => option.value === selectedMenu)) menuSelect.value = selectedMenu;
+    if ([...inventorySelect.options].some((option) => option.value === selectedInventory)) inventorySelect.value = selectedInventory;
+  }
+
+  function renderRecipes(recipes) {
+    const body = $('kitchenRecipesBody');
+    if (!body) return;
+    body.replaceChildren();
+    for (const recipe of recipes || []) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td></td><td></td><td></td><td></td>';
+      row.children[0].textContent = recipe.menuName;
+      row.children[1].textContent = recipe.inventoryName;
+      row.children[2].textContent = quantity(recipe.quantityMilli, recipe.unit);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ghost compact-button';
+      button.textContent = 'Remove';
+      button.addEventListener('click', () => removeRecipe(recipe).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+      row.children[3].append(button);
+      body.append(row);
+    }
+    if (!body.children.length) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="4" class="empty">No automatic recipe deductions configured yet.</td>';
+      body.append(row);
+    }
+  }
+
+  async function saveRecipe(event) {
+    event.preventDefault();
+    const quantityMilli = decimalToMilli($('kitchenRecipeQuantity').value || '0', 'recipe quantity');
+    await core().api('/api/admin/kitchen/recipes', {
+      method: 'POST',
+      body: {
+        menuItemId: $('kitchenRecipeMenuItem').value,
+        inventoryItemId: $('kitchenRecipeInventoryItem').value,
+        quantityMilli,
+      },
+    });
+    $('kitchenRecipeQuantity').value = '';
+    core().flash(quantityMilli === 0 ? 'Recipe ingredient removed.' : 'Recipe ingredient saved.');
+    await render();
+  }
+
+  async function removeRecipe(recipe) {
+    await core().api('/api/admin/kitchen/recipes', {
+      method: 'POST',
+      body: {
+        menuItemId: recipe.menuItemId,
+        inventoryItemId: recipe.inventoryItemId,
+        quantityMilli: 0,
+      },
+    });
+    core().flash('Recipe ingredient removed.');
+    await render();
+  }
+
   function decimalToMilli(value, field) {
     const amount = Number(value);
     if (!Number.isFinite(amount) || amount < 0) {
@@ -248,13 +322,16 @@
   async function render() {
     const root = $('kitchenOrdersGrid');
     if (!root) return;
-    const [menuData, orderData, inventoryData] = await Promise.all([
+    const [menuData, orderData, inventoryData, recipeData] = await Promise.all([
       core().api('/api/admin/kitchen/menu'),
       core().api('/api/admin/kitchen/orders?limit=50'),
       core().api('/api/admin/kitchen/inventory'),
+      core().api('/api/admin/kitchen/recipes'),
     ]);
     renderMenu(menuData.items || []);
     renderInventory(inventoryData.items || []);
+    populateRecipeChoices(menuData.items || [], inventoryData.items || []);
+    renderRecipes(recipeData.recipes || []);
     root.replaceChildren(...(orderData.orders || []).map(orderCard));
     if (!root.children.length) {
       const empty = document.createElement('p');
@@ -269,6 +346,7 @@
   $('kitchenOrderForm')?.addEventListener('submit', (event) => createOrder(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
   $('kitchenInventoryCreateForm')?.addEventListener('submit', (event) => createInventoryItem(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
   $('kitchenInventoryAdjustForm')?.addEventListener('submit', (event) => adjustInventory(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+  $('kitchenRecipeForm')?.addEventListener('submit', (event) => saveRecipe(event).catch((error) => core().flash(error.data?.message || error.message, 'error')));
 
   window.NewGymKitchenAdmin = { renderWorkspace: render };
 })();
