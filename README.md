@@ -46,6 +46,8 @@ Implemented:
 - server-calculated duration/charge
 - session history
 - advance reservations
+- upcoming reservations can be edited/rescheduled before check-in
+- edit/reschedule revalidates table availability and overlap rules
 - overlap protection per table/time window
 - guest name/mobile/note
 - reservation-specific rate
@@ -202,7 +204,7 @@ Current verified state:
 - clean migration through `001-018`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **237/237 PASS**
+- full admin/backend regression: **239/239 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

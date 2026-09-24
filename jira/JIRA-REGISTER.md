@@ -25,14 +25,16 @@
 | NG-021 | Database-aware launch gate for schema/integrity/legacy Gravity pricing/pool rates/kitchen live data | DONE | Not deployed |
 | NG-022 | Fresh verified off-device backup marker required before tunnel enable | DONE | Not deployed |
 | NG-023 | Audited kitchen order cancellation with required reason and safe payment/stock behavior | DONE | Not deployed |
+| NG-024 | Edit/reschedule upcoming pool reservations with overlap revalidation | DONE | Not deployed |
+| NG-024 | Edit/reschedule upcoming pool reservations with overlap and check-in safety | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`c94ae1c Add audited kitchen order cancellation`
+`13ac7fe Add editable pool reservations`
 
 Verification at this point:
-- backend: 237/237 PASS
+- backend: 239/239 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

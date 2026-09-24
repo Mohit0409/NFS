@@ -87,12 +87,29 @@ This record documents local development milestones only.
    - backend regression 237/237 PASS
    - local Chromium 6/6 PASS
 
+12. `13ac7fe` — Add editable pool reservations
+   - upcoming reservations can be edited/rescheduled in the existing booking form
+   - table/time changes rerun overlap and validation rules
+   - checked-in reservations are locked from editing
+   - blank custom rate inherits the selected table rate
+   - no schema change; schema remains 018
+   - backend regression 239/239 PASS
+   - local Chromium 6/6 PASS
+
+12. `13ac7fe` — Add editable pool reservations
+   - edit/reschedule upcoming reservations before check-in
+   - table/time/contact/rate/note updates
+   - overlap and disabled-table validation re-run on every edit
+   - checked-in reservations remain immutable
+   - backend regression 239/239 PASS
+   - local Chromium 6/6 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
 - Firebase isolation regression: PASS
 - inherited admin reliability Chromium suite: 3/3 PASS
-- New Gym Pool/Kitchen/Reporting/Recipe Chromium suite: 3/3 PASS
+- New Gym Pool/Kitchen/Reporting/Recipe/Reservation Chromium suite: 3/3 PASS
 - daily Operations Report Chromium flow included
 - local admin Chromium total: 6/6 PASS
 - final-domain E2E remains pending until domains/configuration exist

@@ -5,14 +5,15 @@
 1. Set hourly rates for Private Table / Common Table 1 / Common Table 2.
 2. For walk-ins, start a table session directly.
 3. For bookings, create a reservation with start/end time.
-4. Overlapping reservations on the same table are rejected.
-5. At arrival, use Check in. The server starts the timed pool session.
-6. Kitchen orders can be attached to the active pool session.
-7. End the pool session when play finishes.
-8. Open Final Bill.
-9. The bill combines the fixed pool charge and all non-cancelled/non-void kitchen orders.
-10. Settlement is blocked until payable kitchen orders are served.
-11. Choose Cash / UPI / Card / Bank transfer / Other and settle once.
+4. Before check-in, use **Edit** to change the table, guest/contact, rate, time window or note. The server rechecks overlap and disabled-table rules before saving.
+5. Overlapping reservations on the same table are rejected.
+6. At arrival, use Check in. The server starts the timed pool session.
+7. Kitchen orders can be attached to the active pool session.
+8. End the pool session when play finishes.
+9. Open Final Bill.
+10. The bill combines the fixed pool charge and all non-cancelled/non-void kitchen orders.
+11. Settlement is blocked until payable kitchen orders are served.
+12. Choose Cash / UPI / Card / Bank transfer / Other and settle once.
 
 ## Kitchen workflow
 
