@@ -479,6 +479,168 @@ class OperationsTests(unittest.TestCase):
                 {"status": "cancelled", "cancelReason": "Customer changed order"},
                 actor_admin_user_id=None,
             )
+        with self.assertRaises(AdminSoftwareValidationError):
+            self.kitchen.update_order(
+                order["id"],
+                {"paymentStatus": "void"},
+                actor_admin_user_id=None,
+            )
+        with self.assertRaises(AdminSoftwareConflict):
+            self.kitchen.update_order(
+                order["id"],
+                {"paymentStatus": "unpaid"},
+                actor_admin_user_id=None,
+            )
+
+        voided = self.kitchen.update_order(
+            order["id"],
+            {
+                "paymentStatus": "void",
+                "paymentVoidReason": "Cash entry reversed",
+            },
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(voided["paymentStatus"], "void")
+        self.assertEqual(voided["paymentMethod"], "cash")
+        self.assertIsNone(voided["paidAt"])
+        self.assertEqual(voided["paymentVoidReason"], "Cash entry reversed")
+        self.assertEqual(voided["paymentVoidedAt"], self.clock_value)
+
+        with self.assertRaises(AdminSoftwareConflict):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": "preparing"},
+                actor_admin_user_id=None,
+            )
+
+        cancelled = self.kitchen.update_order(
+            order["id"],
+            {"status": "cancelled", "cancelReason": "Customer changed order"},
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(cancelled["status"], "cancelled")
+        self.assertEqual(cancelled["paymentStatus"], "void")
+        self.assertEqual(cancelled["paymentMethod"], "cash")
+        self.assertEqual(cancelled["paymentVoidReason"], "Cash entry reversed")
+
+    def test_settled_pool_bill_locks_linked_kitchen_payment_from_void(self):
+        session = self.pool.start_session(
+            {
+                "tableId": "pool-common-2",
+                "ratePaisePerHour": 10000,
+                "guestName": "Locked Bill Guest",
+            },
+            actor_admin_user_id=None,
+        )
+        menu = self.kitchen.create_menu_item(
+            {"name": "Locked Coffee", "category": "Drinks", "pricePaise": 7000},
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {
+                "poolSessionId": session["id"],
+                "items": [{"menuItemId": menu["id"], "quantity": 1}],
+            },
+            actor_admin_user_id=None,
+        )
+        for status in ("preparing", "ready", "served"):
+            self.kitchen.update_order(
+                order["id"],
+                {"status": status},
+                actor_admin_user_id=None,
+            )
+        self.kitchen.update_order(
+            order["id"],
+            {"paymentStatus": "paid", "paymentMethod": "upi"},
+            actor_admin_user_id=None,
+        )
+        with self.assertRaises(AdminSoftwareConflict):
+            self.kitchen.update_order(
+                order["id"],
+                {
+                    "paymentStatus": "void",
+                    "paymentVoidReason": "Served linked order cannot be voided",
+                },
+                actor_admin_user_id=None,
+            )
+        self.clock_value += 1800
+        self.pool.end_session(session["id"], {}, actor_admin_user_id=None)
+        self.pool.settle_session(
+            session["id"],
+            {"paymentMethod": "upi"},
+            actor_admin_user_id=None,
+        )
+
+        with self.assertRaises(AdminSoftwareConflict):
+            self.kitchen.update_order(
+                order["id"],
+                {
+                    "paymentStatus": "void",
+                    "paymentVoidReason": "Should be locked",
+                },
+                actor_admin_user_id=None,
+            )
+
+    def test_voided_unserved_pool_order_blocks_final_settlement_until_cancelled(self):
+        session = self.pool.start_session(
+            {
+                "tableId": "pool-private-1",
+                "ratePaisePerHour": 12000,
+                "guestName": "Void Block Guest",
+            },
+            actor_admin_user_id=None,
+        )
+        menu = self.kitchen.create_menu_item(
+            {"name": "Void Block Tea", "category": "Drinks", "pricePaise": 5000},
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {
+                "poolSessionId": session["id"],
+                "items": [{"menuItemId": menu["id"], "quantity": 1}],
+            },
+            actor_admin_user_id=None,
+        )
+        self.kitchen.update_order(
+            order["id"],
+            {"paymentStatus": "paid", "paymentMethod": "cash"},
+            actor_admin_user_id=None,
+        )
+        voided = self.kitchen.update_order(
+            order["id"],
+            {
+                "paymentStatus": "void",
+                "paymentVoidReason": "Cash entry reversed",
+            },
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(voided["paymentStatus"], "void")
+
+        self.clock_value += 1800
+        self.pool.end_session(session["id"], {}, actor_admin_user_id=None)
+        bill = self.pool.get_bill(session["id"])
+        self.assertFalse(bill["settlementReady"])
+        self.assertIn(order["id"], bill["blockingKitchenOrderIds"])
+        with self.assertRaises(AdminSoftwareConflict):
+            self.pool.settle_session(
+                session["id"],
+                {"paymentMethod": "cash"},
+                actor_admin_user_id=None,
+            )
+
+        self.kitchen.update_order(
+            order["id"],
+            {"status": "cancelled", "cancelReason": "Payment voided; order cancelled"},
+            actor_admin_user_id=None,
+        )
+        bill = self.pool.get_bill(session["id"])
+        self.assertTrue(bill["settlementReady"])
+        settled = self.pool.settle_session(
+            session["id"],
+            {"paymentMethod": "cash"},
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(settled["duePaise"], 0)
 
     def test_cancelling_ready_recipe_order_does_not_consume_inventory(self):
         stock = self.kitchen.create_inventory_item(

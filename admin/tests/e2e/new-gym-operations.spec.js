@@ -324,6 +324,8 @@ async function mockOperations(page, state) {
         paymentStatus: 'unpaid',
         paymentMethod: null,
         paidAt: null,
+        paymentVoidReason: null,
+        paymentVoidedAt: null,
         totalPaise: 8000,
         note: payload.note,
         createdAt: Math.floor(Date.now() / 1000),
@@ -347,19 +349,32 @@ async function mockOperations(page, state) {
         return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'not_found' }) });
       }
       const patch = request.postDataJSON();
+      if (patch.paymentStatus === 'paid') {
+        order.paymentStatus = 'paid';
+        order.paymentMethod = patch.paymentMethod || order.paymentMethod;
+        order.paidAt = Math.floor(Date.now() / 1000);
+        order.paymentVoidReason = null;
+        order.paymentVoidedAt = null;
+      } else if (patch.paymentStatus === 'void') {
+        order.paymentStatus = 'void';
+        order.paidAt = null;
+        order.paymentVoidReason = patch.paymentVoidReason;
+        order.paymentVoidedAt = Math.floor(Date.now() / 1000);
+      } else if (patch.paymentStatus) {
+        order.paymentStatus = patch.paymentStatus;
+      }
+      if (patch.paymentMethod !== undefined && patch.paymentStatus !== 'void') {
+        order.paymentMethod = patch.paymentMethod;
+      }
       if (patch.status) {
         order.status = patch.status;
         if (patch.status === 'cancelled') {
           order.cancelReason = patch.cancelReason;
           order.cancelledAt = Math.floor(Date.now() / 1000);
           order.paymentStatus = 'void';
-          order.paymentMethod = null;
           order.paidAt = null;
         }
       }
-      if (patch.paymentStatus) order.paymentStatus = patch.paymentStatus;
-      if (patch.paymentMethod !== undefined) order.paymentMethod = patch.paymentMethod;
-      if (order.paymentStatus === 'paid') order.paidAt = Math.floor(Date.now() / 1000);
       order.updatedAt = Math.floor(Date.now() / 1000);
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ order }) });
     }
@@ -482,7 +497,26 @@ test('New Gym kitchen order and inventory flows work in the browser', async ({ p
   const orderCard = page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first();
   await orderCard.locator('.kitchen-payment-method').selectOption('upi');
   await orderCard.getByRole('button', { name: 'Mark paid' }).click();
-  await expect(page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first()).toContainText('paid · UPI');
+  let paidCard = page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first();
+  await expect(paidCard).toContainText('paid · UPI');
+
+  page.once('dialog', async (dialog) => {
+    await dialog.accept('Duplicate UPI payment');
+  });
+  await paidCard.getByRole('button', { name: 'Void payment' }).click();
+  let voidedCard = page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first();
+  await expect(voidedCard).toContainText('void · UPI');
+  await expect(voidedCard).toContainText('Payment voided: Duplicate UPI payment');
+  await expect(voidedCard.getByRole('button', { name: 'Cancel order' })).toBeVisible();
+
+  page.once('dialog', async (dialog) => {
+    await dialog.accept('Customer changed order after void');
+  });
+  await voidedCard.getByRole('button', { name: 'Cancel order' }).click();
+  const voidCancelledCard = page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first();
+  await expect(voidCancelledCard).toContainText('cancelled');
+  await expect(voidCancelledCard).toContainText('Cancelled: Customer changed order after void');
+  await expect(voidCancelledCard).toContainText('Payment voided: Duplicate UPI payment');
 
   await page.locator('#kitchenCustomerName').fill('Cancel Guest');
   await page.locator('[data-menu-id="menu-coffee"]').fill('1');

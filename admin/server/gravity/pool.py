@@ -196,6 +196,14 @@ class PoolService:
         paid_total = pool_paid + kitchen_paid
         due = max(0, grand_total - paid_total)
         unserved = [item["id"] for item in kitchen_rows if item["status"] != "served"]
+        voided_uncancelled = [
+            item["id"]
+            for item in connection.execute(
+                "SELECT id FROM kitchen_orders WHERE pool_session_id=? "
+                "AND status!='cancelled' AND payment_status='void' ORDER BY created_at",
+                (row["id"],),
+            ).fetchall()
+        ]
         return {
             "session": session,
             "tableName": row["table_name"] if "table_name" in row.keys() else row["table_id"],
@@ -204,8 +212,13 @@ class PoolService:
             "grandTotalPaise": grand_total,
             "paidPaise": paid_total,
             "duePaise": due,
-            "settlementReady": row["status"] == "completed" and not unserved,
+            "settlementReady": (
+                row["status"] == "completed"
+                and not unserved
+                and not voided_uncancelled
+            ),
             "unservedKitchenOrderIds": unserved,
+            "blockingKitchenOrderIds": unserved + voided_uncancelled,
             "kitchenOrders": [
                 {
                     "id": item["id"],
@@ -258,7 +271,9 @@ class PoolService:
 
             blockers = connection.execute(
                 "SELECT id FROM kitchen_orders WHERE pool_session_id=? "
-                "AND status!='cancelled' AND payment_status!='void' AND status!='served' LIMIT 1",
+                "AND status!='cancelled' AND ("
+                "payment_status='void' OR (payment_status!='void' AND status!='served')"
+                ") LIMIT 1",
                 (session_id,),
             ).fetchone()
             if blockers:

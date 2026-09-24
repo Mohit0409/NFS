@@ -287,6 +287,52 @@ class OperationsHttpTests(unittest.TestCase):
             self.assertEqual(payload["order"]["cancelReason"], "Customer changed order")
             self.assertIsNotNone(payload["order"]["cancelledAt"])
 
+            status, payload = request_json(
+                base,
+                "/api/admin/kitchen/orders",
+                method="POST",
+                body={"items": [{"menuItemId": menu_id, "quantity": 1}]},
+                headers=headers,
+            )
+            self.assertEqual(status, 201)
+            paid_order_id = payload["order"]["id"]
+
+            status, payload = request_json(
+                base,
+                f"/api/admin/kitchen/orders/{paid_order_id}",
+                method="PATCH",
+                body={"paymentStatus": "paid", "paymentMethod": "upi"},
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["order"]["paymentStatus"], "paid")
+
+            status, payload = request_json(
+                base,
+                f"/api/admin/kitchen/orders/{paid_order_id}",
+                method="PATCH",
+                body={"paymentStatus": "void"},
+                headers=headers,
+            )
+            self.assertEqual(status, 422)
+            self.assertEqual(payload["error"], "operations_validation")
+
+            status, payload = request_json(
+                base,
+                f"/api/admin/kitchen/orders/{paid_order_id}",
+                method="PATCH",
+                body={
+                    "paymentStatus": "void",
+                    "paymentVoidReason": "UPI payment reversed",
+                },
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["order"]["paymentStatus"], "void")
+            self.assertEqual(payload["order"]["paymentMethod"], "upi")
+            self.assertEqual(payload["order"]["paymentVoidReason"], "UPI payment reversed")
+            self.assertIsNotNone(payload["order"]["paymentVoidedAt"])
+
 
     def test_pool_reservation_and_inventory_http_workflows(self):
         with running_server() as (server, base):

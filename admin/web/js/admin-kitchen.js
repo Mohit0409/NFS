@@ -127,6 +127,21 @@
     await render();
   }
 
+  async function voidPayment(order) {
+    const reason = window.prompt('Payment void reason (required):', '');
+    if (reason == null) return;
+    const cleaned = reason.trim();
+    if (!cleaned) {
+      core().flash('Payment void reason is required.', 'error');
+      return;
+    }
+    await updateOrder(order, {
+      paymentStatus: 'void',
+      paymentVoidReason: cleaned,
+    });
+    core().flash('Kitchen payment voided. Cancel the order if it should not continue.');
+  }
+
   async function cancelOrder(order) {
     const reason = window.prompt('Cancellation reason (required):', '');
     if (reason == null) return;
@@ -152,6 +167,7 @@
       </div>
       <p class="micro">${order.customerName || (order.poolSessionId ? 'Pool session order' : 'Walk-in order')}</p>
       <p class="micro kitchen-cancel-reason" ${order.status === 'cancelled' && order.cancelReason ? '' : 'hidden'}></p>
+      <p class="micro kitchen-void-reason" ${order.paymentStatus === 'void' && order.paymentVoidReason ? '' : 'hidden'}></p>
       <ul class="kitchen-lines">${lines}</ul>
       <div class="kitchen-total"><span>Total</span><strong>${rupees(order.totalPaise)}</strong></div>
       <div class="row-actions kitchen-order-actions"></div>
@@ -160,6 +176,9 @@
     (order.items || []).forEach((item, index) => { if (names[index]) names[index].textContent = item.name; });
     if (order.status === 'cancelled' && order.cancelReason) {
       card.querySelector('.kitchen-cancel-reason').textContent = `Cancelled: ${order.cancelReason}`;
+    }
+    if (order.paymentStatus === 'void' && order.paymentVoidReason) {
+      card.querySelector('.kitchen-void-reason').textContent = `Payment voided: ${order.paymentVoidReason}`;
     }
     const actions = card.querySelector('.kitchen-order-actions');
     if (nextStatus[order.status]) {
@@ -170,7 +189,7 @@
       actions.append(advance);
     }
     if (
-      order.paymentStatus === 'unpaid'
+      ['unpaid', 'void'].includes(order.paymentStatus)
       && ['new', 'preparing', 'ready'].includes(order.status)
     ) {
       const cancel = document.createElement('button');
@@ -202,6 +221,14 @@
         ? `${order.paymentStatus} · ${paymentMethodLabel(order.paymentMethod)}`
         : order.paymentStatus;
       actions.append(badge);
+      if (order.paymentStatus === 'paid') {
+        const voidButton = document.createElement('button');
+        voidButton.type = 'button';
+        voidButton.className = 'ghost';
+        voidButton.textContent = 'Void payment';
+        voidButton.addEventListener('click', () => voidPayment(order).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+        actions.append(voidButton);
+      }
     }
     return card;
   }

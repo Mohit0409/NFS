@@ -144,6 +144,8 @@ class KitchenService:
             "paymentStatus": row["payment_status"],
             "paymentMethod": row["payment_method"] if "payment_method" in row.keys() else None,
             "paidAt": int(row["paid_at"]) if "paid_at" in row.keys() and row["paid_at"] is not None else None,
+            "paymentVoidReason": row["payment_void_reason"] if "payment_void_reason" in row.keys() else None,
+            "paymentVoidedAt": int(row["payment_voided_at"]) if "payment_voided_at" in row.keys() and row["payment_voided_at"] is not None else None,
             "totalPaise": int(row["total_paise"]),
             "note": row["note"],
             "cancelReason": row["cancel_reason"] if "cancel_reason" in row.keys() else None,
@@ -268,6 +270,14 @@ class KitchenService:
                     raise AdminSoftwareValidationError({"status": "Invalid kitchen order status"})
                 if requested != status and requested not in STATUS_TRANSITIONS[status]:
                     raise AdminSoftwareConflict(f"Cannot move order from {status} to {requested}")
+                if (
+                    row["payment_status"] == "void"
+                    and requested != status
+                    and requested != "cancelled"
+                ):
+                    raise AdminSoftwareConflict(
+                        "A voided kitchen payment must be cancelled before further order progress"
+                    )
                 if requested == "cancelled" and status != "cancelled":
                     if row["payment_status"] == "paid":
                         raise AdminSoftwareConflict(
@@ -289,20 +299,64 @@ class KitchenService:
                     )
                 status = requested
             payment = row["payment_status"]
+            original_payment = payment
             payment_method = row["payment_method"] if "payment_method" in row.keys() else None
             paid_at = row["paid_at"] if "paid_at" in row.keys() else None
+            payment_void_reason = (
+                row["payment_void_reason"] if "payment_void_reason" in row.keys() else None
+            )
+            payment_voided_at = (
+                row["payment_voided_at"] if "payment_voided_at" in row.keys() else None
+            )
             if "paymentStatus" in payload:
                 payment = str(payload.get("paymentStatus") or "").strip().casefold()
                 if payment not in PAYMENT_STATUSES:
                     raise AdminSoftwareValidationError({"paymentStatus": "Invalid payment status"})
                 if status == "cancelled" and payment == "paid":
                     raise AdminSoftwareConflict("Cancelled order cannot be marked paid")
-                if payment == "paid" and row["payment_status"] != "paid":
-                    paid_at = now
-                elif payment != "paid":
+                if original_payment == "paid" and payment == "unpaid":
+                    raise AdminSoftwareConflict(
+                        "Paid kitchen order must be voided with a reason, not changed back to unpaid"
+                    )
+                if original_payment == "void" and payment != "void":
+                    raise AdminSoftwareConflict("A voided kitchen payment cannot be reopened")
+                if payment == "paid":
+                    if original_payment == "void":
+                        raise AdminSoftwareConflict("A voided kitchen payment cannot be reopened")
+                    if original_payment != "paid":
+                        paid_at = now
+                        payment_void_reason = None
+                        payment_voided_at = None
+                elif payment == "void":
+                    if original_payment == "unpaid":
+                        raise AdminSoftwareConflict(
+                            "Only a paid kitchen payment can be voided directly"
+                        )
+                    if original_payment == "paid":
+                        if row["pool_session_id"] and status == "served":
+                            raise AdminSoftwareConflict(
+                                "Served pool-linked kitchen payment cannot be voided independently"
+                            )
+                        if row["pool_session_id"]:
+                            pool_payment = connection.execute(
+                                "SELECT payment_status FROM pool_sessions WHERE id=?",
+                                (row["pool_session_id"],),
+                            ).fetchone()
+                            if pool_payment and pool_payment["payment_status"] == "paid":
+                                raise AdminSoftwareConflict(
+                                    "Kitchen payment is locked by a settled Pool + Kitchen final bill"
+                                )
+                        payment_void_reason = _text(
+                            payload.get("paymentVoidReason"),
+                            field="paymentVoidReason",
+                            maximum=200,
+                            required=True,
+                        )
+                        payment_voided_at = now
+                        paid_at = None
+                elif payment == "unpaid":
                     paid_at = None
-                    if payment == "unpaid":
-                        payment_method = None
+                    payment_method = None
             if "paymentMethod" in payload:
                 requested_method = str(payload.get("paymentMethod") or "").strip().casefold()
                 if requested_method and requested_method not in PAYMENT_METHODS:
@@ -314,16 +368,33 @@ class KitchenService:
                 if payment == "paid":
                     raise AdminSoftwareConflict("Paid kitchen order cannot be cancelled until its payment is voided/refunded")
                 payment = "void"
-                payment_method = None
                 paid_at = None
             connection.execute(
-                "UPDATE kitchen_orders SET status=?,payment_status=?,payment_method=?,paid_at=?,cancel_reason=?,cancelled_at=?,updated_at=? WHERE id=?",
-                (status, payment, payment_method, paid_at, cancel_reason, cancelled_at, now, order_id),
+                "UPDATE kitchen_orders SET "
+                "status=?,payment_status=?,payment_method=?,paid_at=?,"
+                "payment_void_reason=?,payment_voided_at=?,"
+                "cancel_reason=?,cancelled_at=?,updated_at=? WHERE id=?",
+                (
+                    status,
+                    payment,
+                    payment_method,
+                    paid_at,
+                    payment_void_reason,
+                    payment_voided_at,
+                    cancel_reason,
+                    cancelled_at,
+                    now,
+                    order_id,
+                ),
             )
             audit_action = (
                 "kitchen_order_cancelled"
                 if status == "cancelled" and original_status != "cancelled"
-                else "kitchen_order_updated"
+                else (
+                    "kitchen_payment_voided"
+                    if original_payment == "paid" and payment == "void"
+                    else "kitchen_order_updated"
+                )
             )
             self.admin_service._audit(
                 connection, actor_admin_user_id, audit_action,
@@ -332,6 +403,11 @@ class KitchenService:
                     "status": status,
                     "paymentStatus": payment,
                     "paymentMethod": payment_method,
+                    "paymentVoidReason": (
+                        payment_void_reason
+                        if original_payment == "paid" and payment == "void"
+                        else None
+                    ),
                     "cancelReason": cancel_reason if status == "cancelled" else None,
                 },
             )

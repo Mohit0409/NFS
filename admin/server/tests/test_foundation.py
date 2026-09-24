@@ -91,12 +91,12 @@ class DatabaseTests(unittest.TestCase):
         with TemporaryDirectory() as temporary:
             path = Path(temporary) / "gravity.sqlite3"
             database = Database(path, ROOT / "server" / "migrations")
-            self.assertEqual(database.migrate(), ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016", "017", "018"])
+            self.assertEqual(database.migrate(), ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016", "017", "018", "019"])
             self.assertEqual(database.migrate(), [])
-            self.assertEqual(database.health(), {"database": "ok", "migrations": "18"})
+            self.assertEqual(database.health(), {"database": "ok", "migrations": "19"})
             with closing(sqlite3.connect(path)) as connection:
                 versions = connection.execute("SELECT version FROM schema_migrations").fetchall()
-                self.assertEqual(versions, [("001",), ("002",), ("003",), ("004",), ("005",), ("006",), ("007",), ("008",), ("009",), ("010",), ("011",), ("012",), ("013",), ("014",), ("015",), ("016",), ("017",), ("018",)])
+                self.assertEqual(versions, [("001",), ("002",), ("003",), ("004",), ("005",), ("006",), ("007",), ("008",), ("009",), ("010",), ("011",), ("012",), ("013",), ("014",), ("015",), ("016",), ("017",), ("018",), ("019",)])
 
     def test_changed_applied_migration_is_rejected(self):
         with TemporaryDirectory() as temporary:
@@ -294,7 +294,7 @@ class HttpFoundationTests(unittest.TestCase):
                 b'id="operationsView"',
                 b'id="operationsReportSummary"',
                 b'/js/admin-pool.js?v=new-gym-pool-v3',
-                b'/js/admin-kitchen.js?v=new-gym-kitchen-v4',
+                b'/js/admin-kitchen.js?v=new-gym-kitchen-v5',
                 b'/js/admin-operations-report.js?v=new-gym-report-v1',
             ):
                 self.assertIn(marker, admin)
@@ -315,6 +315,9 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertIn(b"/api/admin/kitchen/recipes", kitchen_script)
             self.assertIn(b"kitchen-payment-method", kitchen_script)
             self.assertIn(b"paymentMethod", kitchen_script)
+            self.assertIn(b"Void payment", kitchen_script)
+            self.assertIn(b"paymentVoidReason", kitchen_script)
+            self.assertIn(b"Payment voided:", kitchen_script)
             self.assertIn(b"/adjust", kitchen_script)
 
             status, _headers, report_script = fetch(base, "/js/admin-operations-report.js")
