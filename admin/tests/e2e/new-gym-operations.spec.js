@@ -302,6 +302,8 @@ async function mockOperations(page, state) {
         customerName: payload.customerName,
         status: 'new',
         paymentStatus: 'unpaid',
+        paymentMethod: null,
+        paidAt: null,
         totalPaise: 8000,
         note: payload.note,
         createdAt: Math.floor(Date.now() / 1000),
@@ -317,6 +319,20 @@ async function mockOperations(page, state) {
       };
       state.orders.unshift(order);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ order }) });
+    }
+    if (path.startsWith('/api/admin/kitchen/orders/') && method === 'PATCH') {
+      const orderId = path.split('/').pop();
+      const order = state.orders.find((item) => item.id === orderId);
+      if (!order) {
+        return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'not_found' }) });
+      }
+      const patch = request.postDataJSON();
+      if (patch.status) order.status = patch.status;
+      if (patch.paymentStatus) order.paymentStatus = patch.paymentStatus;
+      if (patch.paymentMethod !== undefined) order.paymentMethod = patch.paymentMethod;
+      if (order.paymentStatus === 'paid') order.paidAt = Math.floor(Date.now() / 1000);
+      order.updatedAt = Math.floor(Date.now() / 1000);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ order }) });
     }
     if (path === '/api/admin/kitchen/inventory' && method === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: state.inventory }) });
@@ -421,6 +437,11 @@ test('New Gym kitchen order and inventory flows work in the browser', async ({ p
   await page.locator('#kitchenOrderForm button[type="submit"]').click();
   await expect(page.locator('#kitchenOrdersGrid')).toContainText('Kitchen Guest');
   await expect(page.locator('#kitchenOrdersGrid')).toContainText('Cold Coffee');
+
+  const orderCard = page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first();
+  await orderCard.locator('.kitchen-payment-method').selectOption('upi');
+  await orderCard.getByRole('button', { name: 'Mark paid' }).click();
+  await expect(page.locator('.kitchen-order-card').filter({ hasText: 'Kitchen Guest' }).first()).toContainText('paid · UPI');
 
   await page.locator('#kitchenInventoryName').fill('Bread');
   await page.locator('#kitchenInventoryUnit').fill('piece');

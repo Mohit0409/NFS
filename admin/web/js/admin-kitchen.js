@@ -5,6 +5,17 @@
   const rupees = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
   const quantity = (milli, unit) => `${(Number(milli || 0) / 1000).toLocaleString('en-IN', { maximumFractionDigits: 3 })} ${unit}`;
   const nextStatus = { new: 'preparing', preparing: 'ready', ready: 'served' };
+  const paymentMethods = [
+    ['cash', 'Cash'],
+    ['upi', 'UPI'],
+    ['card', 'Card'],
+    ['bank_transfer', 'Bank transfer'],
+    ['other', 'Other'],
+  ];
+
+  function paymentMethodLabel(value) {
+    return paymentMethods.find(([key]) => key === value)?.[1] || value || '';
+  }
 
   function core() { return window.GravityAdminCore; }
 
@@ -143,16 +154,26 @@
       actions.append(advance);
     }
     if (order.paymentStatus === 'unpaid' && order.status !== 'cancelled') {
+      const method = document.createElement('select');
+      method.className = 'kitchen-payment-method';
+      method.setAttribute('aria-label', `Payment method for order #${String(order.id).slice(0, 8)}`);
+      for (const [value, label] of paymentMethods) method.append(new Option(label, value));
+
       const paid = document.createElement('button');
       paid.type = 'button';
       paid.className = 'ghost';
       paid.textContent = 'Mark paid';
-      paid.addEventListener('click', () => updateOrder(order, { paymentStatus: 'paid' }).catch((error) => core().flash(error.message, 'error')));
-      actions.append(paid);
+      paid.addEventListener('click', () => updateOrder(order, {
+        paymentStatus: 'paid',
+        paymentMethod: method.value,
+      }).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+      actions.append(method, paid);
     } else {
       const badge = document.createElement('span');
       badge.className = 'ops-payment';
-      badge.textContent = order.paymentStatus;
+      badge.textContent = order.paymentMethod
+        ? `${order.paymentStatus} · ${paymentMethodLabel(order.paymentMethod)}`
+        : order.paymentStatus;
       actions.append(badge);
     }
     return card;

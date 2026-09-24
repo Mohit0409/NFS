@@ -291,7 +291,7 @@ class HttpFoundationTests(unittest.TestCase):
                 b'id="operationsView"',
                 b'id="operationsReportSummary"',
                 b'/js/admin-pool.js?v=new-gym-pool-v2',
-                b'/js/admin-kitchen.js?v=new-gym-kitchen-v3',
+                b'/js/admin-kitchen.js?v=new-gym-kitchen-v4',
                 b'/js/admin-operations-report.js?v=new-gym-report-v1',
             ):
                 self.assertIn(marker, admin)
@@ -309,6 +309,8 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn(b"/api/admin/kitchen/inventory", kitchen_script)
             self.assertIn(b"/api/admin/kitchen/recipes", kitchen_script)
+            self.assertIn(b"kitchen-payment-method", kitchen_script)
+            self.assertIn(b"paymentMethod", kitchen_script)
             self.assertIn(b"/adjust", kitchen_script)
 
             status, _headers, report_script = fetch(base, "/js/admin-operations-report.js")
