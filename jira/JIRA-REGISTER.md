@@ -26,15 +26,17 @@
 | NG-022 | Fresh verified off-device backup marker required before tunnel enable | DONE | Not deployed |
 | NG-023 | Audited kitchen order cancellation with required reason and safe payment/stock behavior | DONE | Not deployed |
 | NG-024 | Edit/reschedule upcoming pool reservations with overlap revalidation | DONE | Not deployed |
+| NG-025 | Audited standalone Kitchen payment void with pool-bill accounting safeguards | DONE | Not deployed |
+| NG-026 | Clean-Termux Python runtime/virtualenv dependency automation | DONE | Not deployed |
 | NG-024 | Edit/reschedule upcoming pool reservations with overlap and check-in safety | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`13ac7fe Add editable pool reservations`
+`d4a17ba Automate New Gym Termux Python runtime`
 
 Verification at this point:
-- backend: 239/239 PASS
+- backend: 241/241 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

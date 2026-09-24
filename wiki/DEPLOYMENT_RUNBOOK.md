@@ -36,7 +36,7 @@ Ports:
 
 1. Copy/clone this isolated project to Redmi.
 2. Create Python virtual environment for the admin/backend.
-3. Run the New Gym Termux installer without enabling the tunnel. On first run it creates the protected env template and exits.
+3. Run the New Gym Termux installer without enabling the tunnel. On first run it creates the protected env template and exits. On the next run, if the default checkout-local Python runtime is missing, the installer automatically creates `admin/.venv`, installs the New Gym package plus Firebase dependencies, and verifies critical imports before service installation.
 4. Fill and protect `~/.config/new-gym/new-gym.env`.
 5. Rerun the installer. It must pass:
    `python3 admin/deploy/new-gym-termux/preflight-new-gym.py --config ~/.config/new-gym/new-gym.env --stage install`
@@ -61,7 +61,7 @@ Ports:
 The preflight output is JSON and does not expose secret values. Launch is blocked for placeholder domains/business identity, copied Gravity Firebase values, missing Firebase service-account/tunnel files, missing off-device backup destination, unconfirmed pricing/rates/kitchen setup, or an incomplete customer runtime config.
 
 At launch stage it also opens the configured New Gym SQLite database read-only and requires:
-- schema migration 017 or newer
+- schema migration 019 or newer
 - SQLite quick-check and foreign-key check PASS
 - at least one valid active membership plan
 - none of the three untouched Gravity plan signatures (1 Month ₹1,200; 3 Months ₹3,000; 1 Year ₹10,000)

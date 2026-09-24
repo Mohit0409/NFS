@@ -104,6 +104,23 @@ This record documents local development milestones only.
    - backend regression 239/239 PASS
    - local Chromium 6/6 PASS
 
+13. `23e5b04` — Add audited kitchen payment voiding
+   - migration 019 adds payment void reason/timestamp
+   - paid standalone kitchen payments require a void reason
+   - voided payments cannot be reopened
+   - served pool-linked orders cannot be independently voided
+   - voided un-cancelled pool orders block combined final settlement
+   - backend regression 241/241 PASS
+   - local Chromium 6/6 PASS
+
+14. `d4a17ba` — Automate New Gym Termux Python runtime
+   - clean Termux installer can create checkout-local admin/.venv
+   - installs New Gym package with Firebase dependencies
+   - verifies cryptography, firebase_admin and server.gravity imports
+   - Python package metadata renamed to new-gym-platform
+   - isolated wheel build PASS
+   - backend regression 241/241 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files

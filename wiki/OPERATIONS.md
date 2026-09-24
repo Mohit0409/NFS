@@ -24,8 +24,12 @@
 5. Individual kitchen orders may be marked paid, or pool-linked orders may be settled through the final Pool + Kitchen bill.
 6. To cancel an unpaid order before Served, choose **Cancel order** and enter a mandatory reason.
 7. Cancellation changes the payment state to void and records the cancellation timestamp/reason.
-8. A paid order must be voided/refunded separately before cancellation; cancellation itself is not a refund operation.
-9. Cancelling before Served does not consume recipe inventory.
+8. A paid standalone Kitchen order must be voided/refunded separately before cancellation; cancellation itself is not a refund operation.
+9. **Void payment** requires a reason, keeps the original payment method for audit, clears the paid timestamp, and cannot be reopened.
+10. After voiding an unserved order, cancel it separately if the order should not continue.
+11. A served pool-linked Kitchen order cannot be independently voided; correct the combined Pool + Kitchen settlement through the controlled settlement/refund process instead.
+12. A voided but not cancelled pool-linked order blocks final settlement.
+13. Cancelling before Served does not consume recipe inventory.
 
 ## Inventory workflow
 

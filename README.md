@@ -79,6 +79,10 @@ Implemented:
 - unpaid unserved orders can be cancelled only with a required reason
 - cancellation is audited, timestamps the order, and automatically moves its payment state to void
 - paid orders cannot be cancelled until their payment is separately voided/refunded
+- standalone paid kitchen payments can be voided only with a mandatory audit reason
+- voided payments retain their original payment method and cannot be reopened
+- served pool-linked kitchen payments cannot be voided independently from the combined bill
+- voided, un-cancelled pool-linked orders block final settlement
 - cancellation before Served never consumes recipe inventory
 
 ## Daily operations report
@@ -104,8 +108,9 @@ New Gym operations migrations:
 - `016_pool_kitchen_billing.sql`
 - `017_kitchen_recipes.sql`
 - `018_kitchen_cancellation.sql`
+- `019_kitchen_payment_void.sql`
 
-Latest schema migration: `018`.
+Latest schema migration: `019`.
 
 ## Branding
 
@@ -175,7 +180,7 @@ Dedicated runtime locations:
 - `~/.local/state/new-gym`
 - `~/.local/share/new-gym`
 
-The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data. It also requires a recent off-device backup marker written only after a successful rclone verification.
+The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. On a clean Termux host it can create the checkout-local Python virtualenv, install the New Gym package with Firebase support, and verify required runtime imports before installing services. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data. It also requires a recent off-device backup marker written only after a successful rclone verification.
 
 ## Required real business data before deployment
 
@@ -201,10 +206,10 @@ Never reuse Gravity's Firebase/auth/analytics project or production database.
 
 Current verified state:
 - Python/JavaScript syntax checks: PASS
-- clean migration through `001-018`: PASS
+- clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **239/239 PASS**
+- full admin/backend regression: **241/241 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**
