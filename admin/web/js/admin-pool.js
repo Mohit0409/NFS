@@ -15,6 +15,8 @@
 
   function core() { return window.GravityAdminCore; }
 
+  let editingReservationId = null;
+
   function toLocalInput(date) {
     const pad = (value) => String(value).padStart(2, '0');
     return [
@@ -152,7 +154,31 @@
     setReservationDefaults();
   }
 
-  async function createReservation(event) {
+  function resetReservationForm() {
+    editingReservationId = null;
+    $('poolReservationForm').reset();
+    $('poolReservationSubmit').textContent = 'Create reservation';
+    $('poolReservationCancelEdit').hidden = true;
+    setReservationDefaults();
+  }
+
+  function beginReservationEdit(reservation) {
+    editingReservationId = reservation.id;
+    $('poolReservationTable').value = reservation.tableId;
+    $('poolReservationGuest').value = reservation.guestName || '';
+    $('poolReservationPhone').value = reservation.phone || '';
+    $('poolReservationRate').value = reservation.ratePaisePerHour == null
+      ? ''
+      : String(reservation.ratePaisePerHour / 100);
+    $('poolReservationStart').value = toLocalInput(new Date(Number(reservation.startsAt) * 1000));
+    $('poolReservationEnd').value = toLocalInput(new Date(Number(reservation.endsAt) * 1000));
+    $('poolReservationNote').value = reservation.note || '';
+    $('poolReservationSubmit').textContent = 'Update reservation';
+    $('poolReservationCancelEdit').hidden = false;
+    $('poolReservationForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function saveReservation(event) {
     event.preventDefault();
     const startMs = Date.parse($('poolReservationStart').value);
     const endMs = Date.parse($('poolReservationEnd').value);
@@ -166,25 +192,31 @@
       core().flash('Enter a valid reservation hourly rate.', 'error');
       return;
     }
-    await core().api('/api/admin/pool/reservations', {
-      method: 'POST',
-      body: {
-        tableId: $('poolReservationTable').value,
-        guestName: $('poolReservationGuest').value.trim(),
-        phone: $('poolReservationPhone').value.trim() || null,
-        ratePaisePerHour: ratePaise,
-        startsAt: Math.floor(startMs / 1000),
-        endsAt: Math.floor(endMs / 1000),
-        note: $('poolReservationNote').value.trim() || null,
+    const body = {
+      tableId: $('poolReservationTable').value,
+      guestName: $('poolReservationGuest').value.trim(),
+      phone: $('poolReservationPhone').value.trim() || null,
+      ratePaisePerHour: ratePaise,
+      startsAt: Math.floor(startMs / 1000),
+      endsAt: Math.floor(endMs / 1000),
+      note: $('poolReservationNote').value.trim() || null,
+    };
+    const editing = editingReservationId;
+    await core().api(
+      editing
+        ? `/api/admin/pool/reservations/${encodeURIComponent(editing)}`
+        : '/api/admin/pool/reservations',
+      {
+        method: editing ? 'PATCH' : 'POST',
+        body,
       },
-    });
-    $('poolReservationForm').reset();
-    setReservationDefaults();
-    core().flash('Pool reservation created.');
+    );
+    resetReservationForm();
+    core().flash(editing ? 'Pool reservation updated.' : 'Pool reservation created.');
     await render();
   }
 
-  async function updateReservation(reservation, status) {
+  async function updateReservationStatus(reservation, status) {
     await core().api(`/api/admin/pool/reservations/${encodeURIComponent(reservation.id)}`, {
       method: 'PATCH',
       body: { status },
@@ -220,6 +252,13 @@
       const actions = document.createElement('div');
       actions.className = 'row-actions compact-actions';
 
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'ghost';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => beginReservationEdit(item));
+      actions.append(edit);
+
       const checkIn = document.createElement('button');
       checkIn.type = 'button';
       checkIn.textContent = 'Check in';
@@ -230,14 +269,14 @@
       cancel.type = 'button';
       cancel.className = 'ghost';
       cancel.textContent = 'Cancel';
-      cancel.addEventListener('click', () => updateReservation(item, 'cancelled').catch((error) => core().flash(error.data?.message || error.message, 'error')));
+      cancel.addEventListener('click', () => updateReservationStatus(item, 'cancelled').catch((error) => core().flash(error.data?.message || error.message, 'error')));
       actions.append(cancel);
 
       const noShow = document.createElement('button');
       noShow.type = 'button';
       noShow.className = 'ghost';
       noShow.textContent = 'No-show';
-      noShow.addEventListener('click', () => updateReservation(item, 'no_show').catch((error) => core().flash(error.data?.message || error.message, 'error')));
+      noShow.addEventListener('click', () => updateReservationStatus(item, 'no_show').catch((error) => core().flash(error.data?.message || error.message, 'error')));
       actions.append(noShow);
 
       row.children[4].append(actions);
@@ -371,7 +410,10 @@
   }
 
   $('poolReservationForm')?.addEventListener('submit', (event) => {
-    createReservation(event).catch((error) => core().flash(error.data?.message || error.message, 'error'));
+    saveReservation(event).catch((error) => core().flash(error.data?.message || error.message, 'error'));
+  });
+  $('poolReservationCancelEdit')?.addEventListener('click', () => {
+    resetReservationForm();
   });
   $('settlePoolBill')?.addEventListener('click', () => {
     settleBill().catch((error) => {

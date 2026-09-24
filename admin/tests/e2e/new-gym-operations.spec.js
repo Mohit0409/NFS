@@ -200,6 +200,26 @@ async function mockOperations(page, state) {
       state.reservations.push(reservation);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ reservation }) });
     }
+    if (path.startsWith('/api/admin/pool/reservations/') && method === 'PATCH') {
+      const reservationId = path.split('/').pop();
+      const reservation = state.reservations.find((item) => item.id === reservationId);
+      if (!reservation) {
+        return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'not_found' }) });
+      }
+      const payload = request.postDataJSON();
+      if (payload.status) {
+        reservation.status = payload.status;
+      } else {
+        Object.assign(reservation, payload);
+        const table = state.tables.find((item) => item.id === reservation.tableId);
+        reservation.tableName = table?.name || reservation.tableId;
+        if (reservation.ratePaisePerHour == null) {
+          reservation.ratePaisePerHour = table?.defaultRatePaise ?? null;
+        }
+      }
+      reservation.updatedAt = Math.floor(Date.now() / 1000);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ reservation }) });
+    }
     if (path === '/api/admin/pool/sessions' && method === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sessions: state.sessions }) });
     }
@@ -396,6 +416,18 @@ test('New Gym pool reservation and combined bill work in the browser', async ({ 
 
   await expect(page.locator('#poolReservationsBody')).toContainText('Reserved Guest');
   await expect(page.locator('#poolReservationsBody')).toContainText('Private Table');
+
+  await page.locator('#poolReservationsBody').getByRole('button', { name: 'Edit' }).click();
+  await expect(page.locator('#poolReservationSubmit')).toHaveText('Update reservation');
+  await page.locator('#poolReservationTable').selectOption('pool-common-2');
+  await page.locator('#poolReservationGuest').fill('Reserved Guest Updated');
+  await page.locator('#poolReservationRate').fill('');
+  await page.locator('#poolReservationStart').fill('2026-09-25T19:00');
+  await page.locator('#poolReservationEnd').fill('2026-09-25T20:00');
+  await page.locator('#poolReservationSubmit').click();
+  await expect(page.locator('#poolReservationsBody')).toContainText('Reserved Guest Updated');
+  await expect(page.locator('#poolReservationsBody')).toContainText('Common Table 2');
+  await expect(page.locator('#poolReservationSubmit')).toHaveText('Create reservation');
 
   await page.getByRole('button', { name: 'View bill' }).click();
   await expect(page.locator('#poolBillDialog')).toBeVisible();

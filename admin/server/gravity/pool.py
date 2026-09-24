@@ -380,6 +380,8 @@ class PoolService:
             if overlap:
                 raise AdminSoftwareConflict("This table already has a reservation in that time window")
             raw_rate = payload.get("ratePaisePerHour", table["default_rate_paise"])
+            if raw_rate in (None, ""):
+                raw_rate = table["default_rate_paise"]
             rate = _money(raw_rate, field="ratePaisePerHour", allow_none=True)
             connection.execute(
                 "INSERT INTO pool_reservations("
@@ -406,6 +408,151 @@ class PoolService:
                 (reservation_id,),
             ).fetchone()
         return self._reservation_payload(row)
+
+    def update_reservation(
+        self,
+        reservation_id: str,
+        payload: Mapping[str, object],
+        *,
+        actor_admin_user_id: str,
+    ) -> dict[str, object]:
+        now = self._now()
+        with self.database.session() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = connection.execute(
+                "SELECT * FROM pool_reservations WHERE id=?", (reservation_id,)
+            ).fetchone()
+            if current is None:
+                raise AdminSoftwareNotFound("Pool reservation not found")
+            if current["status"] != "reserved":
+                raise AdminSoftwareConflict("Only an upcoming reservation can be edited")
+
+            table_id = str(payload.get("tableId", current["table_id"]) or "").strip()
+            if not table_id:
+                raise AdminSoftwareValidationError({"tableId": "Select a pool table"})
+            starts_at = (
+                _timestamp(payload.get("startsAt"), field="startsAt")
+                if "startsAt" in payload
+                else int(current["starts_at"])
+            )
+            ends_at = (
+                _timestamp(payload.get("endsAt"), field="endsAt")
+                if "endsAt" in payload
+                else int(current["ends_at"])
+            )
+            errors: dict[str, str] = {}
+            if starts_at < now - 300:
+                errors["startsAt"] = "Reservation start cannot be in the past"
+            if ends_at <= starts_at:
+                errors["endsAt"] = "End time must be after start time"
+            if ends_at - starts_at > 24 * 60 * 60:
+                errors["endsAt"] = "Reservation cannot exceed 24 hours"
+            if errors:
+                raise AdminSoftwareValidationError(errors)
+
+            table = connection.execute(
+                "SELECT * FROM pool_tables WHERE id=?", (table_id,)
+            ).fetchone()
+            if table is None:
+                raise AdminSoftwareNotFound("Pool table not found")
+            if table["status"] == "disabled":
+                raise AdminSoftwareConflict("This pool table is disabled")
+
+            customer_id = current["customer_id"]
+            if "customerId" in payload:
+                customer_id = str(payload.get("customerId") or "").strip() or None
+            guest_name = current["guest_name"]
+            if "guestName" in payload:
+                guest_name = _clean_optional_text(
+                    payload.get("guestName"), field="guestName", maximum=80
+                )
+            phone = current["phone_e164"]
+            if "phone" in payload:
+                phone = _phone(payload.get("phone"))
+            note = current["note"]
+            if "note" in payload:
+                note = _clean_optional_text(payload.get("note"), field="note", maximum=500)
+
+            if customer_id:
+                customer = connection.execute(
+                    "SELECT display_name,phone_e164 FROM customers "
+                    "WHERE id=? AND status!='deleted'",
+                    (customer_id,),
+                ).fetchone()
+                if customer is None:
+                    raise AdminSoftwareNotFound("Customer not found")
+                if not guest_name:
+                    guest_name = customer["display_name"]
+                if not phone:
+                    phone = customer["phone_e164"]
+            if not guest_name and not customer_id:
+                raise AdminSoftwareValidationError(
+                    {"guestName": "Enter a guest name or select a member"}
+                )
+
+            overlap = connection.execute(
+                "SELECT 1 FROM pool_reservations "
+                "WHERE table_id=? AND id!=? AND status IN ('reserved','checked_in') "
+                "AND starts_at < ? AND ends_at > ? LIMIT 1",
+                (table_id, reservation_id, ends_at, starts_at),
+            ).fetchone()
+            if overlap:
+                raise AdminSoftwareConflict(
+                    "This table already has a reservation in that time window"
+                )
+
+            rate = current["rate_paise_per_hour"]
+            if "ratePaisePerHour" in payload:
+                raw_rate = payload.get("ratePaisePerHour")
+                if raw_rate in (None, ""):
+                    raw_rate = table["default_rate_paise"]
+                rate = _money(
+                    raw_rate,
+                    field="ratePaisePerHour",
+                    allow_none=True,
+                )
+            elif rate is None and table["default_rate_paise"] is not None:
+                rate = int(table["default_rate_paise"])
+
+            connection.execute(
+                "UPDATE pool_reservations SET "
+                "table_id=?,customer_id=?,guest_name=?,phone_e164=?,starts_at=?,ends_at=?,"
+                "rate_paise_per_hour=?,note=?,updated_at=? WHERE id=?",
+                (
+                    table_id,
+                    customer_id,
+                    guest_name,
+                    phone,
+                    starts_at,
+                    ends_at,
+                    rate,
+                    note,
+                    now,
+                    reservation_id,
+                ),
+            )
+            self.admin_service._audit(
+                connection,
+                actor_admin_user_id,
+                "pool_reservation_updated",
+                target_type="pool_reservation",
+                target_id=reservation_id,
+                metadata={
+                    "fromTableId": current["table_id"],
+                    "tableId": table_id,
+                    "fromStartsAt": int(current["starts_at"]),
+                    "startsAt": starts_at,
+                    "fromEndsAt": int(current["ends_at"]),
+                    "endsAt": ends_at,
+                },
+            )
+            connection.commit()
+            updated = connection.execute(
+                "SELECT r.*,t.name AS table_name FROM pool_reservations r "
+                "JOIN pool_tables t ON t.id=r.table_id WHERE r.id=?",
+                (reservation_id,),
+            ).fetchone()
+        return self._reservation_payload(updated)
 
     def update_reservation_status(
         self,

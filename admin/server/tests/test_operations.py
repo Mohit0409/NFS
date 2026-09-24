@@ -164,6 +164,81 @@ class OperationsTests(unittest.TestCase):
         )
         self.assertEqual(completed["status"], "completed")
 
+    def test_pool_reservation_can_be_rescheduled_without_overlap(self):
+        first = self.pool.create_reservation(
+            {
+                "tableId": "pool-common-1",
+                "guestName": "First Guest",
+                "startsAt": self.clock_value + 1800,
+                "endsAt": self.clock_value + 3600,
+                "ratePaisePerHour": 10000,
+            },
+            actor_admin_user_id=None,
+        )
+        second = self.pool.create_reservation(
+            {
+                "tableId": "pool-common-2",
+                "guestName": "Second Guest",
+                "startsAt": self.clock_value + 3600,
+                "endsAt": self.clock_value + 5400,
+                "ratePaisePerHour": 11000,
+            },
+            actor_admin_user_id=None,
+        )
+
+        updated = self.pool.update_reservation(
+            first["id"],
+            {
+                "tableId": "pool-common-2",
+                "guestName": "First Guest Updated",
+                "startsAt": self.clock_value + 600,
+                "endsAt": self.clock_value + 1800,
+                "ratePaisePerHour": 11500,
+                "note": "Shifted earlier",
+            },
+            actor_admin_user_id=None,
+        )
+        self.assertEqual(updated["tableId"], "pool-common-2")
+        self.assertEqual(updated["guestName"], "First Guest Updated")
+        self.assertEqual(updated["startsAt"], self.clock_value + 600)
+        self.assertEqual(updated["endsAt"], self.clock_value + 1800)
+        self.assertEqual(updated["ratePaisePerHour"], 11500)
+        self.assertEqual(updated["note"], "Shifted earlier")
+
+        with self.assertRaises(AdminSoftwareConflict):
+            self.pool.update_reservation(
+                first["id"],
+                {
+                    "tableId": "pool-common-2",
+                    "startsAt": second["startsAt"] + 300,
+                    "endsAt": second["endsAt"] - 300,
+                },
+                actor_admin_user_id=None,
+            )
+
+    def test_checked_in_pool_reservation_cannot_be_edited(self):
+        reservation = self.pool.create_reservation(
+            {
+                "tableId": "pool-private-1",
+                "guestName": "Locked Guest",
+                "startsAt": self.clock_value + 300,
+                "endsAt": self.clock_value + 3900,
+                "ratePaisePerHour": 12000,
+            },
+            actor_admin_user_id=None,
+        )
+        self.clock_value += 300
+        self.pool.start_session(
+            {"reservationId": reservation["id"]},
+            actor_admin_user_id=None,
+        )
+        with self.assertRaises(AdminSoftwareConflict):
+            self.pool.update_reservation(
+                reservation["id"],
+                {"guestName": "Should Not Change"},
+                actor_admin_user_id=None,
+            )
+
     def test_combined_pool_kitchen_bill_settles_atomically(self):
         session = self.pool.start_session(
             {

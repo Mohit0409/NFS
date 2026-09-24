@@ -166,11 +166,18 @@ def _pool_reservation_update(
         return failure
     _require_write(handler, session, "pool.manage")
     payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
-    item = handler.server.pool_service.update_reservation_status(
-        reservation_id,
-        str(payload.get("status") or ""),
-        actor_admin_user_id=session.admin_user_id,
-    )
+    if "status" in payload:
+        item = handler.server.pool_service.update_reservation_status(
+            reservation_id,
+            str(payload.get("status") or ""),
+            actor_admin_user_id=session.admin_user_id,
+        )
+    else:
+        item = handler.server.pool_service.update_reservation(
+            reservation_id,
+            payload,
+            actor_admin_user_id=session.admin_user_id,
+        )
     return _json(handler, HTTPStatus.OK, {"reservation": item}, request_id, send_body)
 
 

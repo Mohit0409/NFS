@@ -280,6 +280,9 @@ class HttpFoundationTests(unittest.TestCase):
             for marker in (
                 b'id="poolView"',
                 b'id="poolReservationForm"',
+                b'id="poolReservationSubmit"',
+                b'id="poolReservationCancelEdit"',
+                b'id="poolReservationCancelEdit"',
                 b'id="poolBillDialog"',
                 b'id="settlePoolBill"',
                 b'id="kitchenView"',
@@ -290,7 +293,7 @@ class HttpFoundationTests(unittest.TestCase):
                 b'id="operationsNav"',
                 b'id="operationsView"',
                 b'id="operationsReportSummary"',
-                b'/js/admin-pool.js?v=new-gym-pool-v2',
+                b'/js/admin-pool.js?v=new-gym-pool-v3',
                 b'/js/admin-kitchen.js?v=new-gym-kitchen-v4',
                 b'/js/admin-operations-report.js?v=new-gym-report-v1',
             ):
@@ -300,6 +303,7 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertEqual(status, 200)
             for marker in (
                 b"/api/admin/pool/reservations",
+                b"Update reservation",
                 b"/bill",
                 b"/settle",
             ):

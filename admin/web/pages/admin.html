@@ -82,7 +82,7 @@
 <div class="page-toolbar"><div><p class="section-kicker">POOL OPERATIONS</p><h3>Pool tables</h3><p class="micro">Live status for one private table and two common tables. Rates are configured here and sessions are timed by the server.</p></div></div>
 <div id="poolTableGrid" class="ops-grid" aria-live="polite"></div>
 <div class="ops-two-column">
-<section class="panel"><div class="panelhead"><div><h3>Reserve a table</h3><p class="micro">Create an upcoming booking. Overlapping reservations for the same table are blocked by the server.</p></div></div>
+<section class="panel"><div class="panelhead"><div><h3>Reserve a table</h3><p class="micro">Create or edit an upcoming booking. Overlapping reservations for the same table are blocked by the server.</p></div></div>
 <form id="poolReservationForm" class="ops-form">
 <label>Pool table<select id="poolReservationTable" required></select></label>
 <label>Guest / member name<input id="poolReservationGuest" maxlength="80" required></label>
@@ -91,9 +91,9 @@
 <label>Start<input id="poolReservationStart" type="datetime-local" required></label>
 <label>End<input id="poolReservationEnd" type="datetime-local" required></label>
 <label class="form-span-2">Note<textarea id="poolReservationNote" maxlength="500"></textarea></label>
-<button type="submit">Create reservation</button>
+<div class="row-actions form-span-2"><button id="poolReservationSubmit" type="submit">Create reservation</button><button id="poolReservationCancelEdit" class="ghost" type="button" hidden>Cancel edit</button></div>
 </form></section>
-<section class="panel"><div class="panelhead"><div><h3>Upcoming reservations</h3><p class="micro">Check in a reservation to start the table timer, or cancel/no-show before check-in.</p></div></div>
+<section class="panel"><div class="panelhead"><div><h3>Upcoming reservations</h3><p class="micro">Edit/reschedule, check in, cancel, or mark no-show before check-in.</p></div></div>
 <div class="tablewrap" tabindex="0"><table class="software-table"><thead><tr><th>Time</th><th>Table</th><th>Guest</th><th>Status</th><th>Action</th></tr></thead><tbody id="poolReservationsBody"></tbody></table></div></section>
 </div>
 <div class="panel"><div class="panelhead"><div><h3>Recent pool sessions</h3><p class="micro">Completed and active sessions with server-calculated duration and charge.</p></div></div>
@@ -203,7 +203,7 @@
 <script src="/js/admin-coaching.js?v=gravity-admin-usability-v2" defer></script>
 <script src="/js/admin-readiness.js" defer></script>
 <script src="/js/admin-biometric.js?v=biometric-attendance-v1" defer></script>
-<script src="/js/admin-pool.js?v=new-gym-pool-v2" defer></script>
+<script src="/js/admin-pool.js?v=new-gym-pool-v3" defer></script>
 <script src="/js/admin-kitchen.js?v=new-gym-kitchen-v4" defer></script>
 <script src="/js/admin-operations-report.js?v=new-gym-report-v1" defer></script>
 <script src="/js/admin.js?v=new-gym-ops-v2" defer></script>

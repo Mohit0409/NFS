@@ -321,6 +321,31 @@ class OperationsHttpTests(unittest.TestCase):
 
             status, payload = request_json(
                 base,
+                f"/api/admin/pool/reservations/{reservation['id']}",
+                method="PATCH",
+                body={
+                    "tableId": "pool-common-2",
+                    "guestName": "Reserved Guest Updated",
+                    "phone": "9123456789",
+                    "startsAt": now + 900,
+                    "endsAt": now + 4500,
+                    "ratePaisePerHour": 11000,
+                    "note": "Rescheduled by reception",
+                },
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            reservation = payload["reservation"]
+            self.assertEqual(reservation["tableId"], "pool-common-2")
+            self.assertEqual(reservation["guestName"], "Reserved Guest Updated")
+            self.assertEqual(reservation["phone"], "+919123456789")
+            self.assertEqual(reservation["startsAt"], now + 900)
+            self.assertEqual(reservation["endsAt"], now + 4500)
+            self.assertEqual(reservation["ratePaisePerHour"], 11000)
+            self.assertEqual(reservation["note"], "Rescheduled by reception")
+
+            status, payload = request_json(
+                base,
                 "/api/admin/pool/sessions",
                 method="POST",
                 body={"reservationId": reservation["id"]},
