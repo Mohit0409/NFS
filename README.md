@@ -74,6 +74,10 @@ Implemented:
 - automatic ingredient deduction when an order is marked Served
 - recipe deductions are idempotent and cannot be applied twice
 - serving is blocked atomically if any required ingredient is inactive or insufficient
+- unpaid unserved orders can be cancelled only with a required reason
+- cancellation is audited, timestamps the order, and automatically moves its payment state to void
+- paid orders cannot be cancelled until their payment is separately voided/refunded
+- cancellation before Served never consumes recipe inventory
 
 ## Daily operations report
 
@@ -97,8 +101,9 @@ New Gym operations migrations:
 - `015_pool_reservations_kitchen_inventory.sql`
 - `016_pool_kitchen_billing.sql`
 - `017_kitchen_recipes.sql`
+- `018_kitchen_cancellation.sql`
 
-Latest schema migration: `017`.
+Latest schema migration: `018`.
 
 ## Branding
 
@@ -194,10 +199,10 @@ Never reuse Gravity's Firebase/auth/analytics project or production database.
 
 Current verified state:
 - Python/JavaScript syntax checks: PASS
-- clean migration through `001-017`: PASS
+- clean migration through `001-018`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **234/234 PASS**
+- full admin/backend regression: **237/237 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

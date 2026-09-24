@@ -74,6 +74,19 @@ This record documents local development milestones only.
    - default freshness window: 24 hours
    - backend regression 234/234 PASS
 
+10. `966ba75` — Record kitchen payment method in admin workflow
+   - standalone kitchen payments capture Cash / UPI / Card / Bank transfer / Other
+   - payment method appears in order state and daily operations reporting
+
+11. `c94ae1c` — Add audited kitchen order cancellation
+   - required cancellation reason for unpaid, unserved orders
+   - cancelled orders are voided and timestamped
+   - paid orders must be voided/refunded before cancellation
+   - cancellation before Served leaves recipe stock unchanged
+   - migration 018
+   - backend regression 237/237 PASS
+   - local Chromium 6/6 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files

@@ -21,6 +21,10 @@
 3. Create a walk-in order or attach it to an active pool session.
 4. Move order: New -> Preparing -> Ready -> Served.
 5. Individual kitchen orders may be marked paid, or pool-linked orders may be settled through the final Pool + Kitchen bill.
+6. To cancel an unpaid order before Served, choose **Cancel order** and enter a mandatory reason.
+7. Cancellation changes the payment state to void and records the cancellation timestamp/reason.
+8. A paid order must be voided/refunded separately before cancellation; cancellation itself is not a refund operation.
+9. Cancelling before Served does not consume recipe inventory.
 
 ## Inventory workflow
 

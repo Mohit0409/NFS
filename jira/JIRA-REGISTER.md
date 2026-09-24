@@ -24,14 +24,15 @@
 | NG-020 | Fail-closed Redmi install/launch preflight with explicit pricing/rate/kitchen confirmation gates | DONE | Not deployed |
 | NG-021 | Database-aware launch gate for schema/integrity/legacy Gravity pricing/pool rates/kitchen live data | DONE | Not deployed |
 | NG-022 | Fresh verified off-device backup marker required before tunnel enable | DONE | Not deployed |
+| NG-023 | Audited kitchen order cancellation with required reason and safe payment/stock behavior | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`e671267 Require fresh verified off-device backup for launch`
+`c94ae1c Add audited kitchen order cancellation`
 
 Verification at this point:
-- backend: 234/234 PASS
+- backend: 237/237 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS
