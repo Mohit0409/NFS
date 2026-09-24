@@ -164,6 +164,63 @@ class OperationsTests(unittest.TestCase):
         )
         self.assertEqual(completed["status"], "completed")
 
+    def test_combined_pool_kitchen_bill_settles_atomically(self):
+        session = self.pool.start_session(
+            {
+                "tableId": "pool-common-2",
+                "ratePaisePerHour": 10000,
+                "guestName": "Billing Guest",
+            },
+            actor_admin_user_id=None,
+        )
+        item = self.kitchen.create_menu_item(
+            {"name": "Protein Shake", "category": "Drinks", "pricePaise": 8000},
+            actor_admin_user_id=None,
+        )
+        order = self.kitchen.create_order(
+            {
+                "poolSessionId": session["id"],
+                "items": [{"menuItemId": item["id"], "quantity": 2}],
+            },
+            actor_admin_user_id=None,
+        )
+
+        self.clock_value += 3600
+        completed = self.pool.end_session(session["id"], {}, actor_admin_user_id=None)
+        self.assertEqual(completed["amountPaise"], 10000)
+
+        bill = self.pool.get_bill(session["id"])
+        self.assertEqual(bill["poolChargePaise"], 10000)
+        self.assertEqual(bill["kitchenTotalPaise"], 16000)
+        self.assertEqual(bill["grandTotalPaise"], 26000)
+        self.assertEqual(bill["duePaise"], 26000)
+        self.assertFalse(bill["settlementReady"])
+
+        with self.assertRaises(AdminSoftwareConflict):
+            self.pool.settle_session(
+                session["id"],
+                {"paymentMethod": "cash"},
+                actor_admin_user_id=None,
+            )
+
+        for status in ("preparing", "ready", "served"):
+            self.kitchen.update_order(
+                order["id"], {"status": status}, actor_admin_user_id=None
+            )
+
+        settled = self.pool.settle_session(
+            session["id"],
+            {"paymentMethod": "upi"},
+            actor_admin_user_id=None,
+        )
+        self.assertTrue(settled["settlementReady"])
+        self.assertEqual(settled["duePaise"], 0)
+        self.assertEqual(settled["paidPaise"], 26000)
+        self.assertEqual(settled["session"]["paymentStatus"], "paid")
+        self.assertEqual(settled["session"]["paymentMethod"], "upi")
+        self.assertEqual(settled["kitchenOrders"][0]["paymentStatus"], "paid")
+        self.assertEqual(settled["kitchenOrders"][0]["paymentMethod"], "upi")
+
     def test_kitchen_inventory_tracks_low_stock_and_never_goes_negative(self):
         item = self.kitchen.create_inventory_item(
             {

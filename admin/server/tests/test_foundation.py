@@ -91,12 +91,12 @@ class DatabaseTests(unittest.TestCase):
         with TemporaryDirectory() as temporary:
             path = Path(temporary) / "gravity.sqlite3"
             database = Database(path, ROOT / "server" / "migrations")
-            self.assertEqual(database.migrate(), ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015"])
+            self.assertEqual(database.migrate(), ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016"])
             self.assertEqual(database.migrate(), [])
-            self.assertEqual(database.health(), {"database": "ok", "migrations": "15"})
+            self.assertEqual(database.health(), {"database": "ok", "migrations": "16"})
             with closing(sqlite3.connect(path)) as connection:
                 versions = connection.execute("SELECT version FROM schema_migrations").fetchall()
-                self.assertEqual(versions, [("001",), ("002",), ("003",), ("004",), ("005",), ("006",), ("007",), ("008",), ("009",), ("010",), ("011",), ("012",), ("013",), ("014",), ("015",)])
+                self.assertEqual(versions, [("001",), ("002",), ("003",), ("004",), ("005",), ("006",), ("007",), ("008",), ("009",), ("010",), ("011",), ("012",), ("013",), ("014",), ("015",), ("016",)])
 
     def test_changed_applied_migration_is_rejected(self):
         with TemporaryDirectory() as temporary:
@@ -272,6 +272,37 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertIn(b"auth/unauthorized-domain", script)
             self.assertIn(b"account_not_provisioned", script)
             self.assertIn(b"Please contact the gym reception", script)
+
+    def test_new_gym_operations_ui_contract_is_wired(self):
+        with running_server() as (base, _settings):
+            status, _headers, admin = fetch(base, "/admin")
+            self.assertEqual(status, 200)
+            for marker in (
+                b'id="poolView"',
+                b'id="poolReservationForm"',
+                b'id="poolBillDialog"',
+                b'id="settlePoolBill"',
+                b'id="kitchenView"',
+                b'id="kitchenInventoryCreateForm"',
+                b'id="kitchenInventoryAdjustForm"',
+                b'/js/admin-pool.js?v=new-gym-pool-v2',
+                b'/js/admin-kitchen.js?v=new-gym-kitchen-v2',
+            ):
+                self.assertIn(marker, admin)
+
+            status, _headers, pool_script = fetch(base, "/js/admin-pool.js")
+            self.assertEqual(status, 200)
+            for marker in (
+                b"/api/admin/pool/reservations",
+                b"/bill",
+                b"/settle",
+            ):
+                self.assertIn(marker, pool_script)
+
+            status, _headers, kitchen_script = fetch(base, "/js/admin-kitchen.js")
+            self.assertEqual(status, 200)
+            self.assertIn(b"/api/admin/kitchen/inventory", kitchen_script)
+            self.assertIn(b"/adjust", kitchen_script)
 
     def test_readiness_ui_contract_is_wired(self):
         with running_server() as (base, _settings):

@@ -727,3 +727,23 @@ button:disabled { cursor: not-allowed; opacity: .52; filter: none; }
   background: #2b1b11;
   color: #ffb36a;
 }
+
+.pool-bill-summary {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pool-bill-summary > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #2d3742;
+  border-radius: 8px;
+  background: #0f151c;
+}
+.pool-bill-summary span { color: #8793a1; font-size: .68rem; }
+.pool-bill-summary strong { color: #f1f4f7; font-size: 1rem; }
+@media (max-width: 700px) {
+  .pool-bill-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}

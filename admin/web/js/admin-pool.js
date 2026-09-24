@@ -250,24 +250,108 @@
     }
   }
 
+  let currentBillSessionId = null;
+  const currency = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
+
+  function renderBill(bill) {
+    currentBillSessionId = bill.session.id;
+    const summary = $('poolBillSummary');
+    summary.replaceChildren();
+    const facts = [
+      ['Pool', currency(bill.poolChargePaise)],
+      ['Kitchen', currency(bill.kitchenTotalPaise)],
+      ['Grand total', currency(bill.grandTotalPaise)],
+      ['Due', currency(bill.duePaise)],
+    ];
+    for (const [label, value] of facts) {
+      const item = document.createElement('div');
+      item.innerHTML = '<span></span><strong></strong>';
+      item.querySelector('span').textContent = label;
+      item.querySelector('strong').textContent = value;
+      summary.append(item);
+    }
+
+    $('poolBillTitle').textContent = `${bill.tableName} · Final bill`;
+    const body = $('poolBillKitchenBody');
+    body.replaceChildren();
+    for (const order of bill.kitchenOrders || []) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td></td><td></td><td></td><td></td>';
+      row.children[0].textContent = `#${String(order.id).slice(0, 8)}`;
+      row.children[1].textContent = order.status;
+      row.children[2].textContent = order.paymentStatus;
+      row.children[3].textContent = currency(order.totalPaise);
+      body.append(row);
+    }
+    if (!body.children.length) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="4" class="empty">No kitchen orders linked to this pool session.</td>';
+      body.append(row);
+    }
+
+    const blocker = $('poolBillBlocker');
+    blocker.hidden = true;
+    blocker.replaceChildren();
+    if (bill.session.status !== 'completed') {
+      blocker.hidden = false;
+      blocker.textContent = 'End the pool session before settling the final bill.';
+    } else if (!bill.settlementReady) {
+      blocker.hidden = false;
+      blocker.textContent = 'Finish or cancel all kitchen orders before settling this bill.';
+    }
+
+    const paid = Number(bill.duePaise || 0) === 0 && bill.session.paymentStatus === 'paid';
+    $('poolBillPaymentWrap').hidden = paid;
+    const settle = $('settlePoolBill');
+    settle.hidden = paid;
+    settle.disabled = bill.session.status !== 'completed' || !bill.settlementReady;
+    $('poolBillError').textContent = '';
+  }
+
+  async function openBill(session) {
+    const data = await core().api(`/api/admin/pool/sessions/${encodeURIComponent(session.id)}/bill`);
+    renderBill(data.bill);
+    const dialog = $('poolBillDialog');
+    if (!dialog.open) dialog.showModal();
+  }
+
+  async function settleBill() {
+    if (!currentBillSessionId) return;
+    const data = await core().api(`/api/admin/pool/sessions/${encodeURIComponent(currentBillSessionId)}/settle`, {
+      method: 'POST',
+      body: { paymentMethod: $('poolBillPaymentMethod').value },
+    });
+    renderBill(data.bill);
+    core().flash('Pool + kitchen final bill settled.');
+    await renderHistory();
+  }
+
   async function renderHistory() {
     const data = await core().api('/api/admin/pool/sessions?limit=30');
     const body = $('poolHistoryBody');
     body.replaceChildren();
     for (const item of data.sessions || []) {
       const row = document.createElement('tr');
-      const charge = item.amountPaise == null ? '—' : `₹${(item.amountPaise / 100).toFixed(2)}`;
-      row.innerHTML = '<td></td><td></td><td></td><td></td><td></td>';
+      const charge = item.amountPaise == null
+        ? (item.status === 'active' ? 'Running' : '—')
+        : currency(item.amountPaise);
+      row.innerHTML = '<td></td><td></td><td></td><td></td><td></td><td></td>';
       row.children[0].textContent = item.tableName || item.tableId;
       row.children[1].textContent = item.guestName || 'Walk-in / member';
       row.children[2].textContent = duration(item.elapsedSeconds);
       row.children[3].textContent = item.status;
       row.children[4].textContent = charge;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = item.paymentStatus === 'paid' ? 'ghost compact-button' : 'compact-button';
+      button.textContent = item.paymentStatus === 'paid' ? 'Paid bill' : 'View bill';
+      button.addEventListener('click', () => openBill(item).catch((error) => core().flash(error.data?.message || error.message, 'error')));
+      row.children[5].append(button);
       body.append(row);
     }
     if (!body.children.length) {
       const row = document.createElement('tr');
-      row.innerHTML = '<td colspan="5" class="empty">No pool sessions yet.</td>';
+      row.innerHTML = '<td colspan="6" class="empty">No pool sessions yet.</td>';
       body.append(row);
     }
   }
@@ -288,6 +372,11 @@
 
   $('poolReservationForm')?.addEventListener('submit', (event) => {
     createReservation(event).catch((error) => core().flash(error.data?.message || error.message, 'error'));
+  });
+  $('settlePoolBill')?.addEventListener('click', () => {
+    settleBill().catch((error) => {
+      $('poolBillError').textContent = error.data?.message || error.message;
+    });
   });
 
   window.NewGymPoolAdmin = { renderWorkspace: render };

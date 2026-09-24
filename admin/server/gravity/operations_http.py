@@ -112,6 +112,27 @@ def _pool_end(handler: Any, session_id: str, request_id: str, send_body: bool) -
     return _json(handler, HTTPStatus.OK, {"session": item}, request_id, send_body)
 
 
+def _pool_bill(handler: Any, session_id: str, request_id: str, send_body: bool) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    handler.server.admin_service.require_permission(session, "pool.read")
+    bill = handler.server.pool_service.get_bill(session_id)
+    return _json(handler, HTTPStatus.OK, {"bill": bill}, request_id, send_body)
+
+
+def _pool_settle(handler: Any, session_id: str, request_id: str, send_body: bool) -> HTTPStatus:
+    session, failure = _authenticated(handler, request_id, send_body)
+    if session is None:
+        return failure
+    _require_write(handler, session, "pool.manage")
+    payload = handler._json_body(maximum=OPERATIONS_JSON_LIMIT)
+    bill = handler.server.pool_service.settle_session(
+        session_id, payload, actor_admin_user_id=session.admin_user_id
+    )
+    return _json(handler, HTTPStatus.OK, {"bill": bill}, request_id, send_body)
+
+
 def _pool_reservations(handler: Any, request_id: str, send_body: bool) -> HTTPStatus:
     session, failure = _authenticated(handler, request_id, send_body)
     if session is None:
@@ -273,6 +294,18 @@ def handle_operations_request(handler: Any, path: str, request_id: str, send_bod
             if handler.command in {"GET", "HEAD", "POST"}:
                 return _pool_sessions(handler, request_id, send_body)
             return handler._method_not_allowed({"GET", "HEAD", "POST"}, request_id, send_body)
+        if path.startswith("/api/admin/pool/sessions/") and path.endswith("/bill"):
+            session_id = path.removeprefix("/api/admin/pool/sessions/").removesuffix("/bill").strip("/")
+            if session_id and "/" not in session_id:
+                if handler.command in {"GET", "HEAD"}:
+                    return _pool_bill(handler, session_id, request_id, send_body)
+                return handler._method_not_allowed({"GET", "HEAD"}, request_id, send_body)
+        if path.startswith("/api/admin/pool/sessions/") and path.endswith("/settle"):
+            session_id = path.removeprefix("/api/admin/pool/sessions/").removesuffix("/settle").strip("/")
+            if session_id and "/" not in session_id:
+                if handler.command == "POST":
+                    return _pool_settle(handler, session_id, request_id, send_body)
+                return handler._method_not_allowed({"POST"}, request_id, send_body)
         if path.startswith("/api/admin/pool/sessions/") and path.endswith("/end"):
             session_id = path.removeprefix("/api/admin/pool/sessions/").removesuffix("/end").strip("/")
             if session_id and "/" not in session_id:

@@ -50,6 +50,9 @@ Implemented:
 - cancel/no-show states
 - reservation automatically completes when its checked-in session ends
 - next reservation visible on the live table card
+- combined Pool + Kitchen final bill
+- final settlement blocked until the pool session is ended and all payable kitchen orders are served/cancelled
+- one settlement action records the payment method across unpaid pool/kitchen components
 
 ### Kitchen
 
@@ -72,8 +75,9 @@ Automatic recipe-based ingredient deduction is intentionally deferred until menu
 New Gym operations migrations:
 - `014_pool_kitchen.sql`
 - `015_pool_reservations_kitchen_inventory.sql`
+- `016_pool_kitchen_billing.sql`
 
-Latest schema migration: `015`.
+Latest schema migration: `016`.
 
 ## Branding
 
@@ -169,9 +173,10 @@ Never reuse Gravity's Firebase/auth/analytics project or production database.
 
 Current verified state:
 - Python/JavaScript syntax checks: PASS
-- clean migration through `001-015`: PASS
+- clean migration through `001-016`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
-- full admin/backend regression: **221/221 PASS**
+- Pool/Kitchen admin UI contract test: PASS
+- full admin/backend regression: **223/223 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**
 - diet planner tests: **PASS**

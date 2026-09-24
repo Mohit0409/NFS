@@ -13,6 +13,7 @@ from .database import Database
 
 POOL_STATUSES = {"available", "occupied", "reserved", "cleaning", "disabled"}
 RESERVATION_STATUSES = {"reserved", "checked_in", "completed", "cancelled", "no_show"}
+PAYMENT_METHODS = {"cash", "upi", "card", "bank_transfer", "other"}
 
 
 def _clean_optional_text(value: object, *, field: str, maximum: int = 160) -> str | None:
@@ -87,6 +88,9 @@ class PoolService:
             "elapsedSeconds": elapsed,
             "status": row["status"],
             "amountPaise": int(row["amount_paise"]) if row["amount_paise"] is not None else None,
+            "paymentStatus": row["payment_status"] if "payment_status" in keys else "unpaid",
+            "paymentMethod": row["payment_method"] if "payment_method" in keys else None,
+            "paidAt": int(row["paid_at"]) if "paid_at" in keys and row["paid_at"] is not None else None,
             "note": row["note"],
         }
 
@@ -168,6 +172,125 @@ class PoolService:
             item["tableType"] = row["table_type"]
             result.append(item)
         return result
+
+    def _bill_payload(self, connection, row, *, now: int | None = None) -> dict[str, object]:
+        current = self._now() if now is None else now
+        session = self._session_payload(row, now=current)
+        if row["status"] == "active":
+            pool_charge = int(round(int(row["rate_paise_per_hour"]) * int(session["elapsedSeconds"]) / 3600))
+        else:
+            pool_charge = int(row["amount_paise"] or 0)
+
+        kitchen_rows = connection.execute(
+            "SELECT id,status,payment_status,total_paise,payment_method,paid_at,customer_name,created_at "
+            "FROM kitchen_orders WHERE pool_session_id=? AND status!='cancelled' "
+            "AND payment_status!='void' ORDER BY created_at",
+            (row["id"],),
+        ).fetchall()
+        kitchen_total = sum(int(item["total_paise"]) for item in kitchen_rows)
+        kitchen_paid = sum(
+            int(item["total_paise"]) for item in kitchen_rows if item["payment_status"] == "paid"
+        )
+        pool_paid = pool_charge if row["payment_status"] == "paid" else 0
+        grand_total = pool_charge + kitchen_total
+        paid_total = pool_paid + kitchen_paid
+        due = max(0, grand_total - paid_total)
+        unserved = [item["id"] for item in kitchen_rows if item["status"] != "served"]
+        return {
+            "session": session,
+            "tableName": row["table_name"] if "table_name" in row.keys() else row["table_id"],
+            "poolChargePaise": pool_charge,
+            "kitchenTotalPaise": kitchen_total,
+            "grandTotalPaise": grand_total,
+            "paidPaise": paid_total,
+            "duePaise": due,
+            "settlementReady": row["status"] == "completed" and not unserved,
+            "unservedKitchenOrderIds": unserved,
+            "kitchenOrders": [
+                {
+                    "id": item["id"],
+                    "status": item["status"],
+                    "paymentStatus": item["payment_status"],
+                    "totalPaise": int(item["total_paise"]),
+                    "paymentMethod": item["payment_method"],
+                    "paidAt": int(item["paid_at"]) if item["paid_at"] is not None else None,
+                    "customerName": item["customer_name"],
+                }
+                for item in kitchen_rows
+            ],
+        }
+
+    def get_bill(self, session_id: str) -> dict[str, object]:
+        with self.database.session() as connection:
+            row = connection.execute(
+                "SELECT s.*,t.name AS table_name FROM pool_sessions s "
+                "JOIN pool_tables t ON t.id=s.table_id WHERE s.id=?",
+                (session_id,),
+            ).fetchone()
+            if row is None:
+                raise AdminSoftwareNotFound("Pool session not found")
+            return self._bill_payload(connection, row)
+
+    def settle_session(
+        self,
+        session_id: str,
+        payload: Mapping[str, object],
+        *,
+        actor_admin_user_id: str,
+    ) -> dict[str, object]:
+        method = str(payload.get("paymentMethod") or "").strip().casefold()
+        if method not in PAYMENT_METHODS:
+            raise AdminSoftwareValidationError(
+                {"paymentMethod": "Choose cash, UPI, card, bank transfer, or other"}
+            )
+        now = self._now()
+        with self.database.session() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT s.*,t.name AS table_name FROM pool_sessions s "
+                "JOIN pool_tables t ON t.id=s.table_id WHERE s.id=?",
+                (session_id,),
+            ).fetchone()
+            if row is None:
+                raise AdminSoftwareNotFound("Pool session not found")
+            if row["status"] != "completed":
+                raise AdminSoftwareConflict("End the pool session before settling the final bill")
+
+            blockers = connection.execute(
+                "SELECT id FROM kitchen_orders WHERE pool_session_id=? "
+                "AND status!='cancelled' AND payment_status!='void' AND status!='served' LIMIT 1",
+                (session_id,),
+            ).fetchone()
+            if blockers:
+                raise AdminSoftwareConflict(
+                    "Finish or cancel all kitchen orders before settling the final bill"
+                )
+
+            connection.execute(
+                "UPDATE pool_sessions SET payment_status='paid',payment_method=?,paid_at=? "
+                "WHERE id=? AND payment_status!='paid'",
+                (method, now, session_id),
+            )
+            connection.execute(
+                "UPDATE kitchen_orders SET payment_status='paid',payment_method=?,paid_at=?,updated_at=? "
+                "WHERE pool_session_id=? AND status='served' AND payment_status='unpaid'",
+                (method, now, now, session_id),
+            )
+            self.admin_service._audit(
+                connection,
+                actor_admin_user_id,
+                "pool_kitchen_bill_settled",
+                target_type="pool_session",
+                target_id=session_id,
+                metadata={"paymentMethod": method},
+            )
+            connection.commit()
+            settled = connection.execute(
+                "SELECT s.*,t.name AS table_name FROM pool_sessions s "
+                "JOIN pool_tables t ON t.id=s.table_id WHERE s.id=?",
+                (session_id,),
+            ).fetchone()
+            return self._bill_payload(connection, settled, now=now)
 
     def list_reservations(
         self,

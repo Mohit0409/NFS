@@ -97,8 +97,21 @@
 <div class="tablewrap" tabindex="0"><table class="software-table"><thead><tr><th>Time</th><th>Table</th><th>Guest</th><th>Status</th><th>Action</th></tr></thead><tbody id="poolReservationsBody"></tbody></table></div></section>
 </div>
 <div class="panel"><div class="panelhead"><div><h3>Recent pool sessions</h3><p class="micro">Completed and active sessions with server-calculated duration and charge.</p></div></div>
-<div class="tablewrap" tabindex="0"><table class="software-table"><thead><tr><th>Table</th><th>Guest / member</th><th>Duration</th><th>Status</th><th>Charge</th></tr></thead><tbody id="poolHistoryBody"></tbody></table></div></div>
+<div class="tablewrap" tabindex="0"><table class="software-table"><thead><tr><th>Table</th><th>Guest / member</th><th>Duration</th><th>Status</th><th>Charge</th><th>Bill</th></tr></thead><tbody id="poolHistoryBody"></tbody></table></div></div>
 </section>
+<dialog id="poolBillDialog" class="software-dialog" aria-labelledby="poolBillTitle">
+<form method="dialog" class="dialog-shell">
+<header><div><p class="section-kicker">POOL + KITCHEN</p><h3 id="poolBillTitle">Final bill</h3></div><button class="icon-button" value="cancel" aria-label="Close final bill">X</button></header>
+<div class="dialog-body">
+<div id="poolBillSummary" class="pool-bill-summary"></div>
+<div class="tablewrap"><table class="software-table"><thead><tr><th>Kitchen order</th><th>Status</th><th>Payment</th><th>Total</th></tr></thead><tbody id="poolBillKitchenBody"></tbody></table></div>
+<div id="poolBillBlocker" class="software-notice warning" hidden></div>
+<label id="poolBillPaymentWrap">Payment method<select id="poolBillPaymentMethod"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option><option value="other">Other</option></select></label>
+<p id="poolBillError" class="dialog-error" role="alert"></p>
+</div>
+<footer><button class="ghost" value="cancel">Close</button><button id="settlePoolBill" type="button">Settle final bill</button></footer>
+</form>
+</dialog>
 <section id="kitchenView" class="view" hidden>
 <div class="page-toolbar"><div><p class="section-kicker">KITCHEN OPERATIONS</p><h3>Kitchen</h3><p class="micro">Maintain the menu, create orders and move them from new to preparing, ready and served.</p></div></div>
 <div class="ops-two-column">
@@ -165,8 +178,8 @@
 <script src="/js/admin-coaching.js?v=gravity-admin-usability-v2" defer></script>
 <script src="/js/admin-readiness.js" defer></script>
 <script src="/js/admin-biometric.js?v=biometric-attendance-v1" defer></script>
-<script src="/js/admin-pool.js?v=new-gym-pool-v1" defer></script>
-<script src="/js/admin-kitchen.js?v=new-gym-kitchen-v1" defer></script>
+<script src="/js/admin-pool.js?v=new-gym-pool-v2" defer></script>
+<script src="/js/admin-kitchen.js?v=new-gym-kitchen-v2" defer></script>
 <script src="/js/admin.js?v=new-gym-ops-v1" defer></script>
 </body></html>
 
