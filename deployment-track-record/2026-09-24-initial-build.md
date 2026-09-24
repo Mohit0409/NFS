@@ -30,12 +30,32 @@ This record documents local development milestones only.
    - migration 016
    - backend regression 223/223 PASS
 
+4. `308f2f2` — Harden Firebase isolation and browser gates
+   - removed copied Gravity Firebase default aliases
+   - added Firebase isolation regression guard
+   - installed isolated Playwright dependencies
+   - added New Gym Pool/Kitchen Chromium coverage
+
+5. `e143085` — Add daily pool kitchen operations reporting
+   - date-based Pool + Kitchen operations report
+   - settled/outstanding revenue, usage, top items and low-stock reporting
+   - explicit Asia/Kolkata business-day handling
+   - backend regression 227/227 PASS
+
+6. `d7d7755` — Add kitchen recipes and automatic stock usage
+   - recipe definitions linking menu items to inventory
+   - atomic automatic ingredient deduction at Served
+   - insufficient stock blocks serving without partial changes
+   - idempotent per-order-item inventory usage records
+   - migration 017
+   - backend regression 230/230 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
 - Firebase isolation regression: PASS
 - inherited admin reliability Chromium suite: 3/3 PASS
-- New Gym Pool/Kitchen Chromium suite: 2/2 PASS
+- New Gym Pool/Kitchen/Reporting/Recipe Chromium suite: 3/3 PASS
 - daily Operations Report Chromium flow included
 - local admin Chromium total: 6/6 PASS
 - final-domain E2E remains pending until domains/configuration exist

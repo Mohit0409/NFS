@@ -70,8 +70,10 @@ Implemented:
 - unit + quantity + low-stock threshold
 - audited purchase/usage/waste/adjustment movements
 - stock cannot fall below zero
-
-Automatic recipe-based ingredient deduction is intentionally deferred until menu recipes are defined.
+- configurable menu recipes linking menu items to inventory ingredients
+- automatic ingredient deduction when an order is marked Served
+- recipe deductions are idempotent and cannot be applied twice
+- serving is blocked atomically if any required ingredient is inactive or insufficient
 
 ## Daily operations report
 
@@ -94,8 +96,9 @@ New Gym operations migrations:
 - `014_pool_kitchen.sql`
 - `015_pool_reservations_kitchen_inventory.sql`
 - `016_pool_kitchen_billing.sql`
+- `017_kitchen_recipes.sql`
 
-Latest schema migration: `016`.
+Latest schema migration: `017`.
 
 ## Branding
 
@@ -191,10 +194,10 @@ Never reuse Gravity's Firebase/auth/analytics project or production database.
 
 Current verified state:
 - Python/JavaScript syntax checks: PASS
-- clean migration through `001-016`: PASS
+- clean migration through `001-017`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **227/227 PASS**
+- full admin/backend regression: **230/230 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

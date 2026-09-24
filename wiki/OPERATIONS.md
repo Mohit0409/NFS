@@ -34,7 +34,17 @@
 4. Stock cannot fall below zero.
 5. Every movement is stored with the acting admin and reason.
 
-Automatic recipe deduction is intentionally not active yet.
+## Recipe / automatic deduction workflow
+
+1. Create the menu item and inventory ingredients first.
+2. In **Menu recipes**, choose the menu item and ingredient.
+3. Enter the ingredient quantity used for one menu item (for example, 0.250 litre of milk).
+4. Repeat for each ingredient in the recipe.
+5. When an order moves from Ready to Served, the server checks every required ingredient first.
+6. If all stock is sufficient, all recipe quantities are deducted in the same transaction.
+7. If any ingredient is inactive or short, serving is rejected and no partial deduction is committed.
+8. Each order-item/ingredient deduction is recorded once, preventing duplicate stock usage on retries.
+9. Enter recipe quantity 0 to remove that ingredient from the recipe.
 
 ## Daily operations report
 
