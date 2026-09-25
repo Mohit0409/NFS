@@ -130,10 +130,6 @@ start_component() {
   fi
 }
 
-start_component admin server.gravity   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" -m server.gravity
-
-start_component member member_gateway.py   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" "$PROJECT_ROOT/customer-website/gateway/member_gateway.py"
-
 PUBLIC_PORT="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print NEW_GYM_PUBLIC_PORT)"
 PUBLIC_PORT="${PUBLIC_PORT:-8899}"
 start_component web http.server   "$PYTHON" -m http.server "$PUBLIC_PORT" --bind 127.0.0.1 --directory "$PROJECT_ROOT/customer-website/web"
@@ -151,31 +147,6 @@ wait_http() {
   exit 1
 }
 
-wait_port_free() {
-  port="$1"
-  name="$2"
-  for _ in $(seq 1 40); do
-    if "$PYTHON" - "$port" <<'PY'
-import socket, sys
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-    sock.bind(("127.0.0.1", int(sys.argv[1])))
-except OSError:
-    raise SystemExit(1)
-finally:
-    sock.close()
-PY
-    then
-      return 0
-    fi
-    sleep 0.25
-  done
-  echo "$name port $port did not become bindable after shutdown." >&2
-  exit 1
-}
-
-wait_http "http://127.0.0.1:8897/api/health" "Admin backend"
-wait_http "http://127.0.0.1:8898/api/health" "Member gateway"
 wait_http "http://127.0.0.1:8899/" "Customer site"
 wait_http "http://127.0.0.1:8900/" "Demo edge"
 
@@ -201,15 +172,12 @@ esac
 
 "$PYTHON" "$PROFILE/sync-ngrok-url.py" --config "$CONFIG" --public-url "$public_url" >/dev/null
 
-ensure_stopped admin server.gravity
-ensure_stopped member member_gateway.py
-wait_port_free 8897 "Admin backend"
-wait_port_free 8898 "Member gateway"
 start_component admin server.gravity   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" -m server.gravity
 start_component member member_gateway.py   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" "$PROJECT_ROOT/customer-website/gateway/member_gateway.py"
 
-wait_http "http://127.0.0.1:8897/api/health" "Admin backend after public-origin sync"
-wait_http "http://127.0.0.1:8900/" "Demo edge after public-origin sync"
+wait_http "http://127.0.0.1:8897/api/health" "Admin backend"
+wait_http "http://127.0.0.1:8898/api/health" "Member gateway"
+wait_http "http://127.0.0.1:8900/" "Demo edge"
 
 curl -fsS --max-time 15 "$public_url/" >/dev/null
 curl -fsS --max-time 15 "$public_url/api/health" >/dev/null
