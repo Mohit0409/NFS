@@ -20,9 +20,16 @@ stop_pid_if_owned() {
 
   cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
   case "$cmdline" in
-    *"$APP_ROOT/"*"$marker"*) ;;
+    *"$APP_ROOT/"*) ;;
     *)
-      echo "Refusing to kill PID $pid for $label: command line is not a marked Need For Strength owner-demo process." >&2
+      echo "Refusing to kill PID $pid for $label: command line is outside the Need For Strength owner-demo app root." >&2
+      return 1
+      ;;
+  esac
+  case "$cmdline" in
+    *"$marker"*) ;;
+    *)
+      echo "Refusing to kill PID $pid for $label: command line does not contain expected marker '$marker'." >&2
       return 1
       ;;
   esac

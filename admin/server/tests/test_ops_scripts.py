@@ -910,7 +910,9 @@ class OperationsScriptTests(unittest.TestCase):
 
         self.assertIn('TUNNEL_NAME="nfs-owner-demo"', stopper)
         self.assertIn("stop_orphaned_components", stopper)
-        self.assertIn('*"$APP_ROOT/"*"$marker"*' , stopper)
+        self.assertIn('*"$APP_ROOT/"*', stopper)
+        self.assertIn('*"$marker"*', stopper)
+        self.assertIn('stop_owned_pid_file web "http.server 8899"', stopper)
         self.assertIn('DELETE "$NGROK_API/$TUNNEL_NAME"', stopper)
         self.assertNotIn("command_line", stopper)
         self.assertNotIn("universal-gym-saas", stopper)

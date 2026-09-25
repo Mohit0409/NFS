@@ -116,8 +116,12 @@ stop_orphan_pid() {
   label="$3"
   cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
   case "$cmdline" in
-    *"$APP_ROOT/"*"$marker"*) ;;
+    *"$APP_ROOT/"*) ;;
     *) fail "refusing orphan cleanup for PID $pid because it is outside the Need For Strength owner-demo app root" ;;
+  esac
+  case "$cmdline" in
+    *"$marker"*) ;;
+    *) fail "refusing orphan cleanup for PID $pid because its component marker does not match" ;;
   esac
   kill "$pid"
   for _ in $(seq 1 40); do
