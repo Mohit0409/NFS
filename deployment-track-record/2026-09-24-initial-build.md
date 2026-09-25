@@ -175,6 +175,16 @@ This record documents local development milestones only.
    - failure cleanup kills only owner-demo PID-managed processes and deletes only nfs-owner-demo
    - backend regression 249/249 PASS
 
+21. `c77b299` — Fix Termux owner demo temp paths
+   - first Redmi bootstrap attempt was safely blocked before archive extraction
+   - cause: USB bootstrap used Linux /tmp, which does not exist in this Termux runtime
+   - no Need For Strength services/processes were started
+   - no nfs-owner-demo tunnel was created
+   - existing command_line ngrok tunnel was untouched
+   - USB bootstrap/preflight now use Termux TMPDIR/PREFIX tmp
+   - regression rejects any hard-coded /tmp path in those scripts
+   - backend regression 249/249 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files

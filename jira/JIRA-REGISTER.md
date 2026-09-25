@@ -34,13 +34,14 @@
 | NG-030 | Need For Strength owner preview via isolated single-URL ngrok profile | DONE — prepared/tested; not started on Redmi | Demo not deployed |
 | NG-031 | Replace owner-demo database/data with clean owner-approved production data | BLOCKED — owner approval required | Not deployed |
 | NG-032 | Guarded PC-to-Redmi owner-demo deployment launcher | DONE — exact-commit archive + SHA-256 + shared standalone bootstrap | Not deployed |
-| NG-033 | Start owner-demo on Redmi and capture ngrok owner links | IN PROGRESS — exact Redmi verified over USB, ports 8897–8900 free, bootstrap package pending final Termux command | Demo not deployed |
+| NG-033 | Start owner-demo on Redmi and capture ngrok owner links | IN PROGRESS — first bootstrap blocked before extraction by Termux temp-path assumption; corrected package being restaged | Demo not deployed |
 | NG-034 | Preserve existing Redmi ngrok command_line tunnel during owner demo | DONE — reuse existing agent; only nfs-owner-demo may be created/deleted | Not deployed |
+| NG-035 | Remove Linux /tmp assumption from Redmi owner-demo USB tooling | DONE — use Termux TMPDIR/PREFIX tmp; regression guard added | Not deployed |
 
 ## Current release candidate
 
 Owner-demo runtime commit:
-`4708961 Harden Redmi owner demo bootstrap`
+`c77b299 Fix Termux owner demo temp paths`
 
 Verification at this point:
 - backend: 249/249 PASS
