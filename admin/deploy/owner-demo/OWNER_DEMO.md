@@ -42,6 +42,30 @@ The ngrok authtoken is managed by ngrok itself. It is never stored in this repos
 
 ## Redmi/Termux setup
 
+### Preferred: deploy from the development PC
+
+From the repository root on the Windows development PC:
+
+`powershell -ExecutionPolicy Bypass -File admin/deploy/owner-demo/deploy-from-pc.ps1 -PreflightOnly`
+
+The preflight refuses deployment unless:
+- Git is clean and an exact commit can be archived
+- SSH reaches the configured `redmi-host`
+- Termux user is `u0_a304`
+- device identifies as the configured Redmi 13C 5G / 23124RN87I
+- at least 512 MB free storage exists
+- ports 8897–8900 are free or already belong to the matching managed demo services
+- any existing `nfs-demo-*` services carry the owner-demo managed marker
+- ngrok is installed and authenticated.
+
+After preflight passes:
+
+`powershell -ExecutionPolicy Bypass -File admin/deploy/owner-demo/deploy-from-pc.ps1`
+
+The PC launcher creates a `git archive` of the exact commit, uploads only to the dedicated Need For Strength owner-demo staging/app directories, runs the isolated Termux installer and prints the customer/admin ngrok URLs.
+
+### Directly on the Redmi
+
 1. Install/configure ngrok in Termux and confirm `ngrok config check` succeeds.
 2. Run:
 

@@ -33,6 +33,8 @@
 | NG-029 | Manifest-verified customer-site release rollback | DONE | Not deployed |
 | NG-030 | Need For Strength owner preview via isolated single-URL ngrok profile | DONE — prepared/tested; not started on Redmi | Demo not deployed |
 | NG-031 | Replace owner-demo database/data with clean owner-approved production data | BLOCKED — owner approval required | Not deployed |
+| NG-032 | Guarded PC-to-Redmi owner-demo deployment launcher | DONE — exact-commit packaging + target/port/service/ngrok preflight | Not deployed |
+| NG-033 | Start owner-demo on Redmi and capture ngrok owner links | BLOCKED — redmi-host currently offline/unreachable | Demo not deployed |
 
 ## Current release candidate
 

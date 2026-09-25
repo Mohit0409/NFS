@@ -18,6 +18,7 @@ OWNER_DEMO_ROOT = ROOT / "deploy" / "owner-demo"
 OWNER_DEMO_SEED = OWNER_DEMO_ROOT / "seed-owner-demo.py"
 OWNER_DEMO_EDGE = OWNER_DEMO_ROOT / "demo-edge.py"
 OWNER_DEMO_SYNC = OWNER_DEMO_ROOT / "sync-ngrok-url.py"
+OWNER_DEMO_PC_DEPLOYER = OWNER_DEMO_ROOT / "deploy-from-pc.ps1"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -810,6 +811,32 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("OWNER_DEMO_MODE=true", example)
         self.assertNotIn("CLOUDFLARED_TOKEN", example)
         self.assertNotIn("NGROK_AUTHTOKEN", example)
+
+    def test_need_for_strength_owner_demo_pc_deployer_is_fail_closed(self) -> None:
+        script = OWNER_DEMO_PC_DEPLOYER.read_text(encoding="utf-8")
+        self.assertIn('Assert-CleanGit', script)
+        self.assertIn('-o BatchMode=yes', script)
+        self.assertIn('-o ConnectTimeout=8', script)
+        self.assertIn('expected Termux user u0_a304', script)
+        self.assertIn('23124RN87I', script)
+        for port in ("8897", "8898", "8899", "8900"):
+            self.assertIn(port, script)
+        for service in (
+            "nfs-demo-admin",
+            "nfs-demo-member",
+            "nfs-demo-web",
+            "nfs-demo-edge",
+            "nfs-demo-ngrok",
+        ):
+            self.assertIn(service, script)
+        self.assertIn("at least 512 MB free storage", script)
+        self.assertIn("ngrok is not installed/authenticated", script)
+        self.assertIn(".nfs-owner-demo-managed", script)
+        self.assertIn(".nfs-owner-demo-release", script)
+        self.assertIn("git archive --format=tar.gz", script)
+        self.assertIn("OWNER_DEMO_DEPLOYMENT=PASS", script)
+        self.assertNotIn("NGROK_AUTHTOKEN=", script)
+        self.assertNotIn("CLOUDFLARED_TOKEN=", script)
 
     def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
         spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)
