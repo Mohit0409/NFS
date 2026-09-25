@@ -841,6 +841,10 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn('TUNNEL_NAME="nfs-owner-demo"', standalone)
         self.assertIn("owner_demo_addr", standalone)
         self.assertIn("http://127.0.0.1:8900", standalone)
+        self.assertIn('--tunnel-name "$TUNNEL_NAME" --public-url "$public_url"', standalone)
+        self.assertIn("owner-demo URL collides with existing tunnel", standalone)
+        self.assertIn('wait_port_free 8897 "Admin backend"', standalone)
+        self.assertIn('wait_port_free 8898 "Member gateway"', standalone)
         self.assertNotIn('DELETE "$NGROK_API/command_line"', standalone)
 
         self.assertIn("ngrokAgentApi", preflight)

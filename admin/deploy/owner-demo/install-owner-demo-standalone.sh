@@ -161,6 +161,29 @@ wait_http() {
   exit 1
 }
 
+wait_port_free() {
+  port="$1"
+  name="$2"
+  for _ in $(seq 1 40); do
+    if "$PYTHON" - "$port" <<'PY'
+import socket, sys
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    sock.bind(("127.0.0.1", int(sys.argv[1])))
+except OSError:
+    raise SystemExit(1)
+finally:
+    sock.close()
+PY
+    then
+      return 0
+    fi
+    sleep 0.25
+  done
+  echo "$name port $port did not become bindable after shutdown." >&2
+  exit 1
+}
+
 wait_http "http://127.0.0.1:8897/api/health" "Admin backend"
 wait_http "http://127.0.0.1:8898/api/health" "Member gateway"
 wait_http "http://127.0.0.1:8899/" "Customer site"
@@ -174,10 +197,16 @@ case "$public_url" in
   *) echo "ngrok Agent API did not return an HTTPS owner-demo URL." >&2; exit 1 ;;
 esac
 
-"$PYTHON" "$PROFILE/sync-ngrok-url.py" --config "$CONFIG" >/dev/null
+printf '%s' "$tunnel_json" | "$PYTHON" -c 'import json,sys; name=sys.argv[1]; public=sys.argv[2].rstrip("/"); d=json.load(sys.stdin); addr=str((d.get("config") or {}).get("addr") or ""); (str(d.get("name") or "") == name) or sys.exit("ngrok POST returned the wrong tunnel name"); (addr in {"http://127.0.0.1:8900","127.0.0.1:8900"}) or sys.exit("ngrok POST returned the wrong upstream: "+addr); (str(d.get("public_url") or "").rstrip("/") == public) or sys.exit("ngrok POST public URL mismatch")' "$TUNNEL_NAME" "$public_url"
+
+printf '%s' "$current_tunnels" | "$PYTHON" -c 'import json,sys; public=sys.argv[1].rstrip("/"); d=json.load(sys.stdin); collisions=[str(t.get("name") or "") for t in d.get("tunnels",[]) if t.get("name")!="nfs-owner-demo" and str(t.get("public_url") or "").rstrip("/")==public]; collisions and sys.exit("owner-demo URL collides with existing tunnel "+collisions[0])' "$public_url"
+
+"$PYTHON" "$PROFILE/sync-ngrok-url.py" --config "$CONFIG" --tunnel-name "$TUNNEL_NAME" --public-url "$public_url" >/dev/null
 
 ensure_stopped admin server.gravity
 ensure_stopped member member_gateway.py
+wait_port_free 8897 "Admin backend"
+wait_port_free 8898 "Member gateway"
 start_component admin server.gravity   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" -m server.gravity
 start_component member member_gateway.py   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" "$PROJECT_ROOT/customer-website/gateway/member_gateway.py"
 
