@@ -266,7 +266,7 @@ class MemberGatewayHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     server = ThreadingHTTPServer((HOST, PORT), MemberGatewayHandler)
-    print(f"New Gym member gateway listening on http://{HOST}:{PORT}")
+    print(f"Need For Strength member gateway listening on http://{HOST}:{PORT}")
     server.serve_forever()
 
 

@@ -206,7 +206,7 @@
       await firebaseApi.signOut(firebaseAuth).catch(() => {});
       resetOtpUi({ preservePhone: true });
       showSignedOut();
-      setStatus(phoneStatus, 'Your membership is no longer active. Please contact New Gym to renew.', 'error');
+      setStatus(phoneStatus, 'Your membership is no longer active. Please contact Need For Strength to renew.', 'error');
     }
   }
 
@@ -254,7 +254,7 @@
 
   function friendlyError(error, context) {
     const code = error && error.code ? String(error.code) : '';
-    if (code === 'member_not_eligible') return 'This mobile number is not eligible for member login. Please contact New Gym.';
+    if (code === 'member_not_eligible') return 'This mobile number is not eligible for member login. Please contact Need For Strength.';
     if (code === 'rate_limited' || code === 'auth/too-many-requests') return 'Too many OTP attempts. Please wait a few minutes before trying again.';
     if (code === 'auth/invalid-verification-code') return 'Incorrect OTP. Check the 6-digit code and try again.';
     if (['auth/code-expired', 'auth/session-expired', 'auth/invalid-verification-id'].includes(code)) return 'This OTP has expired. Tap Resend OTP to get a new code.';
@@ -262,8 +262,8 @@
     if (code === 'auth/quota-exceeded') return 'OTP sending is temporarily limited. Please try again later.';
     if (code === 'auth/network-request-failed') return 'Internet connection problem. Check your connection and try again.';
     if (['auth/captcha-check-failed', 'auth/missing-app-credential', 'auth/invalid-app-credential'].includes(code)) return 'Security verification expired. Please try sending the OTP again.';
-    if (['auth/operation-not-allowed', 'auth/app-not-authorized', 'auth/unauthorized-domain', 'auth/invalid-api-key', 'auth/project-not-found'].includes(code)) return 'OTP login is temporarily unavailable. Please contact New Gym.';
-    if (code === 'auth/user-disabled') return 'This member account is disabled. Please contact New Gym.';
+    if (['auth/operation-not-allowed', 'auth/app-not-authorized', 'auth/unauthorized-domain', 'auth/invalid-api-key', 'auth/project-not-found'].includes(code)) return 'OTP login is temporarily unavailable. Please contact Need For Strength.';
+    if (code === 'auth/user-disabled') return 'This member account is disabled. Please contact Need For Strength.';
     if (code === 'auth/internal-error') return 'OTP service could not complete the request. Please try again.';
     if (['authentication_unavailable', 'account_unavailable', 'gateway_unreachable'].includes(code) || error.status === 503) return 'Member login service is temporarily unavailable. Please try again shortly.';
     if (code === 'invalid_credentials') return context === 'session' ? 'Your login session expired. Please sign in again.' : 'Login verification expired. Please request a new OTP.';

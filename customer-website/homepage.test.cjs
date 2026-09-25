@@ -74,3 +74,31 @@ test('hidden login states cannot be overridden by layout rules', () => {
   assert.match(siteCss, /\[hidden\]\s*\{\s*display:\s*none\s*!important;/);
   assert.match(memberCss, /\.member-account\[hidden\][\s\S]*?display:\s*none\s*!important;/);
 });
+
+test('commercial public legal pages are linked and present', () => {
+  assert.match(homepage, /pages\/privacy\.html/);
+  assert.match(homepage, /pages\/terms\.html/);
+  assert.equal(fs.existsSync(path.join(root, 'web', 'pages', 'privacy.html')), true);
+  assert.equal(fs.existsSync(path.join(root, 'web', 'pages', 'terms.html')), true);
+});
+
+test('commercial fallback branding is Need For Strength, not the copied New Gym placeholder', () => {
+  const customerFiles = [
+    path.join(root, 'web', 'index.html'),
+    path.join(root, 'web', 'pages', 'diet-planner.html'),
+    path.join(root, 'web', 'pages', 'exercises.html'),
+    path.join(root, 'web', 'pages', 'member-login.html'),
+    path.join(root, 'web', 'pages', 'privacy.html'),
+    path.join(root, 'web', 'pages', 'terms.html'),
+    path.join(root, 'web', 'js', 'runtime-config.js'),
+    path.join(root, 'web', 'js', 'site.js'),
+    path.join(root, 'web', 'js', 'diet-planner.js'),
+    path.join(root, 'web', 'js', 'exercises.js'),
+    path.join(root, 'web', 'js', 'member-account.js')
+  ];
+  for (const file of customerFiles) {
+    const text = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(text, /\bNew Gym\b|\bNEW GYM\b/, file);
+  }
+  assert.match(runtimeConfig, /configured\(cfg\.name\) \|\| 'Need For Strength'/);
+});

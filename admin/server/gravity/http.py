@@ -818,7 +818,12 @@ class GravityRequestHandler(BaseHTTPRequestHandler):
 
     def _crawl_response(self, path: str, *, request_id: str, send_body: bool) -> HTTPStatus:
         base = self.server.settings.app_base_url.rstrip("/")
-        if path == "/robots.txt":
+        if self.server.settings.admin_portal_root_redirect:
+            if path == "/sitemap.xml":
+                return self._not_found(request_id, send_body)
+            body = "User-agent: *\nDisallow: /\n"
+            content_type = "text/plain; charset=utf-8"
+        elif path == "/robots.txt":
             body = (
                 "User-agent: *\n"
                 "Disallow: /account\n"
@@ -852,6 +857,14 @@ class GravityRequestHandler(BaseHTTPRequestHandler):
             return self._not_found(request_id, send_body)
         route_key = decoded.rstrip("/") or "/"
         relative = STATIC_ROUTE_ALIASES.get(route_key, decoded.lstrip("/") or "index.html")
+        if self.server.settings.admin_portal_root_redirect:
+            allowed_aliases = {"/admin", "/favicon.ico", "/site.webmanifest"}
+            if route_key in STATIC_ROUTE_ALIASES and route_key not in allowed_aliases:
+                return self._not_found(request_id, send_body)
+            if relative == "index.html":
+                return self._not_found(request_id, send_body)
+            if relative.startswith("pages/") and relative != "pages/admin.html":
+                return self._not_found(request_id, send_body)
         parts = Path(relative).parts
         if any(part in {"", ".", ".."} or part.startswith(".") for part in parts):
             return self._not_found(request_id, send_body)

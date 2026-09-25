@@ -156,6 +156,28 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn(b".app-sidebar", body)
 
+    def test_admin_only_runtime_does_not_expose_legacy_public_pages(self):
+        with running_server(admin_portal_root_redirect=True) as (base, _settings):
+            for path in (
+                "/account",
+                "/trainers",
+                "/coaching",
+                "/gallery",
+                "/privacy",
+                "/pages/account.html",
+                "/pages/trainers.html",
+                "/pages/gallery.html",
+                "/pages/privacy.html",
+                "/index.html",
+                "/sitemap.xml",
+            ):
+                status, _headers, body = fetch(base, path)
+                self.assertEqual(status, 404, path)
+                self.assertEqual(json.loads(body), {"error": "not_found"}, path)
+            status, _headers, body = fetch(base, "/robots.txt")
+            self.assertEqual(status, 200)
+            self.assertEqual(body, b"User-agent: *\nDisallow: /\n")
+
     def test_only_public_allowlisted_files_are_exposed(self):
         with running_server() as (base, _settings):
             for path in (

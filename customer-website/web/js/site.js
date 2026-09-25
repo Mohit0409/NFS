@@ -11,7 +11,7 @@
   const bmiResult = document.getElementById('bmi-result');
   const bmiError = document.getElementById('bmi-error');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const gymConfig = window.NEW_GYM_CONFIG || { name: 'New Gym', whatsappNumber: '' };
+  const gymConfig = window.NEW_GYM_CONFIG || { name: 'Need For Strength', whatsappNumber: '' };
 
   function setMenu(open) {
     if (!menuButton || !mobileMenu) return;
@@ -87,7 +87,7 @@
     }
 
     const lines = [
-      'Hello ' + (gymConfig.name || 'New Gym') + ',',
+      'Hello ' + (gymConfig.name || 'Need For Strength') + ',',
       '',
       'I would like information about: ' + interest,
       'Name: ' + name,

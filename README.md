@@ -163,18 +163,18 @@ The single customer config controls:
 
 Known owner details now used in the owner preview are Need For Strength, Neemuch, the supplied Pachvati Colony / Nakoda Dham address, phone/WhatsApp 9893704372, Instagram @needforstrength, November 2026 opening announcement, and the membership/PT pricing visible in the supplied poster. Unknown production details remain explicit placeholders or are isolated demo-only values. Gravity's live customer endpoints/configuration are not inherited.
 
-## Owner demo via ngrok
+## Owner demo via isolated Cloudflare Quick Tunnel
 
 Dedicated preview profile:
 `admin/deploy/owner-demo/`
 
-The owner-demo profile is separate from the production Termux profile. It uses one temporary ngrok HTTPS URL:
+The owner-demo profile is separate from the production Termux profile. The active standalone Redmi path uses an isolated Cloudflare Quick Tunnel (`trycloudflare.com`) to the loopback demo edge:
 - `/` → customer website
 - `/admin` → admin portal
 - `/api/member/*` → member gateway
 - admin API/assets → admin backend
 
-Local demo ports remain loopback-only: admin 8897, member gateway 8898, customer site 8899, demo edge router 8900. The ngrok authtoken is managed by ngrok itself and is never stored in this repository.
+Local demo ports remain loopback-only: admin 8897, member gateway 8898, customer site 8899, demo edge router 8900. The standalone owner demo does not create, stop, replace or reconfigure the existing Universal Gym ngrok tunnel. Quick Tunnel URLs are temporary staging URLs and are not approved production ingress.
 
 Demo-only values currently include:
 - opening hours: 6:00 AM–10:00 PM daily
@@ -186,7 +186,7 @@ Demo-only values currently include:
 
 The demo database is stamped `owner_demo_mode=1`; the normal production launch preflight explicitly rejects that database. After owner approval, production must use a clean database and owner-approved values rather than promoting the demo DB.
 
-Start/stop instructions are in `admin/deploy/owner-demo/OWNER_DEMO.md`. The profile has been prepared and tested locally but **has not yet been installed or started on the Redmi**.
+Start/stop instructions are in `admin/deploy/owner-demo/OWNER_DEMO.md`. The standalone owner demo is currently deployed on the Redmi from commit `e7ba8b9f847a606723724162b808760b09f52fbf`; it remains staging-only and its demo database cannot be promoted to production.
 
 ## Redmi / Termux production profile
 
@@ -239,9 +239,9 @@ Current verified state:
 - clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **249/249 PASS**
-- local admin Chromium E2E: **6/6 PASS**
-- customer homepage tests: **8/8 PASS**
+- full admin/backend regression: **251/251 PASS**
+- full Chromium release suite: **63/63 PASS**
+- customer homepage tests: **10/10 PASS**
 - customer member-login tests: **9/9 PASS**
 - diet planner tests: **PASS**
 - member-gateway eligibility tests: **7/7 PASS**
@@ -252,4 +252,4 @@ Local Chromium E2E has now been run in this isolated copy. Final-domain E2E rema
 
 ## Current state
 
-Owner-demo code is prepared and tested, but the ngrok demo has **not yet been started on the Redmi**. Nothing in this repository has been deployed to Gravity Fitness, Vibe4You, or a Need For Strength production host.
+The Need For Strength owner demo is running on the Redmi through an isolated Cloudflare Quick Tunnel. No Need For Strength production deployment has occurred, and Gravity Fitness, Vibe4You, Universal Gym and LocalStoreTrack remain separate from the Need For Strength production profile.

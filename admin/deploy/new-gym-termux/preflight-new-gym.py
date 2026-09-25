@@ -263,6 +263,11 @@ def validate(
             _bool(values.get("NEW_GYM_KITCHEN_SETUP_CONFIRMED", "false")),
             "Owner must confirm menu, recipes and opening stock before launch",
         )
+        check(
+            "legal_review_confirmed",
+            _bool(values.get("NEW_GYM_LEGAL_REVIEW_CONFIRMED", "false")),
+            "Owner/legal reviewer must approve the public privacy and terms text before launch",
+        )
 
         firebase_fields = (
             values.get("FIREBASE_PROJECT_ID", "").strip(),

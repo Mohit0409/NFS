@@ -147,7 +147,7 @@
     }
 
     if (scale < 0.5 || scale > 1.65 || projectedProtein < targets.protein * 0.88) {
-      return { blocked: true, reason: 'This profile falls outside the safe portion range of the current meal library. Please ask a qualified dietitian or New Gym coach for a manual plan.' };
+      return { blocked: true, reason: 'This profile falls outside the safe portion range of the current meal library. Please ask a qualified dietitian or Need For Strength coach for a manual plan.' };
     }
 
     let meals = library.meals.map((item) => scaledMeal(item, scale));
@@ -302,7 +302,7 @@
     const totals = plan.totals;
     const estimatedCost = Math.ceil(totals.cost);
     const lines = [
-      'NEW GYM - PERSONALISED INDIAN DIET PLAN',
+      'NEED FOR STRENGTH - PERSONALISED INDIAN DIET PLAN',
       'Location to be configured',
       '',
       'PLAN SUMMARY',
@@ -345,7 +345,7 @@
     lines.push('', 'SAFETY DISCLAIMER');
     lines.push('This is an automatic general fitness nutrition starting structure for healthy adults, not medical advice or a prescription. Pregnancy or breastfeeding, kidney or liver disease, medicated diabetes, eating-disorder history, major food allergy, prescribed medical diets, or other clinical nutrition needs require individual professional advice.');
     const gym = window.NEW_GYM_CONFIG || {};
-    const contactBits = [gym.name || 'New Gym', gym.phoneDisplay || '', gym.address || ''].filter(Boolean);
+    const contactBits = [gym.name || 'Need For Strength', gym.phoneDisplay || '', gym.address || ''].filter(Boolean);
     lines.push('', contactBits.join(' | '));
 
     return lines.flatMap((line) => wrapPdfLine(line, 82));
@@ -380,7 +380,7 @@
     });
 
     objects[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + pages.length + ' >>';
-    let pdf = '%PDF-1.4\n% New Gym Diet Plan\n';
+    let pdf = '%PDF-1.4\n% Need For Strength Diet Plan\n';
     const offsets = [0];
     for (let index = 1; index < objects.length; index += 1) {
       offsets[index] = pdf.length;

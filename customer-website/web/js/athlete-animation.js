@@ -1,5 +1,5 @@
 /**
- * NEW GYM — interactive realistic FBX athlete
+ * NEED FOR STRENGTH — interactive realistic FBX athlete
  * Plays the original embedded Mixamo animation once per click.
  */
 (function () {

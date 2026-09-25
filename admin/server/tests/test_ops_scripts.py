@@ -424,6 +424,7 @@ class OperationsScriptTests(unittest.TestCase):
             "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED": "true",
             "NEW_GYM_POOL_RATES_CONFIRMED": "true",
             "NEW_GYM_KITCHEN_SETUP_CONFIRMED": "true",
+            "NEW_GYM_LEGAL_REVIEW_CONFIRMED": "true",
             "FIREBASE_PROJECT_ID": "new-gym-auth",
             "FIREBASE_WEB_API_KEY": "public-web-key",
             "FIREBASE_AUTH_DOMAIN": "new-gym-auth.firebaseapp.com",
@@ -472,7 +473,12 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertTrue(launch["ready"])
 
         blocked = module.validate(
-            {**launch_values, "BUSINESS_NAME": "New Gym", "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED": "false"},
+            {
+                **launch_values,
+                "BUSINESS_NAME": "New Gym",
+                "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED": "false",
+                "NEW_GYM_LEGAL_REVIEW_CONFIRMED": "false",
+            },
             stage="launch",
             customer_config_text="name: 'New Gym', phoneDisplay: '', projectId: ''",
             path_exists=lambda _value: True,
@@ -482,6 +488,7 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertFalse(blocked["ready"])
         self.assertIn("business_name", blocked["blockers"])
         self.assertIn("membership_pricing_confirmed", blocked["blockers"])
+        self.assertIn("legal_review_confirmed", blocked["blockers"])
         self.assertIn("customer_runtime_config", blocked["blockers"])
 
         serialized = __import__("json").dumps(blocked)
@@ -816,6 +823,12 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("OWNER_DEMO_MODE=true", example)
         self.assertNotIn("CLOUDFLARED_TOKEN", example)
         self.assertNotIn("NGROK_AUTHTOKEN", example)
+
+    def test_need_for_strength_admin_has_no_copied_new_gym_branding(self) -> None:
+        admin_html = (ROOT / "web" / "pages" / "admin.html").read_text(encoding="utf-8")
+        self.assertNotIn("New Gym", admin_html)
+        self.assertNotIn("NEW GYM", admin_html)
+        self.assertIn("Need For Strength", admin_html)
 
     def test_need_for_strength_owner_demo_lightweight_runtime_skips_firebase_extra(self) -> None:
         runtime = OWNER_DEMO_RUNTIME.read_text(encoding="utf-8")

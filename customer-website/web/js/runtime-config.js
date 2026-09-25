@@ -132,19 +132,19 @@
   }
 
   function apply() {
-    const name = configured(cfg.name) || 'New Gym';
+    const name = configured(cfg.name) || 'Need For Strength';
     const city = configured(cfg.city);
 
-    replaceText(document.body, 'NEW GYM', name.toUpperCase());
-    replaceText(document.body, 'New Gym', name);
-    replaceAttributes('New Gym', name);
+    replaceText(document.body, 'NEED FOR STRENGTH', name.toUpperCase());
+    replaceText(document.body, 'Need For Strength', name);
+    replaceAttributes('Need For Strength', name);
     if (city) {
       replaceText(document.body, 'Your City', city);
       replaceText(document.body, 'Location to be configured', city);
       replaceAttributes('Your City', city);
     }
 
-    document.title = document.title.replaceAll('New Gym', name);
+    document.title = document.title.replaceAll('Need For Strength', name);
 
     const phoneDisplay = configured(cfg.phoneDisplay);
     const phoneHref = configured(cfg.phoneHref);

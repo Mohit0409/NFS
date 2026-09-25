@@ -207,7 +207,7 @@
     $('exercise-modal-move').textContent=g[1];
     $('exercise-modal-tip').textContent=current.tip;
     $('exercise-modal-mistake').textContent=g[2];
-    $('exercise-modal-note').textContent=current.note||'The animation is simplified for learning the movement pattern. Ask a New Gym coach for individual technique feedback.';
+    $('exercise-modal-note').textContent=current.note||'The animation is simplified for learning the movement pattern. Ask a Need For Strength coach for individual technique feedback.';
     if(typeof modal.showModal==='function') modal.showModal(); else modal.setAttribute('open','');
     window.gravityAnalytics?.event('exercise_demo_open',{method:id.slice(0,40)});
     drawLoop();
