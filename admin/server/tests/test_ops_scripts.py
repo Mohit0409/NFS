@@ -22,6 +22,8 @@ OWNER_DEMO_PC_DEPLOYER = OWNER_DEMO_ROOT / "deploy-from-pc.ps1"
 OWNER_DEMO_RUNTIME = OWNER_DEMO_ROOT / "prepare-owner-demo-runtime.sh"
 OWNER_DEMO_STANDALONE = OWNER_DEMO_ROOT / "install-owner-demo-standalone.sh"
 OWNER_DEMO_USB_PREFLIGHT = OWNER_DEMO_ROOT / "usb-termux-preflight.sh"
+OWNER_DEMO_USB_BOOTSTRAP = OWNER_DEMO_ROOT / "usb-bootstrap-owner-demo.sh"
+OWNER_DEMO_STOP_STANDALONE = OWNER_DEMO_ROOT / "stop-owner-demo-standalone.sh"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -844,29 +846,43 @@ class OperationsScriptTests(unittest.TestCase):
 
     def test_need_for_strength_owner_demo_pc_deployer_is_fail_closed(self) -> None:
         script = OWNER_DEMO_PC_DEPLOYER.read_text(encoding="utf-8")
-        self.assertIn('Assert-CleanGit', script)
-        self.assertIn('-o BatchMode=yes', script)
-        self.assertIn('-o ConnectTimeout=8', script)
-        self.assertIn('expected Termux user u0_a304', script)
-        self.assertIn('23124RN87I', script)
-        for port in ("8897", "8898", "8899", "8900"):
-            self.assertIn(port, script)
-        for service in (
-            "nfs-demo-admin",
-            "nfs-demo-member",
-            "nfs-demo-web",
-            "nfs-demo-edge",
-            "nfs-demo-ngrok",
-        ):
-            self.assertIn(service, script)
-        self.assertIn("at least 512 MB free storage", script)
-        self.assertIn("ngrok is not installed/authenticated", script)
-        self.assertIn(".nfs-owner-demo-managed", script)
-        self.assertIn(".nfs-owner-demo-release", script)
+        self.assertIn("Get-CleanCommit", script)
+        self.assertIn("git status --porcelain", script)
+        self.assertIn("-o BatchMode=yes", script)
+        self.assertIn("-o ConnectTimeout=8", script)
+        self.assertIn("expected Termux user u0_a304", script)
+        self.assertIn("expected Redmi model 23124RN87I", script)
+        self.assertIn("usb-termux-preflight.sh", script)
+        self.assertIn("usb-bootstrap-owner-demo.sh", script)
         self.assertIn("git archive --format=tar.gz", script)
+        self.assertIn("Get-FileHash -Algorithm SHA256", script)
         self.assertIn("OWNER_DEMO_DEPLOYMENT=PASS", script)
+        self.assertNotIn("install-owner-demo.sh", script)
+        self.assertNotIn("ngrok config check", script)
+        self.assertNotIn("nfs-demo-ngrok", script)
         self.assertNotIn("NGROK_AUTHTOKEN=", script)
         self.assertNotIn("CLOUDFLARED_TOKEN=", script)
+
+    def test_need_for_strength_usb_bootstrap_preserves_existing_ngrok_tunnels(self) -> None:
+        bootstrap = OWNER_DEMO_USB_BOOTSTRAP.read_text(encoding="utf-8")
+        stopper = OWNER_DEMO_STOP_STANDALONE.read_text(encoding="utf-8")
+
+        self.assertIn('EXPECTED_USER="u0_a304"', bootstrap)
+        self.assertIn('EXPECTED_MODEL="23124RN87I"', bootstrap)
+        self.assertIn("archive SHA-256 mismatch", bootstrap)
+        self.assertIn("less than 512 MB free storage", bootstrap)
+        self.assertIn("existing ngrok Agent API is unavailable", bootstrap)
+        for port in ("8897", "8898", "8899", "8900"):
+            self.assertIn(port, bootstrap)
+        self.assertIn("pre-existing ngrok tunnel changed", bootstrap)
+        self.assertIn("nfs-owner-demo", bootstrap)
+        self.assertIn("stop-owner-demo-standalone.sh", bootstrap)
+        self.assertIn("OWNER_DEMO_BOOTSTRAP=PASS", bootstrap)
+        self.assertNotIn('DELETE "$NGROK_API/command_line"', bootstrap)
+
+        self.assertIn('TUNNEL_NAME="nfs-owner-demo"', stopper)
+        self.assertIn('DELETE "$NGROK_API/$TUNNEL_NAME"', stopper)
+        self.assertNotIn("command_line", stopper)
 
     def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
         spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)

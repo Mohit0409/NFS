@@ -42,45 +42,67 @@ The ngrok authtoken is managed by ngrok itself. It is never stored in this repos
 
 ## Redmi/Termux setup
 
-### Preferred: deploy from the development PC
+### Current target
+
+The owner-demo target has been positively identified over USB as:
+- Xiaomi Redmi 13C 5G
+- model `23124RN87I`
+- Termux user `u0_a304`
+- more than 80 GB free storage at the latest USB preflight
+- owner-demo ports 8897, 8898, 8899 and 8900 free
+- no existing Need For Strength owner-demo app/process state.
+
+The Redmi already has a running ngrok agent with a non-demo `command_line` tunnel targeting `localhost:8788`. The owner demo must **reuse this existing agent** and must not stop, replace or reconfigure that tunnel.
+
+### SSH deployment when redmi-host is reachable
 
 From the repository root on the Windows development PC:
 
 `powershell -ExecutionPolicy Bypass -File admin/deploy/owner-demo/deploy-from-pc.ps1 -PreflightOnly`
 
-The preflight refuses deployment unless:
-- Git is clean and an exact commit can be archived
-- SSH reaches the configured `redmi-host`
-- Termux user is `u0_a304`
-- device identifies as the configured Redmi 13C 5G / 23124RN87I
-- at least 512 MB free storage exists
-- ports 8897–8900 are free or already belong to the matching managed demo services
-- any existing `nfs-demo-*` services carry the owner-demo managed marker
-- ngrok is installed and authenticated.
+The preflight uses the same standalone checks as the USB path: exact Redmi identity, clean Git commit, storage, Python/venv/package-index readiness, existing ngrok Agent API, and free owner-demo ports.
 
 After preflight passes:
 
 `powershell -ExecutionPolicy Bypass -File admin/deploy/owner-demo/deploy-from-pc.ps1`
 
-The PC launcher creates a `git archive` of the exact commit, uploads only to the dedicated Need For Strength owner-demo staging/app directories, runs the isolated Termux installer and prints the customer/admin ngrok URLs.
+The launcher archives the exact Git commit, calculates SHA-256, uploads the archive/hash/commit/bootstrap only to the dedicated Need For Strength staging path, then invokes the same verified standalone bootstrap used by USB deployment.
 
-### Directly on the Redmi
+### USB deployment when Tailscale/SSH keys are unavailable
 
-1. Install/configure ngrok in Termux and confirm `ngrok config check` succeeds.
-2. Run:
+The development PC may stage four files into Android Downloads:
+- `need-for-strength-owner-demo.tar.gz`
+- `need-for-strength-owner-demo.sha256`
+- `need-for-strength-owner-demo.commit`
+- `nfs-owner-demo-bootstrap.sh`
 
-   `bash admin/deploy/owner-demo/install-owner-demo.sh`
+Then, in the already-open Termux app, run exactly:
 
-3. If the admin owner is not configured, run the bootstrap command printed by the installer and choose the demo password yourself.
-4. Re-run the installer after bootstrap if needed. It prints:
-   - customer URL
-   - admin URL at `<same-url>/admin`
+`bash /sdcard/Download/nfs-owner-demo-bootstrap.sh`
+
+The bootstrap:
+- verifies the exact Redmi user/model
+- verifies archive SHA-256 and full Git commit marker
+- refuses occupied owner-demo ports or previous demo state
+- verifies Python/venv/PyPI readiness
+- requires the existing ngrok Agent API
+- installs only into dedicated Need For Strength demo paths
+- creates only the `nfs-owner-demo` tunnel to `127.0.0.1:8900`
+- verifies every pre-existing ngrok tunnel remains unchanged
+- cleans up only Need For Strength demo processes/tunnel if setup fails.
+
+It writes the final customer/admin links to:
+`/sdcard/Download/need-for-strength-owner-demo-result.txt`
+
+Admin-owner credentials are still created separately with the secure interactive bootstrap command; credentials are not generated or stored in Git.
 
 ## Stop the demo
 
-`bash admin/deploy/owner-demo/stop-owner-demo.sh`
+For the standalone Redmi preview:
 
-Stopping preserves the isolated demo database and config.
+`bash ~/apps/need-for-strength-owner-demo/<commit>/admin/deploy/owner-demo/stop-owner-demo-standalone.sh`
+
+This stops only Need For Strength demo processes and deletes only the `nfs-owner-demo` tunnel. Existing non-demo ngrok tunnels and the demo database/config remain preserved.
 
 ## After owner approval
 

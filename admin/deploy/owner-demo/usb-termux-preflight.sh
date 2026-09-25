@@ -21,18 +21,20 @@ value() {
   printf '%s=%s\n' "$1" "$2"
 }
 
-port_busy() {
+port_state() {
   python3 - "$1" <<'PY'
-import socket
-import sys
+import socket, sys
 port = int(sys.argv[1])
-sock = socket.socket()
-sock.settimeout(0.5)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
-    busy = sock.connect_ex(("127.0.0.1", port)) == 0
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+    sock.bind(("127.0.0.1", port))
+except OSError:
+    print("busy")
+else:
+    print("free")
 finally:
     sock.close()
-raise SystemExit(0 if busy else 1)
 PY
 }
 
@@ -45,8 +47,8 @@ PY
   value prefix "${PREFIX:-}"
   value home "$HOME"
 
-  [ "$(whoami)" = "$EXPECTED_USER" ] || add_blocker wrong_termux_user
-  [ "$(getprop ro.product.model 2>/dev/null || true)" = "$EXPECTED_MODEL" ] || add_blocker wrong_device_model
+  if [ "$(whoami)" != "$EXPECTED_USER" ]; then add_blocker wrong_termux_user; fi
+  if [ "$(getprop ro.product.model 2>/dev/null || true)" != "$EXPECTED_MODEL" ]; then add_blocker wrong_device_model; fi
 
   free_kb="$(df -Pk "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
   value freeKb "${free_kb:-0}"
@@ -55,7 +57,7 @@ PY
     *) [ "$free_kb" -ge 524288 ] || add_blocker low_storage ;;
   esac
 
-  for cmd in python3 curl tar git ngrok; do
+  for cmd in python3 curl tar git; do
     if command -v "$cmd" >/dev/null 2>&1; then
       value "command_$cmd" "$(command -v "$cmd")"
     else
@@ -78,45 +80,68 @@ PY
     add_blocker python_package_index_unreachable
   fi
 
-  tunnel_json=""
-  if tunnel_json="$(curl -fsS --max-time 4 "$NGROK_API" 2>/dev/null)"; then
+  if curl -fsS --max-time 3 "$NGROK_API" >/tmp/nfs-ngrok-tunnels.json 2>/dev/null; then
     value ngrokAgentApi ok
-    tunnel_summary="$(printf '%s' "$tunnel_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(",".join(f"{t.get("name","")}:{(t.get("config") or {}).get("addr","")}" for t in d.get("tunnels",[])))' 2>/dev/null || true)"
-    value ngrokTunnels "$tunnel_summary"
-    owner_demo_addr="$(printf '%s' "$tunnel_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(((t.get("config") or {}).get("addr","") for t in d.get("tunnels",[]) if t.get("name")=="nfs-owner-demo"),""))' 2>/dev/null || true)"
-    if [ -n "$owner_demo_addr" ] && [ "$owner_demo_addr" != "http://127.0.0.1:8900" ]; then
-      value ownerDemoTunnelConflict "$owner_demo_addr"
-      add_blocker owner_demo_tunnel_conflict
+    tunnel_summary="$(python3 - /tmp/nfs-ngrok-tunnels.json <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+parts = []
+for tunnel in data.get("tunnels", []):
+    name = str(tunnel.get("name") or "")
+    public = str(tunnel.get("public_url") or "")
+    addr = str((tunnel.get("config") or {}).get("addr") or "")
+    parts.append(f"{name}|{public}|{addr}")
+print(";".join(parts))
+PY
+)"
+    value existingNgrokTunnels "$tunnel_summary"
+    if python3 - /tmp/nfs-ngrok-tunnels.json <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+raise SystemExit(0 if any(t.get("name") == "command_line" for t in data.get("tunnels", [])) else 1)
+PY
+    then
+      value existingCommandLineTunnel preserved
+    else
+      value existingCommandLineTunnel not_present
     fi
   else
     value ngrokAgentApi unavailable
-    value ngrokTunnels ""
     add_blocker ngrok_agent_api_unavailable
+  fi
+  rm -f /tmp/nfs-ngrok-tunnels.json
+
+  for port in 8897 8898 8899 8900; do
+    state="$(port_state "$port")"
+    value "port_$port" "$state"
+    if [ "$state" != free ]; then
+      add_blocker "port_${port}_busy"
+    fi
+  done
+
+  state_root="$HOME/.local/state/need-for-strength-owner-demo"
+  app_root="$HOME/apps/need-for-strength-owner-demo"
+  value stateRoot "$state_root"
+  value appRoot "$app_root"
+
+  if [ -d "$state_root/pids" ] && find "$state_root/pids" -type f -name '*.pid' -print -quit 2>/dev/null | grep -q .; then
+    value existingOwnerDemoPids yes
+    add_blocker owner_demo_already_present
+  else
+    value existingOwnerDemoPids no
+  fi
+
+  if [ -d "$app_root" ] && find "$app_root" -mindepth 1 -maxdepth 1 -type d -print -quit 2>/dev/null | grep -q .; then
+    value existingOwnerDemoApp yes
+    add_blocker owner_demo_app_already_present
+  else
+    value existingOwnerDemoApp no
   fi
 
   service_root="${PREFIX:-/data/data/com.termux/files/usr}/var/service"
-  value serviceRoot "$service_root"
   value existingServices "$(ls -1 "$service_root" 2>/dev/null | tr '\n' ',' | sed 's/,$//')"
-
-  for port in 8897 8898 8899 8900; do
-    if port_busy "$port"; then
-      state=busy
-      add_blocker "port_${port}_busy"
-    else
-      state=free
-    fi
-    value "port_$port" "$state"
-  done
-
-  app_root="$HOME/apps/need-for-strength-owner-demo"
-  value appRoot "$app_root"
-  if [ -e "$app_root" ]; then
-    unmanaged_release="$(find "$app_root" -mindepth 1 -maxdepth 1 -type d ! -exec test -f '{}/.nfs-owner-demo-release' ';' -print -quit 2>/dev/null || true)"
-    if [ -n "$unmanaged_release" ]; then
-      value unmanagedAppRelease "$unmanaged_release"
-      add_blocker unmanaged_app_release
-    fi
-  fi
 
   value ready "$READY"
   value blockers "$BLOCKERS"
