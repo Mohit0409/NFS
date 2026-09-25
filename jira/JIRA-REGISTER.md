@@ -29,15 +29,15 @@
 | NG-025 | Audited standalone Kitchen payment void with pool-bill accounting safeguards | DONE | Not deployed |
 | NG-026 | Clean-Termux Python runtime/virtualenv dependency automation | DONE | Not deployed |
 | NG-027 | Local Redmi acceptance gate before Cloudflare tunnel enable | DONE | Not deployed |
-| NG-024 | Edit/reschedule upcoming pool reservations with overlap and check-in safety | DONE | Not deployed |
+| NG-028 | Generate versioned customer runtime config from protected env + live membership DB | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`804c6d7 Require local Redmi acceptance before tunnel`
+`4dad392 Generate isolated customer runtime config`
 
 Verification at this point:
-- backend: 242/242 PASS
+- backend: 243/243 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

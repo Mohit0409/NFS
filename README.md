@@ -137,8 +137,11 @@ New visual identity:
 
 Files:
 - theme: `customer-website/web/css/new-gym-theme.css`
-- business config: `customer-website/web/js/gym-config.js`
+- tracked placeholder config: `customer-website/web/js/gym-config.js`
 - runtime renderer: `customer-website/web/js/runtime-config.js`
+- production config generator: `admin/deploy/new-gym-termux/render-customer-config.py`
+
+On the Redmi, the web service does **not** serve the Git checkout directly. The installer copies the customer site into a versioned New Gym public release, renders `gym-config.js` from the protected production env plus active membership-plan prices in SQLite, then points `~/.local/share/new-gym/public-current` at that release. This keeps secrets/configuration and deployment state out of Git.
 
 The single customer config controls:
 - gym name
@@ -209,7 +212,7 @@ Current verified state:
 - clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **242/242 PASS**
+- full admin/backend regression: **243/243 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

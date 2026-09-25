@@ -88,19 +88,12 @@ This record documents local development milestones only.
    - local Chromium 6/6 PASS
 
 12. `13ac7fe` — Add editable pool reservations
-   - upcoming reservations can be edited/rescheduled in the existing booking form
-   - table/time changes rerun overlap and validation rules
-   - checked-in reservations are locked from editing
-   - blank custom rate inherits the selected table rate
-   - no schema change; schema remains 018
-   - backend regression 239/239 PASS
-   - local Chromium 6/6 PASS
-
-12. `13ac7fe` — Add editable pool reservations
    - edit/reschedule upcoming reservations before check-in
    - table/time/contact/rate/note updates
    - overlap and disabled-table validation re-run on every edit
    - checked-in reservations remain immutable
+   - blank custom rate inherits the selected table rate
+   - no schema change; schema remains 018
    - backend regression 239/239 PASS
    - local Chromium 6/6 PASS
 
@@ -129,6 +122,15 @@ This record documents local development milestones only.
    - public website must respond while /admin and /api/admin/session remain unavailable
    - installer enforces launch-preflight → local-acceptance → tunnel order
    - backend regression 242/242 PASS
+
+16. `4dad392` — Generate isolated customer runtime config
+   - production customer config is rendered from protected New Gym env values
+   - active 1/3/12-month membership prices are read from the live New Gym SQLite database
+   - generated releases are stored outside Git under New Gym's data directory
+   - web service serves only the generated `public-current` release
+   - `--enable-tunnel` regenerates a complete release before launch preflight
+   - launch preflight validates the generated config path instead of the tracked placeholder
+   - backend regression 243/243 PASS
 
 ## Browser isolation verification
 
@@ -171,7 +173,7 @@ The untouched template intentionally fails launch preflight for:
 - dedicated Firebase client/service-account configuration
 - dedicated Cloudflare token
 - off-device backup destination
-- final customer runtime config
+- complete generated customer runtime config (business identity/contact/hours + public origin + dedicated Firebase + live membership prices)
 
 These are configuration/business-data blockers, not unresolved code failures.
 

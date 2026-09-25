@@ -35,22 +35,22 @@ Ports:
 ## Safe rollout order
 
 1. Copy/clone this isolated project to Redmi.
-2. Create Python virtual environment for the admin/backend.
-3. Run the New Gym Termux installer without enabling the tunnel. On first run it creates the protected env template and exits. On the next run, if the default checkout-local Python runtime is missing, the installer automatically creates `admin/.venv`, installs the New Gym package plus Firebase dependencies, and verifies critical imports before service installation.
-4. Fill and protect `~/.config/new-gym/new-gym.env`.
-5. Rerun the installer. It must pass:
+2. Run the New Gym Termux installer without enabling the tunnel. On first run it creates the protected env template and exits. On the next run, if the checkout-local runtime is missing, the installer automatically creates `admin/.venv`, installs the New Gym package plus Firebase dependencies, and verifies critical imports before service installation.
+3. Fill and protect `~/.config/new-gym/new-gym.env`, including business identity/contact/hours, final public/admin origins and dedicated Firebase values.
+4. Rerun the installer. It generates a versioned public-site release under `~/.local/share/new-gym/public-releases/`, renders its `js/gym-config.js` from the protected env, and switches `public-current` to that prepared release. The tracked placeholder config is never edited on the server.
+5. The installer must pass:
    `python3 admin/deploy/new-gym-termux/preflight-new-gym.py --config ~/.config/new-gym/new-gym.env --stage install`
-6. Run DB migrations and verify integrity.
-7. Start local New Gym services only.
+6. Start local New Gym services. The backend applies the numbered database migrations; verify health/integrity before configuring live business data.
+7. Configure real membership prices, pool rates, kitchen menu/recipes/opening stock and the remaining owner-reviewed business data.
 8. Verify:
    - `http://127.0.0.1:8897/api/health`
    - `http://127.0.0.1:8898/api/health`
    - `http://127.0.0.1:8899/`
 9. Create and verify a local backup.
 10. Verify off-device backup.
-11. Configure the dedicated Cloudflare Tunnel routes and final customer `gym-config.js`.
+11. Configure the dedicated Cloudflare Tunnel routes. Do not hand-edit the tracked customer `gym-config.js`; `render-customer-config.py` generates the production config from protected env values and the live membership-plan prices.
 12. Set the three owner confirmation gates to true only after reviewing membership prices, pool rates, and kitchen/menu/recipe/opening stock.
-13. Run the launch gate:
+13. Run the installer with `--enable-tunnel`. Before any tunnel enable, it regenerates a **complete** versioned public-site release, then runs the launch gate:
    `python3 admin/deploy/new-gym-termux/preflight-new-gym.py --config ~/.config/new-gym/new-gym.env --stage launch`
 14. With the tunnel still disabled, run local Redmi acceptance:
    `python3 admin/deploy/new-gym-termux/acceptance-new-gym.py --config ~/.config/new-gym/new-gym.env --skip-launch-preflight`
