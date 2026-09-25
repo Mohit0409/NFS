@@ -31,24 +31,36 @@
 | NG-027 | Local Redmi acceptance gate before Cloudflare tunnel enable | DONE | Not deployed |
 | NG-028 | Generate versioned customer runtime config from protected env + live membership DB | DONE | Not deployed |
 | NG-029 | Manifest-verified customer-site release rollback | DONE | Not deployed |
-| NG-030 | Need For Strength owner preview via isolated single-URL ngrok profile | DONE — prepared/tested; not started on Redmi | Demo not deployed |
+| NG-030 | Need For Strength owner preview via isolated Cloudflare Quick Tunnel | DONE — live on Redmi; staging only | Demo deployed |
 | NG-031 | Replace owner-demo database/data with clean owner-approved production data | BLOCKED — owner approval required | Not deployed |
 | NG-032 | Guarded PC-to-Redmi owner-demo deployment launcher | DONE — exact-commit archive + SHA-256 + shared standalone bootstrap | Not deployed |
-| NG-033 | Start owner-demo on Redmi and capture ngrok owner links | IN PROGRESS — first bootstrap blocked before extraction by Termux temp-path assumption; corrected package being restaged | Demo not deployed |
-| NG-034 | Preserve existing Redmi ngrok command_line tunnel during owner demo | DONE — reuse existing agent; only nfs-owner-demo may be created/deleted | Not deployed |
-| NG-035 | Remove Linux /tmp assumption from Redmi owner-demo USB tooling | DONE — use Termux TMPDIR/PREFIX tmp; regression guard added | Not deployed |
+| NG-033 | Start owner-demo on Redmi and capture owner links | DONE — live release `e7ba8b9`; Cloudflare Quick Tunnel health accepted | Demo deployed |
+| NG-034 | Preserve Universal Gym ngrok while isolating Need For Strength ingress | DONE — Need For Strength uses Cloudflare; stale nfs-owner-demo ngrok endpoint removed without changing command_line | Demo deployed |
+| NG-035 | Remove Linux /tmp assumption from Redmi owner-demo USB tooling | DONE — use Termux TMPDIR/PREFIX tmp; regression guard added | Demo deployed |
+| NG-036 | Remove copied New Gym fallback branding from customer/admin surfaces | DONE — regression guarded in `c2a047b` | Commercial candidate |
+| NG-037 | Make production admin hostname admin-only and block copied legacy public pages | DONE — root redirects to /admin, legacy public pages/sitemap denied, robots disallow all | Commercial candidate |
+| NG-038 | Add Need For Strength Privacy/Terms pages and legal-review launch gate | DONE — production launch requires explicit legal review confirmation | Commercial candidate |
+| NG-039 | Supply final commercial configuration: hours, approved prices/rates/menu, dedicated Firebase, named Cloudflare tunnel and off-device backup | BLOCKED — owner/external inputs required | Not deployed |
+| NG-040 | Final-domain production browser/cutover acceptance on exact release | BLOCKED by NG-039 | Not deployed |
 
-## Current release candidate
+## Current release candidates
 
-Owner-demo runtime commit:
-`c77b299 Fix Termux owner demo temp paths`
+Commercial-hardening implementation:
+`c2a047bb1a7a32fc719dbd868c893cb9a1dad866`
 
-Verification at this point:
-- backend: 249/249 PASS
-- local admin Chromium: 6/6 PASS
-- customer homepage: 8/8 PASS
+Live owner-demo runtime:
+`e7ba8b9f847a606723724162b808760b09f52fbf`
+
+The `c2a047b` owner-demo archive is SHA-256 staged on the Redmi but has not replaced the live demo runtime yet.
+
+Verification for `c2a047b`:
+- backend: 251/251 PASS
+- full Chromium release suite: 63/63 PASS
+- customer homepage: 10/10 PASS
 - customer member-login: 9/9 PASS
 - diet planner: PASS
 - member gateway: 7/7 PASS
+- Python/JavaScript/shell syntax: PASS
+- git diff check: PASS
 
-No production deployment has occurred.
+No Need For Strength production deployment has occurred.

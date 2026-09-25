@@ -235,3 +235,26 @@ These are configuration/business-data blockers, not unresolved code failures.
 See:
 - `wiki/DEPLOYMENT_RUNBOOK.md`
 - `jira/JIRA-REGISTER.md`
+
+## 2026-09-25 owner-demo deployment and commercial hardening
+
+Owner demo is now live on the Redmi from:
+`e7ba8b9f847a606723724162b808760b09f52fbf`
+
+Accepted live demo state:
+- Need For Strength admin/member/web/edge local health: 200
+- isolated Cloudflare Quick Tunnel public home/API/admin: 200
+- Universal Gym remained healthy on 8788
+- LocalStoreTrack remained healthy on 4195
+- stale Need For Strength ngrok endpoint was removed; Universal Gym command_line ngrok remained unchanged
+- owner-demo database/config and owner credentials were preserved
+
+Commercial hardening implementation commit:
+`c2a047bb1a7a32fc719dbd868c893cb9a1dad866`
+
+Changes include Need For Strength fallback branding, private-admin legacy-page isolation, Privacy/Terms pages and a legal-review production launch gate. Verification: backend 251/251 PASS; Chromium 63/63 PASS; customer homepage 10/10 PASS; member login 9/9 PASS; member gateway 7/7 PASS; syntax/diff checks PASS.
+
+A Git archive for `c2a047b` is staged on the Redmi with SHA-256:
+`30366fe6462abcec229c403e7207341491bd51c061e056c0d7ec7d5a7e960b2e`
+
+The staged commercial-hardening archive has not replaced the live owner-demo runtime yet. No Need For Strength production deployment has occurred.
