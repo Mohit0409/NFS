@@ -30,14 +30,15 @@
 | NG-026 | Clean-Termux Python runtime/virtualenv dependency automation | DONE | Not deployed |
 | NG-027 | Local Redmi acceptance gate before Cloudflare tunnel enable | DONE | Not deployed |
 | NG-028 | Generate versioned customer runtime config from protected env + live membership DB | DONE | Not deployed |
+| NG-029 | Manifest-verified customer-site release rollback | DONE | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`4dad392 Generate isolated customer runtime config`
+`a77aa98 Add guarded customer-site rollback`
 
 Verification at this point:
-- backend: 243/243 PASS
+- backend: 244/244 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

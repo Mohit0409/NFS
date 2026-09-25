@@ -132,6 +132,14 @@ This record documents local development milestones only.
    - launch preflight validates the generated config path instead of the tracked placeholder
    - backend regression 243/243 PASS
 
+17. `a77aa98` — Add guarded customer-site rollback
+   - every generated public release gets a Git/config-hash manifest
+   - installer verifies the manifest before activating a release
+   - rollback only accepts release IDs inside the New Gym public-releases directory
+   - rollback re-verifies config SHA-256 and rejects Gravity live markers
+   - web service is restarted and locally checked after rollback
+   - backend regression 244/244 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files

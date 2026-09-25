@@ -78,7 +78,21 @@ A launch also requires a fresh verified off-device backup marker. `backup-offdev
 
 ## Rollback
 
-Rollback must restore:
+### Customer website only
+
+Generated public releases are stored under `~/.local/share/new-gym/public-releases/`. To inspect them:
+
+`admin/deploy/new-gym-termux/rollback-public-site.sh --list`
+
+To switch the public website to a prior prepared release:
+
+`admin/deploy/new-gym-termux/rollback-public-site.sh <release-id>`
+
+The rollback command verifies the release manifest, customer-config SHA-256, Git commit format, required files and absence of Gravity live markers before switching `public-current`, then restarts `new-gym-web` and checks the local website.
+
+### Backend/database rollback
+
+A backend/database rollback must restore:
 - the prior New Gym release commit
 - the matching New Gym database backup
 - the New Gym tunnel/service configuration only

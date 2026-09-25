@@ -141,7 +141,9 @@ Files:
 - runtime renderer: `customer-website/web/js/runtime-config.js`
 - production config generator: `admin/deploy/new-gym-termux/render-customer-config.py`
 
-On the Redmi, the web service does **not** serve the Git checkout directly. The installer copies the customer site into a versioned New Gym public release, renders `gym-config.js` from the protected production env plus active membership-plan prices in SQLite, then points `~/.local/share/new-gym/public-current` at that release. This keeps secrets/configuration and deployment state out of Git.
+On the Redmi, the web service does **not** serve the Git checkout directly. The installer copies the customer site into a versioned New Gym public release, renders `gym-config.js` from the protected production env plus active membership-plan prices in SQLite, writes a release manifest containing the Git commit and customer-config SHA-256, verifies the release, then points `~/.local/share/new-gym/public-current` at it. This keeps secrets/configuration and deployment state out of Git.
+
+Public-site rollback is isolated from backend/database rollback: `admin/deploy/new-gym-termux/rollback-public-site.sh --list` lists prepared releases, and passing a release ID switches only to a manifest/hash-verified New Gym public release before restarting the web service. A release containing Gravity live markers is refused.
 
 The single customer config controls:
 - gym name
@@ -212,7 +214,7 @@ Current verified state:
 - clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **243/243 PASS**
+- full admin/backend regression: **244/244 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**
