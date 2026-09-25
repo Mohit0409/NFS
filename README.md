@@ -239,7 +239,7 @@ Current verified state:
 - clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **246/246 PASS**
+- full admin/backend regression: **249/249 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**

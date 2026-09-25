@@ -164,6 +164,17 @@ This record documents local development milestones only.
    - local Chromium 6/6 PASS
    - customer homepage 8/8 PASS
 
+20. `4708961` — Harden Redmi owner demo bootstrap
+   - exact Redmi 13C 5G / 23124RN87I positively verified over USB
+   - Termux user confirmed as u0_a304
+   - more than 80 GB free storage observed
+   - owner-demo ports 8897–8900 verified free
+   - existing ngrok agent discovered with non-demo command_line tunnel on localhost:8788
+   - standalone demo reuses that ngrok agent and never stops/replaces command_line
+   - USB and SSH use the same SHA-256-verified bootstrap path
+   - failure cleanup kills only owner-demo PID-managed processes and deletes only nfs-owner-demo
+   - backend regression 249/249 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files

@@ -33,16 +33,17 @@
 | NG-029 | Manifest-verified customer-site release rollback | DONE | Not deployed |
 | NG-030 | Need For Strength owner preview via isolated single-URL ngrok profile | DONE — prepared/tested; not started on Redmi | Demo not deployed |
 | NG-031 | Replace owner-demo database/data with clean owner-approved production data | BLOCKED — owner approval required | Not deployed |
-| NG-032 | Guarded PC-to-Redmi owner-demo deployment launcher | DONE — exact-commit packaging + target/port/service/ngrok preflight | Not deployed |
-| NG-033 | Start owner-demo on Redmi and capture ngrok owner links | BLOCKED — redmi-host currently offline/unreachable | Demo not deployed |
+| NG-032 | Guarded PC-to-Redmi owner-demo deployment launcher | DONE — exact-commit archive + SHA-256 + shared standalone bootstrap | Not deployed |
+| NG-033 | Start owner-demo on Redmi and capture ngrok owner links | IN PROGRESS — exact Redmi verified over USB, ports 8897–8900 free, bootstrap package pending final Termux command | Demo not deployed |
+| NG-034 | Preserve existing Redmi ngrok command_line tunnel during owner demo | DONE — reuse existing agent; only nfs-owner-demo may be created/deleted | Not deployed |
 
 ## Current release candidate
 
-Local Git commit:
-`6ac14c7 Polish Need For Strength owner demo`
+Owner-demo runtime commit:
+`4708961 Harden Redmi owner demo bootstrap`
 
 Verification at this point:
-- backend: 246/246 PASS
+- backend: 249/249 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS
