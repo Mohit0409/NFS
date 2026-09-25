@@ -104,6 +104,7 @@ class Settings:
     owner_whatsapp: str
     owner_email: str
     business_name: str
+    pool_name: str
     business_address: str
     business_gstin: str
     tax_invoice_enabled: bool
@@ -247,7 +248,8 @@ class Settings:
             owner_phone=values.get("OWNER_PHONE", "").strip(),
             owner_whatsapp=values.get("OWNER_WHATSAPP", "").strip(),
             owner_email=values.get("OWNER_EMAIL", "").strip(),
-            business_name=values.get("BUSINESS_NAME", "New Gym").strip() or "New Gym",
+            business_name=values.get("BUSINESS_NAME", "Need For Strength").strip() or "Need For Strength",
+            pool_name=values.get("POOL_NAME", "The Cue Master").strip() or "The Cue Master",
             business_address=values.get("BUSINESS_ADDRESS", "").strip(),
             business_gstin=values.get("BUSINESS_GSTIN", "").strip().upper(),
             tax_invoice_enabled=_boolean(values.get("TAX_INVOICE_ENABLED"), False),

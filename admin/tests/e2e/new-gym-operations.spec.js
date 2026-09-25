@@ -415,7 +415,7 @@ test('New Gym pool reservation and combined bill work in the browser', async ({ 
 
   await page.goto('/admin');
   await expect(page.locator('#app')).toBeVisible();
-  await expect(page.locator('[data-gym-name]').first()).toHaveText('New Gym');
+  await expect(page.locator('[data-gym-name]').first()).toHaveText('Need For Strength');
 
   await page.locator('#poolNav').click();
   await expect(page.locator('#viewTitle')).toHaveText('Pool');

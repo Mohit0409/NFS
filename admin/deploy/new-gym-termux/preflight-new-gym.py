@@ -77,6 +77,7 @@ def inspect_database(path: Path) -> dict[str, object]:
         "availableMenuItems": 0,
         "activeInventoryItems": 0,
         "invalidRecipes": 0,
+        "ownerDemoMode": False,
     }
     if not path.is_file():
         return state
@@ -126,6 +127,10 @@ def inspect_database(path: Path) -> dict[str, object]:
                 "LEFT JOIN kitchen_inventory_items i ON i.id=r.inventory_item_id "
                 "WHERE m.id IS NULL OR i.id IS NULL OR i.status!='active' OR r.quantity_milli<=0"
             ).fetchone()[0])
+            demo_row = connection.execute(
+                "SELECT value FROM app_metadata WHERE key='owner_demo_mode'"
+            ).fetchone()
+            state["ownerDemoMode"] = bool(demo_row and str(demo_row[0]) == "1")
         finally:
             connection.close()
     except (sqlite3.Error, OSError):
@@ -340,6 +345,11 @@ def validate(
                 "database_integrity",
                 bool(database_state.get("integrityOk")) and bool(database_state.get("foreignKeysOk")),
                 "SQLite quick_check and foreign-key check must pass",
+            )
+            check(
+                "owner_demo_data_removed",
+                not bool(database_state.get("ownerDemoMode")),
+                "Owner-demo database marker must be removed by replacing the demo database before production launch",
             )
             check(
                 "membership_plan_data",

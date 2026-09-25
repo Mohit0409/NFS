@@ -119,7 +119,7 @@ class HttpFoundationTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(
                 json.loads(body),
-                {"status": "ok", "service": "New Gym", "database": "ok"},
+                {"status": "ok", "service": "Need For Strength", "poolName": "The Cue Master", "database": "ok"},
             )
             self.assertEqual(headers["Cache-Control"], "no-store")
             self.assertNotIn("path", body.decode())

@@ -50,18 +50,23 @@ test('membership prices are configuration-driven and never inherit Gravity price
 });
 
 test('premium restyle preserves every homepage section and its order', () => {
-  const expected = ['home', 'membership', 'about', 'bmi', 'nutrition', 'exercise-library', 'inside-gym', 'enquiry', 'contact'];
+  const expected = ['home', 'membership', 'cue-master', 'about', 'bmi', 'nutrition', 'exercise-library', 'inside-gym', 'enquiry', 'contact'];
   const actual = Array.from(homepage.matchAll(/<section[^>]+id="([^"]+)"/g), (match) => match[1]);
   assert.deepEqual(actual, expected);
 });
 
-test('customer business details come from the New Gym runtime config', () => {
+test('owner-demo business details come from the Need For Strength runtime config', () => {
   assert.match(homepage, /js\/gym-config\.js/);
   assert.match(homepage, /js\/runtime-config\.js/);
-  assert.match(gymConfig, /phoneDisplay: ''/);
-  assert.match(gymConfig, /whatsappNumber: ''/);
-  assert.match(gymConfig, /address: ''/);
-  assert.match(gymConfig, /mapUrl: ''/);
+  assert.match(gymConfig, /name: 'Need For Strength'/);
+  assert.match(gymConfig, /phoneDisplay: '\+91 98937 04372'/);
+  assert.match(gymConfig, /whatsappNumber: '919893704372'/);
+  assert.match(gymConfig, /Opposite Pachvati Colony/);
+  assert.match(gymConfig, /poolName: 'The Cue Master'/);
+  assert.match(gymConfig, /Women Membership/);
+  assert.match(gymConfig, /Student Membership/);
+  assert.match(gymConfig, /Couple Membership/);
+  assert.match(gymConfig, /apiKey: ''/);
   assert.doesNotMatch(gymConfig, /gravityfitnessnmh|917999526112|gravity-authe/);
 });
 

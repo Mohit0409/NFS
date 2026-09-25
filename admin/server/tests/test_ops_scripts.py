@@ -14,6 +14,10 @@ NEW_GYM_PREFLIGHT = ROOT / "deploy" / "new-gym-termux" / "preflight-new-gym.py"
 NEW_GYM_ACCEPTANCE = ROOT / "deploy" / "new-gym-termux" / "acceptance-new-gym.py"
 NEW_GYM_CUSTOMER_RENDERER = ROOT / "deploy" / "new-gym-termux" / "render-customer-config.py"
 NEW_GYM_PUBLIC_RELEASE_VERIFIER = ROOT / "deploy" / "new-gym-termux" / "verify-public-release.py"
+OWNER_DEMO_ROOT = ROOT / "deploy" / "owner-demo"
+OWNER_DEMO_SEED = OWNER_DEMO_ROOT / "seed-owner-demo.py"
+OWNER_DEMO_EDGE = OWNER_DEMO_ROOT / "demo-edge.py"
+OWNER_DEMO_SYNC = OWNER_DEMO_ROOT / "sync-ngrok-url.py"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -664,6 +668,139 @@ class OperationsScriptTests(unittest.TestCase):
             (release / ".new-gym-release.json").write_text(json.dumps(manifest), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Gravity live values"):
                 module.verify_release(release, expected_release_id=release.name)
+
+    def test_need_for_strength_owner_demo_seed_and_production_blocker(self) -> None:
+        seed_spec = importlib.util.spec_from_file_location("owner_demo_seed", OWNER_DEMO_SEED)
+        self.assertIsNotNone(seed_spec)
+        self.assertIsNotNone(seed_spec.loader)
+        seed_module = importlib.util.module_from_spec(seed_spec)
+        seed_spec.loader.exec_module(seed_module)
+
+        preflight_spec = importlib.util.spec_from_file_location("new_gym_preflight_demo", NEW_GYM_PREFLIGHT)
+        self.assertIsNotNone(preflight_spec)
+        self.assertIsNotNone(preflight_spec.loader)
+        preflight = importlib.util.module_from_spec(preflight_spec)
+        preflight_spec.loader.exec_module(preflight)
+
+        with TemporaryDirectory() as temporary:
+            path = Path(temporary) / "owner-demo.sqlite3"
+            database = Database(path, ROOT / "server" / "migrations")
+            result = seed_module.seed(database)
+            state = preflight.inspect_database(path)
+            with database.session() as connection:
+                private_rate = connection.execute(
+                    "SELECT default_rate_paise FROM pool_tables WHERE id='pool-private-1'"
+                ).fetchone()[0]
+                common_rates = [
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT default_rate_paise FROM pool_tables "
+                        "WHERE id IN ('pool-common-1','pool-common-2') ORDER BY id"
+                    ).fetchall()
+                ]
+                demo_plan_count = connection.execute(
+                    "SELECT COUNT(*) FROM membership_plans WHERE id LIKE 'demo-%'"
+                ).fetchone()[0]
+                demo_menu_count = connection.execute(
+                    "SELECT COUNT(*) FROM kitchen_menu_items WHERE id LIKE 'demo-%'"
+                ).fetchone()[0]
+
+        self.assertTrue(result["ownerDemoMode"])
+        self.assertTrue(state["ownerDemoMode"])
+        self.assertEqual(private_rate, 30000)
+        self.assertEqual(common_rates, [20000, 20000])
+        self.assertEqual(demo_plan_count, len(seed_module.DEMO_PLANS))
+        self.assertEqual(demo_menu_count, len(seed_module.DEMO_MENU))
+
+        blocked = preflight.validate(
+            {
+                "GRAVITY_ENV": "production",
+                "GRAVITY_HOST": "127.0.0.1",
+                "GRAVITY_PORT": "8897",
+                "NEW_GYM_MEMBER_GATEWAY_PORT": "8898",
+                "NEW_GYM_PUBLIC_PORT": "8899",
+                "NEW_GYM_MEMBER_BACKEND": "http://127.0.0.1:8897",
+                "GRAVITY_DATA_DIR": "/home/u/.local/share/new-gym/data",
+                "GRAVITY_LOG_DIR": "/home/u/.local/state/new-gym/logs",
+                "GRAVITY_BACKUP_DIR": "/home/u/.local/share/new-gym/backups",
+                "SECRET_KEY": "x" * 40,
+                "APP_BASE_URL": "https://admin.example.org",
+                "BUSINESS_NAME": "Need For Strength",
+                "BUSINESS_ADDRESS": "Verified address",
+                "OWNER_PHONE": "+919893704372",
+                "NEW_GYM_MEMBER_ALLOWED_ORIGINS": "https://gym.example.org",
+                "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED": "true",
+                "NEW_GYM_POOL_RATES_CONFIRMED": "true",
+                "NEW_GYM_KITCHEN_SETUP_CONFIRMED": "true",
+                "FIREBASE_PROJECT_ID": "need-for-strength-auth",
+                "FIREBASE_WEB_API_KEY": "public-web-key",
+                "FIREBASE_AUTH_DOMAIN": "need-for-strength-auth.firebaseapp.com",
+                "FIREBASE_APP_ID": "1:123:web:nfs",
+                "FIREBASE_SERVICE_ACCOUNT_PATH": "/private/firebase.json",
+                "CLOUDFLARED_TOKEN_FILE": "/private/cloudflare.token",
+                "NEW_GYM_BACKUP_REMOTE": "nfs-backup:daily",
+                "NEW_GYM_REQUIRE_OFFDEVICE_BACKUP": "false",
+            },
+            stage="launch",
+            customer_config_text=(
+                "name: 'Need For Strength', phoneDisplay: '+91 98937 04372', "
+                "whatsappNumber: '919893704372', address: 'Verified address', "
+                "memberGatewayBase: 'https://gym.example.org', projectId: 'need-for-strength-auth'"
+            ),
+            path_exists=lambda _value: True,
+            database_state=state,
+        )
+        self.assertFalse(blocked["ready"])
+        self.assertIn("owner_demo_data_removed", blocked["blockers"])
+
+    def test_need_for_strength_owner_demo_routes_one_ngrok_url_safely(self) -> None:
+        edge_spec = importlib.util.spec_from_file_location("owner_demo_edge", OWNER_DEMO_EDGE)
+        self.assertIsNotNone(edge_spec)
+        self.assertIsNotNone(edge_spec.loader)
+        edge = importlib.util.module_from_spec(edge_spec)
+        edge_spec.loader.exec_module(edge)
+
+        self.assertEqual(edge.target_port("/"), 8899)
+        self.assertEqual(edge.target_port("/pages/member-login.html"), 8899)
+        self.assertEqual(edge.target_port("/api/member/eligibility"), 8898)
+        self.assertEqual(edge.target_port("/admin"), 8897)
+        self.assertEqual(edge.target_port("/api/admin/session"), 8897)
+        self.assertEqual(edge.target_port("/css/admin.css"), 8897)
+        self.assertEqual(edge.target_port("/js/admin-pool.js"), 8897)
+        self.assertEqual(edge.target_port("/assets/icons/favicon-32.png"), 8897)
+
+        sync_spec = importlib.util.spec_from_file_location("owner_demo_sync", OWNER_DEMO_SYNC)
+        self.assertIsNotNone(sync_spec)
+        self.assertIsNotNone(sync_spec.loader)
+        sync = importlib.util.module_from_spec(sync_spec)
+        sync_spec.loader.exec_module(sync)
+        with TemporaryDirectory() as temporary:
+            config = Path(temporary) / "demo.env"
+            config.write_text(
+                "APP_BASE_URL=https://owner-demo.invalid\n"
+                "NEW_GYM_PUBLIC_SITE_URL=https://owner-demo.invalid\n"
+                "NEW_GYM_MEMBER_ALLOWED_ORIGINS=https://owner-demo.invalid\n"
+                "SECRET_KEY=do-not-change-me\n",
+                encoding="utf-8",
+            )
+            sync.update_env(config, "https://temporary-demo.ngrok-free.app")
+            text = config.read_text(encoding="utf-8")
+        self.assertIn("APP_BASE_URL=https://temporary-demo.ngrok-free.app", text)
+        self.assertIn("NEW_GYM_PUBLIC_SITE_URL=https://temporary-demo.ngrok-free.app", text)
+        self.assertIn("NEW_GYM_MEMBER_ALLOWED_ORIGINS=https://temporary-demo.ngrok-free.app", text)
+        self.assertIn("SECRET_KEY=do-not-change-me", text)
+
+        installer = (OWNER_DEMO_ROOT / "install-owner-demo.sh").read_text(encoding="utf-8")
+        example = (OWNER_DEMO_ROOT / "owner-demo.env.example").read_text(encoding="utf-8")
+        self.assertIn("ngrok config check", installer)
+        self.assertIn("sync-ngrok-url.py", installer)
+        self.assertIn("nfs-demo-edge", installer)
+        self.assertIn("nfs-demo-ngrok", installer)
+        self.assertIn("Need For Strength", example)
+        self.assertIn("POOL_NAME=The Cue Master", example)
+        self.assertIn("OWNER_DEMO_MODE=true", example)
+        self.assertNotIn("CLOUDFLARED_TOKEN", example)
+        self.assertNotIn("NGROK_AUTHTOKEN", example)
 
     def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
         spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)

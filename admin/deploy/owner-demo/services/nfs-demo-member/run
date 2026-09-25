@@ -1,0 +1,9 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+CONFIG="$HOME/.config/need-for-strength-owner-demo/demo.env"
+REPO="$(cat "$HOME/.config/need-for-strength-owner-demo/repository")"
+PROJECT_ROOT="$(CDPATH= cd -- "$REPO/.." && pwd)"
+PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
+PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+cd "$PROJECT_ROOT/customer-website"
+exec python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" gateway/member_gateway.py

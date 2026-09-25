@@ -111,6 +111,7 @@ def build_config(values: dict[str, str], prices: dict[str, int | None]) -> dict[
         "mapEmbedUrl": values.get("BUSINESS_MAP_EMBED_URL", "").strip(),
         "siteUrl": site_url,
         "memberGatewayBase": site_url,
+        "poolName": values.get("POOL_NAME", "").strip(),
         "membershipPricesPaise": prices,
         "firebase": {
             "apiKey": values.get("FIREBASE_WEB_API_KEY", "").strip(),

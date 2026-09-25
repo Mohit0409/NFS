@@ -56,6 +56,81 @@
     }
   }
 
+  function renderMembershipOffers() {
+    const offers = Array.isArray(cfg.membershipOffers) ? cfg.membershipOffers : [];
+    const grid = document.querySelector('.pricing-grid');
+    if (!grid || !offers.length) return;
+    grid.replaceChildren();
+    for (const offer of offers) {
+      const card = document.createElement('article');
+      card.className = 'price-card reveal owner-offer-card' + (offer.featured ? ' price-card--featured' : '');
+      if (offer.badge) {
+        const badge = document.createElement('span');
+        badge.className = 'price-badge';
+        badge.textContent = offer.badge;
+        card.append(badge);
+      }
+      const title = document.createElement('h3');
+      title.className = 'owner-offer-title';
+      title.textContent = offer.title || 'Membership';
+      card.append(title);
+      const list = document.createElement('div');
+      list.className = 'owner-offer-lines';
+      for (const line of Array.isArray(offer.lines) ? offer.lines : []) {
+        const row = document.createElement('div');
+        row.className = 'owner-offer-line';
+        const label = document.createElement('span');
+        label.textContent = line.label || '';
+        const price = document.createElement('strong');
+        price.textContent = line.price || 'Ask';
+        row.append(label, price);
+        if (line.note) {
+          const note = document.createElement('small');
+          note.textContent = line.note;
+          row.append(note);
+        }
+        list.append(row);
+      }
+      card.append(list);
+      const button = document.createElement('button');
+      button.className = 'button button--outline price-card__cta';
+      button.type = 'button';
+      button.dataset.enquiry = 'membership';
+      button.textContent = 'Enquire About This Plan';
+      card.append(button);
+      grid.append(card);
+    }
+  }
+
+  function renderPersonalTraining() {
+    const offers = Array.isArray(cfg.personalTrainingOffers) ? cfg.personalTrainingOffers : [];
+    const root = document.querySelector('[data-pt-offers]');
+    if (!root || !offers.length) return;
+    root.replaceChildren();
+    for (const offer of offers) {
+      const row = document.createElement('div');
+      row.className = 'owner-offer-line';
+      const label = document.createElement('span');
+      label.textContent = offer.label || '';
+      const price = document.createElement('strong');
+      price.textContent = offer.price || 'Ask';
+      row.append(label, price);
+      root.append(row);
+    }
+  }
+
+  function applyPoolDemo() {
+    const poolName = configured(cfg.poolName);
+    if (poolName) {
+      document.querySelectorAll('[data-pool-name]').forEach((node) => { node.textContent = poolName; });
+    }
+    const rates = cfg.poolDemoRatesPaise || {};
+    const privateRate = document.querySelector('[data-pool-private-rate]');
+    const commonRate = document.querySelector('[data-pool-common-rate]');
+    if (privateRate) privateRate.textContent = formatPrice(rates.private) + '/hour';
+    if (commonRate) commonRate.textContent = formatPrice(rates.common) + '/hour';
+  }
+
   function apply() {
     const name = configured(cfg.name) || 'New Gym';
     const city = configured(cfg.city);
@@ -98,6 +173,15 @@
       document.querySelectorAll('[data-gym-opening-hours]').forEach((node) => { node.textContent = hours; });
     }
 
+    const openingAnnouncement = configured(cfg.openingAnnouncement);
+    if (openingAnnouncement) {
+      document.querySelectorAll('[data-gym-opening-announcement]').forEach((node) => { node.textContent = openingAnnouncement; });
+    }
+    const foundingOfferText = configured(cfg.foundingOfferText);
+    if (foundingOfferText) {
+      document.querySelectorAll('[data-gym-founding-offer]').forEach((node) => { node.textContent = foundingOfferText; });
+    }
+
     const mapUrl = configured(cfg.mapUrl);
     if (mapUrl) {
       setLink('[data-gym-map-link]', mapUrl, 'Open in Google Maps');
@@ -107,6 +191,10 @@
     if (embed) {
       document.querySelectorAll('[data-gym-map-frame]').forEach((frame) => { frame.src = embed; });
     }
+
+    renderMembershipOffers();
+    renderPersonalTraining();
+    applyPoolDemo();
 
     const pricing = cfg.membershipPricesPaise || {};
     document.querySelectorAll('[data-plan-key]').forEach((card) => {

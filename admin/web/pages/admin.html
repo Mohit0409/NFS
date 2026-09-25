@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>New Gym Admin</title>
+<title>Need For Strength Admin</title>
 <link rel="icon" href="/assets/icons/gravity-mark.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="stylesheet" href="/css/admin.css?v=gravity-admin-mobile-v3">
@@ -11,14 +11,14 @@
 <body>
 <main class="root">
 <section class="auth" id="setup" hidden>
-<div class="mark" data-gym-initials>NG</div><p class="eyebrow"><span data-gym-name>New Gym</span> / SECURE CONTROL</p>
+<div class="mark" data-gym-initials>NF</div><p class="eyebrow"><span data-gym-name>Need For Strength</span> / SECURE CONTROL</p>
 <h1>Owner setup required</h1>
 <p class="muted">Web bootstrap is disabled by design. Create the first owner from the server terminal.</p>
 <code>python -m server.gravity --bootstrap-owner YOUR_USERNAME</code>
 <p class="micro">The terminal prompts for the password and shows TOTP + recovery data once.</p>
 </section>
 <section class="auth" id="login" hidden>
-<div class="mark" data-gym-initials>NG</div><p class="eyebrow"><span data-gym-name>New Gym</span> / ADMIN</p><h1>Control Room</h1>
+<div class="mark" data-gym-initials>NF</div><p class="eyebrow"><span data-gym-name>Need For Strength</span> / ADMIN</p><h1>Control Room</h1>
 <p class="muted">Secure administrator sign-in.</p>
 <form id="loginForm"><label>Username<input id="username" autocomplete="username" required></label>
 <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
@@ -28,7 +28,7 @@
 <p class="error" id="authError" role="alert"></p>
 </section>
 <section class="app" id="app" hidden>
-<aside class="app-sidebar" id="appSidebar" aria-label="Admin navigation"><div class="sidebrand"><span class="mark small" data-gym-initials>NG</span><div><strong data-gym-name>New Gym</strong><small>Gym management</small></div><button class="icon-button sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">X</button></div>
+<aside class="app-sidebar" id="appSidebar" aria-label="Admin navigation"><div class="sidebrand"><span class="mark small" data-gym-initials>NF</span><div><strong data-gym-name>Need For Strength</strong><small>Gym management</small></div><button class="icon-button sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">X</button></div>
 <nav class="primary-nav" aria-label="Primary"><p class="nav-label">Workspace</p><button data-view="dashboard" class="active"><span>Home</span></button><button data-view="attendance" id="attendanceNav"><span>Attendance</span></button><button data-view="members" id="membersNav"><span>People</span></button><button data-view="memberships" id="membershipsNav"><span>Memberships</span></button><button data-view="fees" id="feesNav"><span>Fees</span></button><button data-view="pool" id="poolNav"><span>Pool</span></button><button data-view="kitchen" id="kitchenNav"><span>Kitchen</span></button><button data-view="operations" id="operationsNav"><span>Operations Report</span></button><button data-view="notifications" id="notificationsNav"><span>Follow-ups</span></button><details class="nav-more" id="advancedNav"><summary><span><strong>More tools</strong><small>Settings &amp; reports</small></span></summary><div class="advanced-links"><button data-view="enquiries" id="enquiriesNav">Enquiries</button><button data-view="biometric" id="biometricNav">Biometric Devices</button><button data-view="coaching" id="coachingNav">Coaching</button><button data-view="admins" id="adminsNav">Team access</button><button data-view="audit" id="auditNav">Audit trail</button><button data-view="readiness" id="readinessNav" hidden>Readiness</button></div></details></nav>
 <div class="asidefoot"><span id="adminIdentity"></span><button class="ghost" id="logout">Sign out</button></div></aside><button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Close navigation" tabindex="-1"></button>
 <section class="workspace"><header class="app-header"><button class="icon-button sidebar-open" id="sidebarOpen" type="button" aria-label="Open navigation" aria-controls="appSidebar" aria-expanded="false">Menu</button><div class="header-title"><p class="eyebrow">GYM OPERATIONS</p><h2 id="viewTitle">Home</h2></div><div class="header-actions"><span class="secure">SECURE</span><button id="headerRecordPayment" class="ghost" type="button" data-go-view="fees">Record Payment</button><button id="headerAddCustomer" class="primary-action" type="button">+ Add Person</button></div></header>
@@ -79,7 +79,7 @@
 </details>
 </section>
 <section id="poolView" class="view" hidden>
-<div class="page-toolbar"><div><p class="section-kicker">POOL OPERATIONS</p><h3>Pool tables</h3><p class="micro">Live status for one private table and two common tables. Rates are configured here and sessions are timed by the server.</p></div></div>
+<div class="page-toolbar"><div><p class="section-kicker">POOL OPERATIONS</p><h3 data-pool-name>The Cue Master</h3><p class="micro">Live status for one private table and two common tables. Rates are configured here and sessions are timed by the server.</p></div></div>
 <div id="poolTableGrid" class="ops-grid" aria-live="polite"></div>
 <div class="ops-two-column">
 <section class="panel"><div class="panelhead"><div><h3>Reserve a table</h3><p class="micro">Create or edit an upcoming booking. Overlapping reservations for the same table are blocked by the server.</p></div></div>

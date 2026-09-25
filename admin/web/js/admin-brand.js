@@ -2,7 +2,7 @@
   'use strict';
 
   function initials(name) {
-    return String(name || 'New Gym')
+    return String(name || 'Need For Strength')
       .trim()
       .split(/\s+/)
       .filter(Boolean)
@@ -18,9 +18,13 @@
       const payload = await response.json();
       const name = typeof payload.service === 'string' && payload.service.trim()
         ? payload.service.trim()
-        : 'New Gym';
+        : 'Need For Strength';
+      const poolName = typeof payload.poolName === 'string' && payload.poolName.trim()
+        ? payload.poolName.trim()
+        : 'The Cue Master';
       document.title = `${name} Admin`;
       document.querySelectorAll('[data-gym-name]').forEach((node) => { node.textContent = name; });
+      document.querySelectorAll('[data-pool-name]').forEach((node) => { node.textContent = poolName; });
       const mark = initials(name);
       document.querySelectorAll('[data-gym-initials]').forEach((node) => { node.textContent = mark; });
     } catch (_) {

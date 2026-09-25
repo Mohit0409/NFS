@@ -1,0 +1,8 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+CONFIG="$HOME/.config/need-for-strength-owner-demo/demo.env"
+REPO="$(cat "$HOME/.config/need-for-strength-owner-demo/repository")"
+PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
+PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+cd "$REPO"
+exec python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" deploy/owner-demo/demo-edge.py

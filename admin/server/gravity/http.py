@@ -216,6 +216,7 @@ class GravityRequestHandler(BaseHTTPRequestHandler):
                     {
                         "status": "ok" if healthy else "error",
                         "service": self.server.settings.business_name,
+                        "poolName": self.server.settings.pool_name,
                         "database": health["database"],
                     },
                     request_id=request_id,
