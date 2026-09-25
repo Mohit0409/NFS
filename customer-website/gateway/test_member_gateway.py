@@ -24,6 +24,17 @@ class MemberGatewayEligibilityTests(TestCase):
                 id TEXT PRIMARY KEY, customer_id TEXT, status TEXT,
                 starts_at INTEGER, ends_at INTEGER
             );
+            CREATE TABLE kitchen_menu_items (
+                id TEXT PRIMARY KEY, name TEXT, category TEXT,
+                price_paise INTEGER, status TEXT, sort_order INTEGER
+            );
+            CREATE TABLE pool_tables (
+                id TEXT PRIMARY KEY, name TEXT, table_type TEXT,
+                status TEXT, default_rate_paise INTEGER
+            );
+            CREATE TABLE app_metadata (
+                key TEXT PRIMARY KEY, value TEXT
+            );
             """)
         self.database_patch = patch.object(member_gateway, "MEMBER_DATABASE", self.database)
         self.time_patch = patch.object(member_gateway.time, "time", return_value=self.NOW)
@@ -99,3 +110,35 @@ class MemberGatewayEligibilityTests(TestCase):
         self.add_membership("m8-new", "p8", status="active", start=self.NOW - 10, end=self.NOW + 1000)
         self.assertTrue(member_gateway._member_is_eligible("+919999999908"))
         self.assertTrue(member_gateway._customer_is_login_eligible("p8"))
+
+    def test_public_catalog_exposes_only_customer_safe_menu_and_pool_fields(self):
+        with closing(sqlite3.connect(self.database)) as connection:
+            with connection:
+                connection.executemany(
+                    "INSERT INTO kitchen_menu_items VALUES (?,?,?,?,?,?)",
+                    [
+                        ("menu-1", "Protein Shake", "Fitness", 15000, "available", 20),
+                        ("menu-2", "Hidden Item", "Snacks", 5000, "unavailable", 10),
+                    ],
+                )
+                connection.executemany(
+                    "INSERT INTO pool_tables VALUES (?,?,?,?,?)",
+                    [
+                        ("private-1", "Private Table", "private", "available", 30000),
+                        ("common-1", "Common Table 1", "common", "reserved", 20000),
+                        ("disabled-1", "Disabled Table", "common", "disabled", 99900),
+                    ],
+                )
+                connection.execute("INSERT INTO app_metadata VALUES ('owner_demo_mode','1')")
+
+        catalog = member_gateway._public_catalog()
+        self.assertTrue(catalog["ownerDemoMode"])
+        self.assertEqual(catalog["menu"], [{
+            "id": "menu-1",
+            "name": "Protein Shake",
+            "category": "Fitness",
+            "pricePaise": 15000,
+        }])
+        self.assertEqual([table["id"] for table in catalog["tables"]], ["private-1", "common-1"])
+        self.assertEqual(catalog["tables"][0]["ratePaisePerHour"], 30000)
+        self.assertEqual(catalog["tables"][1]["status"], "reserved")

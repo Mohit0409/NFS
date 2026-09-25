@@ -785,6 +785,8 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertEqual(edge.target_port("/"), 8899)
         self.assertEqual(edge.target_port("/pages/member-login.html"), 8899)
         self.assertEqual(edge.target_port("/api/member/eligibility"), 8898)
+        self.assertEqual(edge.target_port("/api/public/kitchen/menu"), 8898)
+        self.assertEqual(edge.target_port("/api/public/pool/tables"), 8898)
         self.assertEqual(edge.target_port("/admin"), 8897)
         self.assertEqual(edge.target_port("/api/admin/session"), 8897)
         self.assertEqual(edge.target_port("/css/admin.css"), 8897)

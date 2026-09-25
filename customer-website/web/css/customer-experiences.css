@@ -1,0 +1,23 @@
+.experience-media{position:relative;overflow:hidden;border-radius:28px;border:1px solid rgba(255,255,255,.1);background:#11161b;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.experience-media img{display:block;width:100%;height:100%;min-height:360px;object-fit:cover}
+.experience-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:42px;align-items:center}
+.experience-copy h2,.experience-copy h1{max-width:14ch}.experience-copy p{max-width:62ch}
+.experience-points{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.experience-points span{padding:13px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035);font-weight:700}
+.experience-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.experience-note{display:block;margin-top:16px;color:var(--muted)}
+.bca-section{background:linear-gradient(135deg,rgba(180,255,47,.08),transparent 48%),#0d1115}.bca-section .experience-media{aspect-ratio:16/9}
+.customer-page-hero{padding:150px 0 58px;background:linear-gradient(180deg,#090c0f,#10161b)}.customer-page-hero__grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:42px;align-items:center}
+.customer-page-hero .experience-media img{min-height:320px}.customer-page-hero h1{font-size:clamp(2.7rem,7vw,6rem);line-height:.9;margin:.2em 0}
+.catalog-toolbar{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:24px}.catalog-status{color:var(--muted);margin:0}
+.menu-category{margin-top:34px}.menu-category h2{font-size:1.5rem;margin-bottom:14px}.menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.menu-card,.public-table-card{border:1px solid rgba(255,255,255,.1);border-radius:20px;background:#10161b;padding:20px}.menu-card__top,.table-card__top{display:flex;justify-content:space-between;gap:14px;align-items:start}
+.menu-card h3,.public-table-card h3{margin:0}.menu-price,.table-rate{color:var(--lime);font-size:1.25rem;font-weight:800;white-space:nowrap}.menu-category-label{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.12em}
+.pool-table-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:28px 0}.table-status{display:inline-flex;padding:6px 10px;border-radius:99px;background:rgba(180,255,47,.1);color:var(--lime);font-size:.8rem;font-weight:800;text-transform:capitalize}
+.pool-reservation-layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:32px;align-items:start}.reservation-form{display:grid;gap:14px;padding:24px;border:1px solid rgba(255,255,255,.1);border-radius:24px;background:#10161b}
+.reservation-form label{display:grid;gap:7px;font-weight:700}.reservation-form input,.reservation-form select,.reservation-form textarea{width:100%;border:1px solid rgba(255,255,255,.14);background:#090d11;color:#fff;border-radius:12px;padding:13px}
+.reservation-form .field-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reservation-disclaimer{font-size:.86rem;color:var(--muted);margin:0}.reservation-status{min-height:1.4em;color:var(--lime)}
+.feature-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.feature-link-card{position:relative;overflow:hidden;border-radius:24px;min-height:310px;border:1px solid rgba(255,255,255,.1)}
+.feature-link-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.feature-link-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(5,8,10,.94))}
+.feature-link-card__copy{position:absolute;z-index:2;left:22px;right:22px;bottom:22px}.feature-link-card__copy h3{font-size:1.7rem;margin:.2em 0}.feature-link-card__copy p{margin:0 0 14px;color:#d2d7dc}
+@media(max-width:900px){.experience-grid,.customer-page-hero__grid,.pool-reservation-layout{grid-template-columns:1fr}.menu-grid,.pool-table-grid{grid-template-columns:1fr 1fr}.experience-media img{min-height:260px}.customer-page-hero{padding-top:118px}}
+@media(max-width:620px){.experience-points,.menu-grid,.pool-table-grid,.feature-link-grid,.reservation-form .field-pair{grid-template-columns:1fr}.experience-media{border-radius:20px}.customer-page-hero h1{font-size:3.2rem}.catalog-toolbar{align-items:start;flex-direction:column}}

@@ -25,7 +25,7 @@ HOP_HEADERS = {
 
 
 def target_port(path: str) -> int:
-    if path.startswith("/api/member/"):
+    if path.startswith("/api/member/") or path.startswith("/api/public/"):
         return MEMBER_PORT
     if (
         path == "/admin"

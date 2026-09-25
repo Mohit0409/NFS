@@ -35,6 +35,8 @@ MEMBER_DATABASE = Path(
 ).expanduser().resolve()
 ELIGIBILITY_PATH = "/api/member/eligibility"
 BOOTSTRAP_PATH = "/api/member/bootstrap"
+PUBLIC_KITCHEN_MENU_PATH = "/api/public/kitchen/menu"
+PUBLIC_POOL_TABLES_PATH = "/api/public/pool/tables"
 
 def _read_request_json(handler) -> dict:
     try:
@@ -101,6 +103,46 @@ def _membership_summary_allows_access(summary: object) -> bool:
         return False
     now = int(time.time())
     return starts_at <= now < ends_at
+
+
+def _public_catalog() -> dict:
+    if not MEMBER_DATABASE.is_file():
+        raise sqlite3.OperationalError("database unavailable")
+    connection = sqlite3.connect(str(MEMBER_DATABASE), timeout=2)
+    connection.row_factory = sqlite3.Row
+    try:
+        connection.execute("PRAGMA query_only = ON")
+        menu = [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "category": row["category"],
+                "pricePaise": int(row["price_paise"]),
+            }
+            for row in connection.execute(
+                "SELECT id,name,category,price_paise FROM kitchen_menu_items "
+                "WHERE status='available' ORDER BY category,sort_order,name"
+            ).fetchall()
+        ]
+        tables = [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "tableType": row["table_type"],
+                "status": row["status"],
+                "ratePaisePerHour": int(row["default_rate_paise"] or 0),
+            }
+            for row in connection.execute(
+                "SELECT id,name,table_type,status,default_rate_paise FROM pool_tables "
+                "WHERE status!='disabled' ORDER BY CASE table_type WHEN 'private' THEN 0 ELSE 1 END,name"
+            ).fetchall()
+        ]
+        demo = connection.execute(
+            "SELECT value FROM app_metadata WHERE key='owner_demo_mode'"
+        ).fetchone()
+        return {"menu": menu, "tables": tables, "ownerDemoMode": bool(demo and str(demo["value"]) == "1")}
+    finally:
+        connection.close()
 
 
 def _read_json(response) -> dict:
@@ -187,6 +229,17 @@ class MemberGatewayHandler(BaseHTTPRequestHandler):
             status, payload, _ = _upstream(build_opener(), "/api/health")
             healthy = status == 200 and payload.get("status") == "ok" and payload.get("database") == "ok"
             self._send_json(200 if healthy else 503, {"status": "ok" if healthy else "unavailable"}, cors=False)
+            return
+        if self.path in {PUBLIC_KITCHEN_MENU_PATH, PUBLIC_POOL_TABLES_PATH}:
+            try:
+                catalog = _public_catalog()
+            except sqlite3.Error:
+                self._send_json(503, {"error": "catalog_unavailable"}, cors=False)
+                return
+            if self.path == PUBLIC_KITCHEN_MENU_PATH:
+                self._send_json(200, {"items": catalog["menu"], "ownerDemoMode": catalog["ownerDemoMode"]}, cors=False)
+            else:
+                self._send_json(200, {"tables": catalog["tables"], "ownerDemoMode": catalog["ownerDemoMode"]}, cors=False)
             return
         self._send_json(404, {"error": "not_found"}, cors=False)
 

@@ -42,6 +42,10 @@
 | NG-038 | Add Need For Strength Privacy/Terms pages and legal-review launch gate | DONE — production launch requires explicit legal review confirmation | Commercial candidate |
 | NG-039 | Supply final commercial configuration: hours, approved prices/rates/menu, dedicated Firebase, named Cloudflare tunnel and off-device backup | BLOCKED — owner/external inputs required | Not deployed |
 | NG-040 | Final-domain production browser/cutover acceptance on exact release | BLOCKED by NG-039 | Not deployed |
+| NG-041 | Add prominent BCA body-composition feature to customer website | DONE — customer section + dedicated AI visual + safety copy | Pending owner-demo deploy |
+| NG-042 | Publish live kitchen catalog on a separate customer page | DONE — read-only catalog endpoint + dynamic menu page | Pending owner-demo deploy |
+| NG-043 | Publish The Cue Master three-table page with reservation-request flow | DONE — 1 private + 2 common, live rates/status, WhatsApp confirmation request | Pending owner-demo deploy |
+| NG-044 | Replace copied Gravity customer imagery with original Need For Strength AI imagery | DONE — old copied image assets removed and four NFS assets wired | Pending owner-demo deploy |
 
 ## Current release candidates
 

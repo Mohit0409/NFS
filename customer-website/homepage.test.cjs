@@ -50,7 +50,7 @@ test('membership prices are configuration-driven and never inherit Gravity price
 });
 
 test('premium restyle preserves every homepage section and its order', () => {
-  const expected = ['home', 'membership', 'cue-master', 'about', 'bmi', 'nutrition', 'exercise-library', 'inside-gym', 'enquiry', 'contact'];
+  const expected = ['home', 'membership', 'bca', 'cue-master', 'kitchen', 'about', 'bmi', 'nutrition', 'exercise-library', 'inside-gym', 'enquiry', 'contact'];
   const actual = Array.from(homepage.matchAll(/<section[^>]+id="([^"]+)"/g), (match) => match[1]);
   assert.deepEqual(actual, expected);
 });
@@ -82,6 +82,41 @@ test('commercial public legal pages are linked and present', () => {
   assert.equal(fs.existsSync(path.join(root, 'web', 'pages', 'terms.html')), true);
 });
 
+test('BCA, kitchen menu and pool reservation are customer-facing', () => {
+  const poolPage = fs.readFileSync(path.join(root, 'web', 'pages', 'pool.html'), 'utf8');
+  const kitchenPage = fs.readFileSync(path.join(root, 'web', 'pages', 'kitchen.html'), 'utf8');
+  assert.match(homepage, /id="bca"[\s\S]*?BCA Machine/);
+  for (const metric of ['Body Fat %', 'Muscle Mass', 'Visceral Fat', 'Body Water %', 'Metabolic Age']) {
+    assert.match(homepage, new RegExp(metric.replace('%', '\\%')));
+  }
+  assert.match(homepage, /pages\/pool\.html/);
+  assert.match(homepage, /pages\/kitchen\.html/);
+  assert.match(poolPage, /Three tables\. Your game\./);
+  assert.match(poolPage, /one private table and two common tables/i);
+  assert.match(poolPage, /id="pool-reservation-form"/);
+  assert.match(poolPage, /nfs-pool-tables\.webp/);
+  assert.match(kitchenPage, /id="kitchen-menu-root"/);
+  assert.match(kitchenPage, /nfs-kitchen-menu\.webp/);
+});
+
+test('customer website uses dedicated Need For Strength AI imagery instead of copied Gravity photos', () => {
+  const required = [
+    'nfs-gym-hero.webp',
+    'nfs-bca-machine.webp',
+    'nfs-kitchen-menu.webp',
+    'nfs-pool-tables.webp'
+  ];
+  for (const name of required) {
+    assert.equal(fs.existsSync(path.join(root, 'web', 'assets', 'images', name)), true, name);
+  }
+  const customerHtml = [
+    homepage,
+    fs.readFileSync(path.join(root, 'web', 'pages', 'pool.html'), 'utf8'),
+    fs.readFileSync(path.join(root, 'web', 'pages', 'kitchen.html'), 'utf8')
+  ].join('\n');
+  assert.doesNotMatch(customerHtml, /hero-fighter\.png|bodybuilder-cap\.jpg|trainer-pt\.jpg|trainer-mirror\.jpg|flexing-pose\.jpg/);
+});
+
 test('commercial fallback branding is Need For Strength, not the copied New Gym placeholder', () => {
   const customerFiles = [
     path.join(root, 'web', 'index.html'),
@@ -90,7 +125,10 @@ test('commercial fallback branding is Need For Strength, not the copied New Gym 
     path.join(root, 'web', 'pages', 'member-login.html'),
     path.join(root, 'web', 'pages', 'privacy.html'),
     path.join(root, 'web', 'pages', 'terms.html'),
+    path.join(root, 'web', 'pages', 'pool.html'),
+    path.join(root, 'web', 'pages', 'kitchen.html'),
     path.join(root, 'web', 'js', 'runtime-config.js'),
+    path.join(root, 'web', 'js', 'public-operations.js'),
     path.join(root, 'web', 'js', 'site.js'),
     path.join(root, 'web', 'js', 'diet-planner.js'),
     path.join(root, 'web', 'js', 'exercises.js'),
