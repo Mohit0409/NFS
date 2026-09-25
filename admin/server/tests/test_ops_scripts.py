@@ -879,6 +879,8 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("stop-owner-demo-standalone.sh", bootstrap)
         self.assertIn("OWNER_DEMO_BOOTSTRAP=PASS", bootstrap)
         self.assertNotIn('DELETE "$NGROK_API/command_line"', bootstrap)
+        self.assertNotIn("/tmp/", bootstrap)
+        self.assertNotIn("/tmp/", OWNER_DEMO_USB_PREFLIGHT.read_text(encoding="utf-8"))
 
         self.assertIn('TUNNEL_NAME="nfs-owner-demo"', stopper)
         self.assertIn('DELETE "$NGROK_API/$TUNNEL_NAME"', stopper)

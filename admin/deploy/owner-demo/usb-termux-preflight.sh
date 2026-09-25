@@ -5,6 +5,9 @@ REPORT="${1:-/sdcard/Download/need-for-strength-owner-demo-preflight.txt}"
 EXPECTED_USER="u0_a304"
 EXPECTED_MODEL="23124RN87I"
 NGROK_API="http://127.0.0.1:4040/api/tunnels"
+TMP_ROOT="${TMPDIR:-${PREFIX:-/data/data/com.termux/files/usr}/tmp}"
+NGROK_JSON="$TMP_ROOT/nfs-ngrok-tunnels.json"
+mkdir -p "$TMP_ROOT"
 READY=true
 BLOCKERS=""
 
@@ -80,9 +83,9 @@ PY
     add_blocker python_package_index_unreachable
   fi
 
-  if curl -fsS --max-time 3 "$NGROK_API" >/tmp/nfs-ngrok-tunnels.json 2>/dev/null; then
+  if curl -fsS --max-time 3 "$NGROK_API" >"$NGROK_JSON" 2>/dev/null; then
     value ngrokAgentApi ok
-    tunnel_summary="$(python3 - /tmp/nfs-ngrok-tunnels.json <<'PY'
+    tunnel_summary="$(python3 - "$NGROK_JSON" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     data = json.load(handle)
@@ -96,7 +99,7 @@ print(";".join(parts))
 PY
 )"
     value existingNgrokTunnels "$tunnel_summary"
-    if python3 - /tmp/nfs-ngrok-tunnels.json <<'PY'
+    if python3 - "$NGROK_JSON" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     data = json.load(handle)
@@ -111,7 +114,7 @@ PY
     value ngrokAgentApi unavailable
     add_blocker ngrok_agent_api_unavailable
   fi
-  rm -f /tmp/nfs-ngrok-tunnels.json
+  rm -f "$NGROK_JSON"
 
   for port in 8897 8898 8899 8900; do
     state="$(port_state "$port")"

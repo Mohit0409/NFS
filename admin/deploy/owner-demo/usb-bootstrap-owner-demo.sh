@@ -7,8 +7,13 @@ HASH_FILE="${2:-/sdcard/Download/need-for-strength-owner-demo.sha256}"
 COMMIT_FILE="${3:-/sdcard/Download/need-for-strength-owner-demo.commit}"
 RESULT="${4:-/sdcard/Download/need-for-strength-owner-demo-result.txt}"
 NGROK_API="http://127.0.0.1:4040/api/tunnels"
+TMP_ROOT="${TMPDIR:-${PREFIX:-/data/data/com.termux/files/usr}/tmp}"
+BEFORE_JSON="$TMP_ROOT/nfs-owner-demo-ngrok-before.json"
+AFTER_JSON="$TMP_ROOT/nfs-owner-demo-ngrok-after.json"
 EXPECTED_USER="u0_a304"
 EXPECTED_MODEL="23124RN87I"
+
+mkdir -p "$TMP_ROOT"
 
 exec > >(tee "$RESULT") 2>&1
 
@@ -56,8 +61,8 @@ free_kb="$(df -Pk "$HOME" | awk 'NR==2 {print $4}')"
 case "$free_kb" in ''|*[!0-9]*) fail "unable to read free storage" ;; esac
 [ "$free_kb" -ge 524288 ] || fail "less than 512 MB free storage"
 
-curl -fsS --max-time 3 "$NGROK_API" >/tmp/nfs-owner-demo-ngrok-before.json || fail "existing ngrok Agent API is unavailable"
-python3 - /tmp/nfs-owner-demo-ngrok-before.json <<'PY' || fail "existing ngrok API response is invalid"
+curl -fsS --max-time 3 "$NGROK_API" >"$BEFORE_JSON" || fail "existing ngrok Agent API is unavailable"
+python3 - "$BEFORE_JSON" <<'PY' || fail "existing ngrok API response is invalid"
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     data = json.load(handle)
@@ -117,8 +122,8 @@ trap cleanup_failed_install EXIT
 cd "$APP"
 bash admin/deploy/owner-demo/install-owner-demo-standalone.sh
 
-curl -fsS --max-time 3 "$NGROK_API" >/tmp/nfs-owner-demo-ngrok-after.json
-python3 - /tmp/nfs-owner-demo-ngrok-before.json /tmp/nfs-owner-demo-ngrok-after.json <<'PY'
+curl -fsS --max-time 3 "$NGROK_API" >"$AFTER_JSON"
+python3 - "$BEFORE_JSON" "$AFTER_JSON" <<'PY'
 import json, sys
 before = json.load(open(sys.argv[1], encoding="utf-8"))
 after = json.load(open(sys.argv[2], encoding="utf-8"))
@@ -135,7 +140,7 @@ print("EXISTING_NGROK_TUNNELS=PRESERVED")
 PY
 
 trap - EXIT
-rm -f /tmp/nfs-owner-demo-ngrok-before.json /tmp/nfs-owner-demo-ngrok-after.json
+rm -f "$BEFORE_JSON" "$AFTER_JSON"
 
 echo "OWNER_DEMO_BOOTSTRAP=PASS"
 echo "Commit: $commit"
