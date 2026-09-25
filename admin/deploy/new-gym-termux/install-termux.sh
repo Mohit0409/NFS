@@ -89,7 +89,8 @@ prepare_public_release() {
   mkdir -p "$releases_root"
   git_sha="$(git -C "$PROJECT_ROOT" rev-parse --short=12 HEAD 2>/dev/null || printf 'nogit')"
   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-  release="$releases_root/$stamp-$git_sha"
+  release_id="$stamp-$git_sha"
+  release="$releases_root/$release_id"
   staging="$release.staging.$$"
   rm -rf "$staging"
   cp -R "$source_root" "$staging"
@@ -103,6 +104,30 @@ prepare_public_release() {
       --config "$CONFIG" \
       --output "$staging/js/gym-config.js"
   fi
+  python3 - "$staging" "$release_id" "$git_sha" "$require_complete" <<'PY'
+import hashlib
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+root = Path(sys.argv[1])
+config = root / "js" / "gym-config.js"
+manifest = {
+    "releaseId": sys.argv[2],
+    "gitCommit": sys.argv[3],
+    "createdAt": int(time.time()),
+    "customerConfigSha256": hashlib.sha256(config.read_bytes()).hexdigest(),
+    "complete": sys.argv[4].lower() == "true",
+}
+path = root / ".new-gym-release.json"
+path.write_text(json.dumps(manifest, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+os.chmod(path, 0o600)
+PY
+  python3 "$REPO/deploy/new-gym-termux/verify-public-release.py" \
+    --release "$staging" \
+    --release-id "$release_id"
   mv "$staging" "$release"
   ln -sfn "$release" "$DATA/public-current"
   printf '%s\n' "$release" > "$STATE/public-release"

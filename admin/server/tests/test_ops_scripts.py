@@ -13,6 +13,7 @@ ENV_RUNNER = ROOT / "scripts" / "gravity-env.py"
 NEW_GYM_PREFLIGHT = ROOT / "deploy" / "new-gym-termux" / "preflight-new-gym.py"
 NEW_GYM_ACCEPTANCE = ROOT / "deploy" / "new-gym-termux" / "acceptance-new-gym.py"
 NEW_GYM_CUSTOMER_RENDERER = ROOT / "deploy" / "new-gym-termux" / "render-customer-config.py"
+NEW_GYM_PUBLIC_RELEASE_VERIFIER = ROOT / "deploy" / "new-gym-termux" / "verify-public-release.py"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -624,6 +625,46 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("membership_oneMonth", blockers)
         self.assertIn("firebase_projectId", blockers)
 
+    def test_new_gym_public_release_verifier_rejects_tampering_and_gravity_values(self) -> None:
+        spec = importlib.util.spec_from_file_location("new_gym_release_verifier", NEW_GYM_PUBLIC_RELEASE_VERIFIER)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        import hashlib
+        import json
+
+        with TemporaryDirectory() as temporary:
+            release = Path(temporary) / "20260925T100000Z-abcdef123456"
+            (release / "js").mkdir(parents=True)
+            (release / "index.html").write_text("<html>New Gym</html>", encoding="utf-8")
+            config = release / "js" / "gym-config.js"
+            config.write_text("window.NEW_GYM_CONFIG={name:'Verified Fitness Club'};\n", encoding="utf-8")
+            digest = hashlib.sha256(config.read_bytes()).hexdigest()
+            manifest = {
+                "releaseId": release.name,
+                "gitCommit": "abcdef123456",
+                "createdAt": 1900000000,
+                "customerConfigSha256": digest,
+                "complete": True,
+            }
+            (release / ".new-gym-release.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            verified = module.verify_release(release, expected_release_id=release.name)
+            self.assertTrue(verified["ready"])
+            self.assertEqual(verified["gitCommit"], "abcdef123456")
+
+            config.write_text("window.NEW_GYM_CONFIG={name:'Changed'};\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                module.verify_release(release, expected_release_id=release.name)
+
+            config.write_text("window.NEW_GYM_CONFIG={projectId:'gravity-authe'};\n", encoding="utf-8")
+            manifest["customerConfigSha256"] = hashlib.sha256(config.read_bytes()).hexdigest()
+            (release / ".new-gym-release.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Gravity live values"):
+                module.verify_release(release, expected_release_id=release.name)
+
     def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
         spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)
         self.assertIsNotNone(spec)
@@ -700,6 +741,8 @@ class OperationsScriptTests(unittest.TestCase):
         backup = (profile / "backup-offdevice.sh").read_text(encoding="utf-8")
         runtime = (profile / "prepare-python-runtime.sh").read_text(encoding="utf-8")
         renderer = (profile / "render-customer-config.py").read_text(encoding="utf-8")
+        verifier = (profile / "verify-public-release.py").read_text(encoding="utf-8")
+        rollback = (profile / "rollback-public-site.sh").read_text(encoding="utf-8")
         web_service = (profile / "services" / "new-gym-web" / "run").read_text(encoding="utf-8")
         preflight = (profile / "preflight-new-gym.py").read_text(encoding="utf-8")
         example = (profile / "new-gym.env.example").read_text(encoding="utf-8")
@@ -729,6 +772,13 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertNotIn("customer-website/web", web_service)
         self.assertIn("NEW_GYM_PUBLIC_CONFIG_PATH", preflight)
         self.assertIn("membershipPricesPaise", renderer)
+        self.assertIn(".new-gym-release.json", installer)
+        self.assertIn("verify-public-release.py", installer)
+        self.assertIn("customerConfigSha256", verifier)
+        self.assertIn("GRAVITY_MARKERS", verifier)
+        self.assertIn("verify-public-release.py", rollback)
+        self.assertIn("sv restart new-gym-web", rollback)
+        self.assertIn('case "$release_id"', rollback)
         for key in (
             "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED=false",
             "NEW_GYM_POOL_RATES_CONFIRMED=false",
