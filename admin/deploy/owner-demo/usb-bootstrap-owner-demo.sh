@@ -92,22 +92,6 @@ if not isinstance(data.get("tunnels", []), list):
     raise SystemExit(1)
 PY
 
-port_is_free() {
-  python3 - "$1" <<'PY'
-import socket, sys
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-    sock.bind(("127.0.0.1", int(sys.argv[1])))
-except OSError:
-    raise SystemExit(1)
-finally:
-    sock.close()
-PY
-}
-for port in 8897 8898 8899 8900; do
-  port_is_free "$port" || fail "TCP port $port is already in use"
-done
-
 APP_ROOT="$HOME/apps/need-for-strength-owner-demo"
 STATE_ROOT="$HOME/.local/state/need-for-strength-owner-demo"
 CONFIG_ROOT="$HOME/.config/need-for-strength-owner-demo"
@@ -125,6 +109,56 @@ PY
 then
   fail "nfs-owner-demo tunnel already exists; stop the existing demo before first-install cleanup"
 fi
+
+stop_orphan_pid() {
+  pid="$1"
+  marker="$2"
+  label="$3"
+  cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+  case "$cmdline" in
+    *"$APP_ROOT/"*"$marker"*) ;;
+    *) fail "refusing orphan cleanup for PID $pid because it is outside the Need For Strength owner-demo app root" ;;
+  esac
+  kill "$pid"
+  for _ in $(seq 1 40); do
+    kill -0 "$pid" 2>/dev/null || { echo "Stopped residual owner-demo $label (PID $pid)."; return 0; }
+    sleep 0.25
+  done
+  fail "residual owner-demo $label PID $pid did not stop cleanly"
+}
+
+cleanup_orphan_components() {
+  for proc in /proc/[0-9]*; do
+    [ -r "$proc/cmdline" ] || continue
+    pid="${proc##*/}"
+    [ "$pid" = "$$" ] && continue
+    cmdline="$(tr '\0' ' ' < "$proc/cmdline" 2>/dev/null || true)"
+    case "$cmdline" in
+      *"$APP_ROOT/"*"member_gateway.py"*) stop_orphan_pid "$pid" "member_gateway.py" "member gateway" ;;
+      *"$APP_ROOT/"*"demo-edge.py"*) stop_orphan_pid "$pid" "demo-edge.py" "demo edge" ;;
+      *"$APP_ROOT/"*"http.server 8899"*) stop_orphan_pid "$pid" "http.server 8899" "customer web" ;;
+      *"$APP_ROOT/"*"server.gravity"*) stop_orphan_pid "$pid" "server.gravity" "admin backend" ;;
+    esac
+  done
+}
+
+cleanup_orphan_components
+
+port_is_free() {
+  python3 - "$1" <<'PY'
+import socket, sys
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    sock.bind(("127.0.0.1", int(sys.argv[1])))
+except OSError:
+    raise SystemExit(1)
+finally:
+    sock.close()
+PY
+}
+for port in 8897 8898 8899 8900; do
+  port_is_free "$port" || fail "TCP port $port is already in use"
+done
 
 if [ -e "$APP_ROOT" ]; then
   [ -d "$APP_ROOT" ] || fail "owner-demo app root exists but is not a directory"

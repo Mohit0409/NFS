@@ -896,6 +896,11 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn(".nfs-owner-demo-release", bootstrap)
         self.assertIn("owner-demo app root contains unmanaged or malformed content", bootstrap)
         self.assertIn("nfs-owner-demo tunnel already exists", bootstrap)
+        self.assertIn("cleanup_orphan_components", bootstrap)
+        self.assertIn('*"$APP_ROOT/"*"member_gateway.py"*' , bootstrap)
+        self.assertIn('*"$APP_ROOT/"*"demo-edge.py"*' , bootstrap)
+        self.assertIn('*"$APP_ROOT/"*"http.server 8899"*' , bootstrap)
+        self.assertIn('*"$APP_ROOT/"*"server.gravity"*' , bootstrap)
         self.assertIn("wait_ngrok_api_to_file", bootstrap)
         self.assertIn("did not become ready within 60 seconds", bootstrap)
         self.assertIn("did not recover after owner-demo install", bootstrap)
@@ -904,8 +909,14 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertNotIn("/tmp/", OWNER_DEMO_USB_PREFLIGHT.read_text(encoding="utf-8"))
 
         self.assertIn('TUNNEL_NAME="nfs-owner-demo"', stopper)
+        self.assertIn("stop_orphaned_components", stopper)
+        self.assertIn('*"$APP_ROOT/"*"$marker"*' , stopper)
         self.assertIn('DELETE "$NGROK_API/$TUNNEL_NAME"', stopper)
         self.assertNotIn("command_line", stopper)
+        self.assertNotIn("universal-gym-saas", stopper)
+        self.assertNotIn("local-store-track", stopper)
+        self.assertNotIn("universal-gym-saas", bootstrap)
+        self.assertNotIn("local-store-track", bootstrap)
 
     def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
         spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)
