@@ -59,9 +59,7 @@ if ! curl -fsS --max-time 3 "$NGROK_API" >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -x "$REPO/.venv/bin/python" ]; then
-  NEW_GYM_VENV="$REPO/.venv" bash "$REPO/deploy/new-gym-termux/prepare-python-runtime.sh"
-fi
+OWNER_DEMO_VENV="$REPO/.venv" bash "$PROFILE/prepare-owner-demo-runtime.sh"
 PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
 PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
 [ -x "$PYTHON" ] || { echo "Python runtime is missing: $PYTHON" >&2; exit 1; }

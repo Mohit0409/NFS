@@ -19,6 +19,9 @@ OWNER_DEMO_SEED = OWNER_DEMO_ROOT / "seed-owner-demo.py"
 OWNER_DEMO_EDGE = OWNER_DEMO_ROOT / "demo-edge.py"
 OWNER_DEMO_SYNC = OWNER_DEMO_ROOT / "sync-ngrok-url.py"
 OWNER_DEMO_PC_DEPLOYER = OWNER_DEMO_ROOT / "deploy-from-pc.ps1"
+OWNER_DEMO_RUNTIME = OWNER_DEMO_ROOT / "prepare-owner-demo-runtime.sh"
+OWNER_DEMO_STANDALONE = OWNER_DEMO_ROOT / "install-owner-demo-standalone.sh"
+OWNER_DEMO_USB_PREFLIGHT = OWNER_DEMO_ROOT / "usb-termux-preflight.sh"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -811,6 +814,33 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("OWNER_DEMO_MODE=true", example)
         self.assertNotIn("CLOUDFLARED_TOKEN", example)
         self.assertNotIn("NGROK_AUTHTOKEN", example)
+
+    def test_need_for_strength_owner_demo_lightweight_runtime_skips_firebase_extra(self) -> None:
+        runtime = OWNER_DEMO_RUNTIME.read_text(encoding="utf-8")
+        standalone = OWNER_DEMO_STANDALONE.read_text(encoding="utf-8")
+        preflight = OWNER_DEMO_USB_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("python3 -m venv --system-site-packages", runtime)
+        self.assertIn("--no-deps --no-build-isolation", runtime)
+        self.assertIn('importlib.import_module(name)', runtime)
+        self.assertIn('("cryptography", "server.gravity")', runtime)
+        self.assertIn("OWNER_DEMO_FIREBASE_ADMIN_PRESENT", runtime)
+        self.assertNotIn("[firebase]", runtime)
+        self.assertNotIn("pip install --upgrade", runtime)
+
+        self.assertIn("prepare-owner-demo-runtime.sh", standalone)
+        self.assertNotIn("prepare-python-runtime.sh", standalone)
+        self.assertNotIn("[firebase]", standalone)
+        self.assertIn('TUNNEL_NAME="nfs-owner-demo"', standalone)
+        self.assertIn("owner_demo_addr", standalone)
+        self.assertIn("http://127.0.0.1:8900", standalone)
+        self.assertNotIn('DELETE "$NGROK_API/command_line"', standalone)
+
+        self.assertIn("ngrokAgentApi", preflight)
+        self.assertIn("pythonPackageIndex", preflight)
+        self.assertIn('add_blocker "port_${port}_busy"', preflight)
+        self.assertNotIn("ngrok config check", preflight)
+        self.assertNotIn("command_sv", preflight)
 
     def test_need_for_strength_owner_demo_pc_deployer_is_fail_closed(self) -> None:
         script = OWNER_DEMO_PC_DEPLOYER.read_text(encoding="utf-8")
