@@ -82,6 +82,35 @@ fi
 [ -d "$PROJECT_ROOT/customer-website/web" ] || { echo "Customer website is missing." >&2; exit 1; }
 [ -r "$PROJECT_ROOT/customer-website/gateway/member_gateway.py" ] || { echo "Member gateway is missing." >&2; exit 1; }
 
+prepare_public_release() {
+  require_complete="${1:-false}"
+  source_root="$PROJECT_ROOT/customer-website/web"
+  releases_root="$DATA/public-releases"
+  mkdir -p "$releases_root"
+  git_sha="$(git -C "$PROJECT_ROOT" rev-parse --short=12 HEAD 2>/dev/null || printf 'nogit')"
+  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  release="$releases_root/$stamp-$git_sha"
+  staging="$release.staging.$$"
+  rm -rf "$staging"
+  cp -R "$source_root" "$staging"
+  if [ "$require_complete" = true ]; then
+    python3 "$REPO/deploy/new-gym-termux/render-customer-config.py" \
+      --config "$CONFIG" \
+      --output "$staging/js/gym-config.js" \
+      --require-complete
+  else
+    python3 "$REPO/deploy/new-gym-termux/render-customer-config.py" \
+      --config "$CONFIG" \
+      --output "$staging/js/gym-config.js"
+  fi
+  mv "$staging" "$release"
+  ln -sfn "$release" "$DATA/public-current"
+  printf '%s\n' "$release" > "$STATE/public-release"
+  chmod 600 "$STATE/public-release"
+}
+
+prepare_public_release false
+
 install_service() {
   name=$1
   source=$2
@@ -121,6 +150,7 @@ if $ENABLE_TUNNEL; then
   command -v cloudflared >/dev/null 2>&1 || { echo "cloudflared is required for --enable-tunnel." >&2; exit 1; }
   [ -s "$CONFIG_DIR/cloudflared-token" ] || { echo "Create the mode-600 Cloudflare token first." >&2; exit 1; }
   chmod 600 "$CONFIG_DIR/cloudflared-token"
+  prepare_public_release true
   python3 "$REPO/deploy/new-gym-termux/preflight-new-gym.py" --config "$CONFIG" --stage launch
   python3 "$REPO/deploy/new-gym-termux/acceptance-new-gym.py" --config "$CONFIG" --skip-launch-preflight
   touch "$CONFIG_DIR/enable-tunnel"

@@ -4,11 +4,17 @@ umask 077
 
 CONFIG="${NEW_GYM_ENV_FILE:-$HOME/.config/new-gym/new-gym.env}"
 REPO="$(cat "$HOME/.config/new-gym/repository")"
-PROJECT_ROOT="$(CDPATH= cd -- "$REPO/.." && pwd)"
-WEB_ROOT="$PROJECT_ROOT/customer-website/web"
-[ -d "$WEB_ROOT" ] || { echo "Customer website is missing: $WEB_ROOT" >&2; exit 1; }
+[ -r "$CONFIG" ] || { echo "New Gym config is missing: $CONFIG" >&2; exit 1; }
 PORT="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print NEW_GYM_PUBLIC_PORT)"
 PORT="${PORT:-8899}"
+WEB_ROOT="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print NEW_GYM_PUBLIC_ROOT)"
+WEB_ROOT="${WEB_ROOT:-$HOME/.local/share/new-gym/public-current}"
+case "$WEB_ROOT" in
+  "$HOME"/.local/share/new-gym/*) ;;
+  *) echo "Refusing public root outside New Gym data directory: $WEB_ROOT" >&2; exit 1 ;;
+esac
+[ -f "$WEB_ROOT/index.html" ] || { echo "Prepared New Gym customer website is missing: $WEB_ROOT" >&2; exit 1; }
+[ -f "$WEB_ROOT/js/gym-config.js" ] || { echo "Prepared New Gym customer config is missing: $WEB_ROOT/js/gym-config.js" >&2; exit 1; }
 PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
 PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
 [ -x "$PYTHON" ] || { echo "New Gym Python is missing: $PYTHON" >&2; exit 1; }

@@ -309,12 +309,12 @@ def validate(
         check("customer_no_gravity_live_values", no_live_gravity, "Customer config must not contain Gravity live values")
         customer_ready = bool(customer_config_text)
         for pattern in (
-            r"name:\s*['\"]new gym['\"]",
-            r"phoneDisplay:\s*['\"]\s*['\"]",
-            r"whatsappNumber:\s*['\"]\s*['\"]",
-            r"address:\s*['\"]\s*['\"]",
-            r"memberGatewayBase:\s*['\"]\s*['\"]",
-            r"projectId:\s*['\"]\s*['\"]",
+            r"""["']?name["']?\s*:\s*["']new gym["']""",
+            r"""["']?phoneDisplay["']?\s*:\s*["']\s*["']""",
+            r"""["']?whatsappNumber["']?\s*:\s*["']\s*["']""",
+            r"""["']?address["']?\s*:\s*["']\s*["']""",
+            r"""["']?memberGatewayBase["']?\s*:\s*["']\s*["']""",
+            r"""["']?projectId["']?\s*:\s*["']\s*["']""",
         ):
             if re.search(pattern, customer_config_text, re.IGNORECASE):
                 customer_ready = False
@@ -384,10 +384,15 @@ def main() -> int:
 
     values = load_env(config_path)
     project_root = Path(__file__).resolve().parents[3]
+    configured_customer_path = values.get("NEW_GYM_PUBLIC_CONFIG_PATH", "").strip()
     customer_config_path = (
         Path(args.customer_config).expanduser()
         if args.customer_config
-        else project_root / "customer-website" / "web" / "js" / "gym-config.js"
+        else (
+            Path(configured_customer_path).expanduser()
+            if configured_customer_path
+            else project_root / "customer-website" / "web" / "js" / "gym-config.js"
+        )
     )
     customer_text = customer_config_path.read_text(encoding="utf-8") if customer_config_path.is_file() else ""
     database_state = None

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ENV_RUNNER = ROOT / "scripts" / "gravity-env.py"
 NEW_GYM_PREFLIGHT = ROOT / "deploy" / "new-gym-termux" / "preflight-new-gym.py"
 NEW_GYM_ACCEPTANCE = ROOT / "deploy" / "new-gym-termux" / "acceptance-new-gym.py"
+NEW_GYM_CUSTOMER_RENDERER = ROOT / "deploy" / "new-gym-termux" / "render-customer-config.py"
 
 
 class OperationsScriptTests(unittest.TestCase):
@@ -543,6 +544,86 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertFalse(stale["fresh"])
         self.assertFalse(mismatch["remoteMatches"])
 
+    def test_new_gym_customer_config_renderer_uses_protected_env_and_live_prices(self) -> None:
+        spec = importlib.util.spec_from_file_location("new_gym_customer_renderer", NEW_GYM_CUSTOMER_RENDERER)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            database_path = root / "new-gym.sqlite3"
+            database = Database(database_path, ROOT / "server" / "migrations")
+            database.migrate()
+            with database.session() as connection:
+                connection.execute(
+                    "UPDATE membership_plans SET price_paise=150000,status='active' WHERE id='plan-basic-monthly'"
+                )
+                connection.execute(
+                    "UPDATE membership_plans SET price_paise=390000,status='active' WHERE id='plan-pro-monthly'"
+                )
+                connection.execute(
+                    "UPDATE membership_plans SET price_paise=1200000,status='active' WHERE id='plan-elite-monthly'"
+                )
+                connection.commit()
+
+            values = {
+                "BUSINESS_NAME": "Verified Fitness Club",
+                "BUSINESS_SHORT_NAME": "VFC",
+                "BUSINESS_CITY": "Neemuch",
+                "BUSINESS_ADDRESS": "Verified address",
+                "BUSINESS_OPENING_HOURS": "6 AM - 10 PM",
+                "OWNER_PHONE": "+91 98765 43210",
+                "OWNER_WHATSAPP": "919876543210",
+                "BUSINESS_INSTAGRAM": "https://instagram.com/verifiedfitness",
+                "BUSINESS_MAP_URL": "https://maps.google.com/?q=verified",
+                "BUSINESS_MAP_EMBED_URL": "https://www.google.com/maps/embed?pb=verified",
+                "NEW_GYM_PUBLIC_SITE_URL": "https://gym.example.org",
+                "NEW_GYM_MEMBER_ALLOWED_ORIGINS": "https://gym.example.org",
+                "FIREBASE_PROJECT_ID": "new-gym-auth",
+                "FIREBASE_WEB_API_KEY": "public-web-key",
+                "FIREBASE_AUTH_DOMAIN": "new-gym-auth.firebaseapp.com",
+                "FIREBASE_APP_ID": "1:123:web:newgym",
+            }
+            prices = module.load_membership_prices(database_path)
+            config = module.build_config(values, prices)
+
+        self.assertEqual(config["name"], "Verified Fitness Club")
+        self.assertEqual(config["shortName"], "VFC")
+        self.assertEqual(config["city"], "Neemuch")
+        self.assertEqual(config["phoneHref"], "tel:+919876543210")
+        self.assertEqual(config["whatsappNumber"], "919876543210")
+        self.assertEqual(config["memberGatewayBase"], "https://gym.example.org")
+        self.assertEqual(
+            config["membershipPricesPaise"],
+            {
+                "trial": None,
+                "oneMonth": 150000,
+                "threeMonths": 390000,
+                "oneYear": 1200000,
+            },
+        )
+        self.assertEqual(module.validate_complete(config), [])
+        rendered = module.render(config)
+        self.assertIn("Verified Fitness Club", rendered)
+        self.assertIn('"oneMonth": 150000', rendered)
+        for marker in ("gravityfitnessnmh", "gravity-authe", "917999526112"):
+            self.assertNotIn(marker, rendered)
+
+        incomplete = module.build_config(
+            {
+                "BUSINESS_NAME": "New Gym",
+                "NEW_GYM_MEMBER_ALLOWED_ORIGINS": "https://www.new-gym.example",
+            },
+            {"trial": None, "oneMonth": None, "threeMonths": None, "oneYear": None},
+        )
+        blockers = module.validate_complete(incomplete)
+        self.assertIn("business_name", blockers)
+        self.assertIn("city", blockers)
+        self.assertIn("membership_oneMonth", blockers)
+        self.assertIn("firebase_projectId", blockers)
+
     def test_new_gym_local_acceptance_requires_loopback_services_and_tunnel_down(self) -> None:
         spec = importlib.util.spec_from_file_location("new_gym_acceptance", NEW_GYM_ACCEPTANCE)
         self.assertIsNotNone(spec)
@@ -618,6 +699,9 @@ class OperationsScriptTests(unittest.TestCase):
         installer = (profile / "install-termux.sh").read_text(encoding="utf-8")
         backup = (profile / "backup-offdevice.sh").read_text(encoding="utf-8")
         runtime = (profile / "prepare-python-runtime.sh").read_text(encoding="utf-8")
+        renderer = (profile / "render-customer-config.py").read_text(encoding="utf-8")
+        web_service = (profile / "services" / "new-gym-web" / "run").read_text(encoding="utf-8")
+        preflight = (profile / "preflight-new-gym.py").read_text(encoding="utf-8")
         example = (profile / "new-gym.env.example").read_text(encoding="utf-8")
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn("preflight-new-gym.py", installer)
@@ -636,12 +720,26 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn('GRAVITY_PYTHON=', example)
         self.assertNotIn('GRAVITY_PYTHON=/data/data/', example)
         self.assertIn('name = "new-gym-platform"', pyproject)
+        self.assertIn("prepare_public_release", installer)
+        self.assertIn("render-customer-config.py", installer)
+        self.assertIn("--require-complete", installer)
+        self.assertLess(installer.index("prepare_public_release true"), installer.index("--stage launch"))
+        self.assertIn("NEW_GYM_PUBLIC_ROOT", web_service)
+        self.assertIn(".local/share/new-gym/", web_service)
+        self.assertNotIn("customer-website/web", web_service)
+        self.assertIn("NEW_GYM_PUBLIC_CONFIG_PATH", preflight)
+        self.assertIn("membershipPricesPaise", renderer)
         for key in (
             "NEW_GYM_MEMBERSHIP_PRICING_CONFIRMED=false",
             "NEW_GYM_POOL_RATES_CONFIRMED=false",
             "NEW_GYM_KITCHEN_SETUP_CONFIRMED=false",
             "NEW_GYM_OFFDEVICE_BACKUP_MARKER=",
             "NEW_GYM_BACKUP_MAX_AGE_SECONDS=86400",
+            "NEW_GYM_PUBLIC_SITE_URL=",
+            "NEW_GYM_PUBLIC_ROOT=",
+            "NEW_GYM_PUBLIC_CONFIG_PATH=",
+            "BUSINESS_CITY=",
+            "BUSINESS_OPENING_HOURS=",
         ):
             self.assertIn(key, example)
         self.assertIn("rclone check", backup)
