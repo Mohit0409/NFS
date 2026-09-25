@@ -147,6 +147,21 @@ wait_http() {
   exit 1
 }
 
+wait_public_http() {
+  url="$1"
+  name="$2"
+  for _ in $(seq 1 90); do
+    if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then return 0; fi
+    if ! assert_owned_pid tunnel "cloudflared tunnel --url http://127.0.0.1:8900"; then
+      echo "Cloudflare Quick Tunnel exited while waiting for $name." >&2
+      exit 1
+    fi
+    sleep 1
+  done
+  echo "$name did not become reachable after DNS/HTTPS readiness wait: $url" >&2
+  exit 1
+}
+
 wait_http "http://127.0.0.1:8899/" "Customer site"
 wait_http "http://127.0.0.1:8900/" "Demo edge"
 
@@ -179,8 +194,8 @@ wait_http "http://127.0.0.1:8897/api/health" "Admin backend"
 wait_http "http://127.0.0.1:8898/api/health" "Member gateway"
 wait_http "http://127.0.0.1:8900/" "Demo edge"
 
-curl -fsS --max-time 15 "$public_url/" >/dev/null
-curl -fsS --max-time 15 "$public_url/api/health" >/dev/null
+wait_public_http "$public_url/" "Public customer site"
+wait_public_http "$public_url/api/health" "Public backend health"
 
 cat > "$STATE/owner-demo-url.txt" <<EOF
 Customer site: $public_url/
