@@ -908,6 +908,8 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn('TUNNEL_UPSTREAM="http://127.0.0.1:8900"', stopper)
         self.assertIn("stop_orphaned_components", stopper)
         self.assertIn('*"$APP_ROOT/"*', stopper)
+        self.assertIn('cwd="$(readlink "/proc/$pid/cwd"', stopper)
+        self.assertIn('case "$cwd" in "$APP_ROOT"/*)', stopper)
         self.assertIn('*"$marker"*', stopper)
         self.assertIn('stop_owned_pid_file web "http.server 8899"', stopper)
         self.assertIn("cloudflared", stopper)

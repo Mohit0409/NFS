@@ -18,13 +18,14 @@ stop_pid_if_owned() {
   kill -0 "$pid" 2>/dev/null || return 0
 
   cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
-  case "$cmdline" in
-    *"$APP_ROOT/"*) ;;
-    *)
-      echo "Refusing to kill PID $pid for $label: command line is outside the Need For Strength owner-demo app root." >&2
-      return 1
-      ;;
-  esac
+  cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+  owned_path=false
+  case "$cmdline" in *"$APP_ROOT/"*) owned_path=true ;; esac
+  case "$cwd" in "$APP_ROOT"/*) owned_path=true ;; esac
+  if [ "$owned_path" != true ]; then
+    echo "Refusing to kill PID $pid for $label: neither command line nor working directory is inside the Need For Strength owner-demo app root." >&2
+    return 1
+  fi
   case "$cmdline" in
     *"$marker"*) ;;
     *)

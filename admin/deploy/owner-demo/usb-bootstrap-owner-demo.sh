@@ -72,10 +72,11 @@ stop_orphan_pid() {
   marker="$2"
   label="$3"
   cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
-  case "$cmdline" in
-    *"$APP_ROOT/"*) ;;
-    *) fail "refusing orphan cleanup for PID $pid because it is outside the Need For Strength owner-demo app root" ;;
-  esac
+  cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+  owned_path=false
+  case "$cmdline" in *"$APP_ROOT/"*) owned_path=true ;; esac
+  case "$cwd" in "$APP_ROOT"/*) owned_path=true ;; esac
+  [ "$owned_path" = true ] || fail "refusing orphan cleanup for PID $pid because neither command line nor working directory is inside the Need For Strength owner-demo app root"
   case "$cmdline" in
     *"$marker"*) ;;
     *) fail "refusing orphan cleanup for PID $pid because its component marker does not match" ;;
