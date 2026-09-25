@@ -1,6 +1,6 @@
-# New Gym Platform
+# Need For Strength Platform
 
-Independent gym platform built from the proven Gravity Fitness application structure.
+Independent gym platform for **Need For Strength**, including **The Cue Master** pool lounge, built from the proven Gravity Fitness application structure.
 
 ## Safety boundary
 
@@ -33,7 +33,7 @@ Existing gym functionality retained:
 - admin accounts/permissions
 - audit and readiness
 
-### Pool
+### The Cue Master — Pool
 
 Three seeded tables:
 - Private Table
@@ -114,9 +114,10 @@ Latest schema migration: `019`.
 
 ## Branding
 
-- Backend default: `BUSINESS_NAME=New Gym`
-- Admin login/header/sidebar derive the display name from backend health/config.
-- Internal `server.gravity` / `GRAVITY_*` names remain for copied-code compatibility; OS-level services/config directories are New Gym-specific.
+- Backend default: `BUSINESS_NAME=Need For Strength`
+- Pool display name: `POOL_NAME=The Cue Master`
+- Admin login/header/sidebar and Pool workspace derive their display names from backend health/config.
+- Internal `server.gravity` / `GRAVITY_*` names remain for copied-code compatibility; OS-level services/config directories stay isolated from Gravity Fitness.
 
 ## Customer website
 
@@ -160,7 +161,32 @@ The single customer config controls:
 - Firebase Auth
 - analytics Firebase
 
-Unknown business details remain explicit placeholders. Gravity's live customer endpoints/configuration are not inherited.
+Known owner details now used in the owner preview are Need For Strength, Neemuch, the supplied Pachvati Colony / Nakoda Dham address, phone/WhatsApp 9893704372, Instagram @needforstrength, November 2026 opening announcement, and the membership/PT pricing visible in the supplied poster. Unknown production details remain explicit placeholders or are isolated demo-only values. Gravity's live customer endpoints/configuration are not inherited.
+
+## Owner demo via ngrok
+
+Dedicated preview profile:
+`admin/deploy/owner-demo/`
+
+The owner-demo profile is separate from the production Termux profile. It uses one temporary ngrok HTTPS URL:
+- `/` → customer website
+- `/admin` → admin portal
+- `/api/member/*` → member gateway
+- admin API/assets → admin backend
+
+Local demo ports remain loopback-only: admin 8897, member gateway 8898, customer site 8899, demo edge router 8900. The ngrok authtoken is managed by ngrok itself and is never stored in this repository.
+
+Demo-only values currently include:
+- opening hours: 6:00 AM–10:00 PM daily
+- The Cue Master private table: ₹300/hour
+- The Cue Master two common tables: ₹200/hour
+- sample kitchen menu, recipes and stock
+- placeholder owner email
+- Firebase/member OTP disabled for the first owner preview
+
+The demo database is stamped `owner_demo_mode=1`; the normal production launch preflight explicitly rejects that database. After owner approval, production must use a clean database and owner-approved values rather than promoting the demo DB.
+
+Start/stop instructions are in `admin/deploy/owner-demo/OWNER_DEMO.md`. The profile has been prepared and tested locally but **has not yet been installed or started on the Redmi**.
 
 ## Redmi / Termux production profile
 
@@ -187,18 +213,17 @@ Dedicated runtime locations:
 
 The installer refuses unmanaged service replacement and keeps the Cloudflare tunnel disabled until explicitly enabled. On a clean Termux host it can create the checkout-local Python virtualenv, install the New Gym package with Firebase support, and verify required runtime imports before installing services. Before `--enable-tunnel`, it also requires the local Redmi acceptance gate to prove all core services are running, all three HTTP ports are loopback-only, the tunnel is still down, health endpoints are good, and the public website does not expose admin/API routes. It also runs a fail-closed New Gym preflight before installation, and the stricter launch preflight must pass before `--enable-tunnel` can enable the public tunnel. The launch preflight reads the production SQLite database in read-only mode and rejects stale schema/integrity failures, all three untouched Gravity membership-price signatures, unset pool rates, or missing confirmed kitchen menu/stock data. It also requires a recent off-device backup marker written only after a successful rclone verification.
 
-## Required real business data before deployment
+## Remaining owner-approved data before production deployment
 
-Configure:
-- real gym name
-- city/address
-- phone/WhatsApp
-- Instagram
-- opening hours
-- membership prices
-- private/common pool rates
-- kitchen menu
-- initial kitchen stock
+Already known: Need For Strength, The Cue Master, Neemuch address, phone/WhatsApp, Instagram, and the membership/PT prices shown on the supplied opening poster.
+
+Still confirm/replace before production:
+- final opening hours
+- owner email if required
+- final membership rules/inclusions and whether every poster offer remains active
+- final private/common The Cue Master hourly rates
+- final kitchen menu/prices
+- recipes and initial kitchen stock
 - new Firebase Auth project
 - final public/admin domains
 - new Cloudflare Tunnel/token
@@ -214,7 +239,7 @@ Current verified state:
 - clean migration through `001-019`: PASS
 - Pool/Kitchen service + HTTP workflow tests: PASS
 - Pool/Kitchen admin UI contract test: PASS
-- full admin/backend regression: **244/244 PASS**
+- full admin/backend regression: **246/246 PASS**
 - local admin Chromium E2E: **6/6 PASS**
 - customer homepage tests: **8/8 PASS**
 - customer member-login tests: **9/9 PASS**
@@ -227,4 +252,4 @@ Local Chromium E2E has now been run in this isolated copy. Final-domain E2E rema
 
 ## Current state
 
-Development only. Nothing in this repository has been deployed to Gravity Fitness or to a New Gym production host.
+Owner-demo code is prepared and tested, but the ngrok demo has **not yet been started on the Redmi**. Nothing in this repository has been deployed to Gravity Fitness, Vibe4You, or a Need For Strength production host.

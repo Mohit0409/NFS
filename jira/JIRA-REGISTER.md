@@ -1,9 +1,9 @@
-# New Gym Jira Register
+# Need For Strength Jira Register
 
 | ID | Item | Status | Release state |
 | --- | --- | --- | --- |
 | NG-001 | Isolated New Gym project/repository | DONE | Not deployed |
-| NG-002 | Reuse admin portal with New Gym branding | DONE | Not deployed |
+| NG-002 | Reuse admin portal with Need For Strength branding | DONE | Not deployed |
 | NG-003 | Redesign customer website while preserving functionality | DONE | Not deployed |
 | NG-004 | Pool base: 1 private + 2 common tables, timed sessions/rates | DONE | Not deployed |
 | NG-005 | Kitchen base: menu/orders/status/payment state | DONE | Not deployed |
@@ -11,8 +11,8 @@
 | NG-007 | Pool advance reservations and check-in | DONE | Not deployed |
 | NG-008 | Kitchen manual inventory + low-stock tracking | DONE | Not deployed |
 | NG-009 | Combined Pool + Kitchen final bill/settlement | DONE | Not deployed |
-| NG-010 | Configure real gym name/contact/location/hours | BLOCKED — business data required | Not deployed |
-| NG-011 | Configure membership and pool pricing | BLOCKED — business data required | Not deployed |
+| NG-010 | Configure real gym identity/contact/location/hours | IN PROGRESS — Need For Strength, address, phone/WhatsApp and Instagram captured; owner-demo hours are temporary | Not deployed |
+| NG-011 | Configure membership and pool pricing | IN PROGRESS — poster membership/PT prices captured for owner demo; The Cue Master ₹300/₹200 hourly rates are DEMO ONLY pending owner approval | Not deployed |
 | NG-012 | Create/configure dedicated New Gym Firebase Auth | BLOCKED — credentials/project required | Not deployed |
 | NG-013 | Create/configure dedicated Cloudflare Tunnel/domains | BLOCKED — domain/tunnel required | Not deployed |
 | NG-014 | Configure dedicated off-device backups | BLOCKED — backup remote required | Not deployed |
@@ -31,14 +31,16 @@
 | NG-027 | Local Redmi acceptance gate before Cloudflare tunnel enable | DONE | Not deployed |
 | NG-028 | Generate versioned customer runtime config from protected env + live membership DB | DONE | Not deployed |
 | NG-029 | Manifest-verified customer-site release rollback | DONE | Not deployed |
+| NG-030 | Need For Strength owner preview via isolated single-URL ngrok profile | DONE — prepared/tested; not started on Redmi | Demo not deployed |
+| NG-031 | Replace owner-demo database/data with clean owner-approved production data | BLOCKED — owner approval required | Not deployed |
 
 ## Current release candidate
 
 Local Git commit:
-`a77aa98 Add guarded customer-site rollback`
+`6ac14c7 Polish Need For Strength owner demo`
 
 Verification at this point:
-- backend: 244/244 PASS
+- backend: 246/246 PASS
 - local admin Chromium: 6/6 PASS
 - customer homepage: 8/8 PASS
 - customer member-login: 9/9 PASS

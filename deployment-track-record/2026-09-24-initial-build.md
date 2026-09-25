@@ -140,6 +140,30 @@ This record documents local development milestones only.
    - web service is restarted and locally checked after rollback
    - backend regression 244/244 PASS
 
+18. `a32c8cc` — Configure Need For Strength owner demo
+   - real preview branding: Need For Strength + The Cue Master
+   - supplied address, phone/WhatsApp, Instagram and November 2026 opening message
+   - Women/Men/Student/Couple membership and PT prices taken from supplied owner poster
+   - temporary demo-only Cue Master rates: private ₹300/hour, common ₹200/hour
+   - isolated sample kitchen menu/inventory/recipes
+   - dedicated owner-demo SQLite marker blocks promotion to production
+   - one temporary ngrok URL routes customer site, admin and member API through a loopback-only demo edge
+   - ngrok authtoken is not stored in Git or passed by the demo scripts
+   - admin credential creation remains a separate manual bootstrap step
+   - backend regression 246/246 PASS
+   - local Chromium 6/6 PASS
+   - customer homepage 8/8, member-login 9/9, diet PASS, member gateway 7/7 PASS
+
+19. `6ac14c7` — Polish Need For Strength owner demo
+   - removes inherited Gravity placeholder membership plans from the demo database only
+   - owner plan catalog contains only Need For Strength poster plans
+   - The Cue Master is visible directly in customer and admin navigation
+   - customer enquiry form includes The Cue Master / Pool
+   - production migration/schema behavior remains unchanged
+   - backend regression 246/246 PASS
+   - local Chromium 6/6 PASS
+   - customer homepage 8/8 PASS
+
 ## Browser isolation verification
 
 - copied Firebase default aliases removed from both New Gym .firebaserc files
@@ -163,8 +187,8 @@ None.
 
 - Gravity Fitness not modified.
 - Vibe4You not modified.
-- No Redmi New Gym services installed.
-- No tunnel created.
+- No Need For Strength Redmi services installed yet.
+- Owner-demo ngrok tooling is prepared but no ngrok tunnel has been started by this development session.
 - No production database created.
 - No Firebase project configured.
 - No customer traffic moved.
