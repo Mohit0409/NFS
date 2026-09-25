@@ -23,6 +23,28 @@ fail() {
   exit 1
 }
 
+wait_ngrok_api_to_file() {
+  output="$1"
+  temporary="$output.wait"
+  rm -f "$temporary"
+  for _ in $(seq 1 60); do
+    if curl -fsS --max-time 2 "$NGROK_API" >"$temporary" 2>/dev/null &&
+       python3 - "$temporary" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+raise SystemExit(0 if isinstance(data.get("tunnels", []), list) else 1)
+PY
+    then
+      mv "$temporary" "$output"
+      return 0
+    fi
+    sleep 1
+  done
+  rm -f "$temporary"
+  return 1
+}
+
 [ "$(whoami)" = "$EXPECTED_USER" ] || fail "wrong Termux user"
 [ "$(getprop ro.product.model 2>/dev/null || true)" = "$EXPECTED_MODEL" ] || fail "wrong Redmi model"
 
@@ -61,7 +83,7 @@ free_kb="$(df -Pk "$HOME" | awk 'NR==2 {print $4}')"
 case "$free_kb" in ''|*[!0-9]*) fail "unable to read free storage" ;; esac
 [ "$free_kb" -ge 524288 ] || fail "less than 512 MB free storage"
 
-curl -fsS --max-time 3 "$NGROK_API" >"$BEFORE_JSON" || fail "existing ngrok Agent API is unavailable"
+wait_ngrok_api_to_file "$BEFORE_JSON" || fail "existing ngrok Agent API did not become ready within 60 seconds"
 python3 - "$BEFORE_JSON" <<'PY' || fail "existing ngrok API response is invalid"
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
@@ -156,7 +178,7 @@ trap cleanup_failed_install EXIT
 cd "$APP"
 bash admin/deploy/owner-demo/install-owner-demo-standalone.sh
 
-curl -fsS --max-time 3 "$NGROK_API" >"$AFTER_JSON"
+wait_ngrok_api_to_file "$AFTER_JSON" || fail "ngrok Agent API did not recover after owner-demo install"
 python3 - "$BEFORE_JSON" "$AFTER_JSON" <<'PY'
 import json, sys
 before = json.load(open(sys.argv[1], encoding="utf-8"))

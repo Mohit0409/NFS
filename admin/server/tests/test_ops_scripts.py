@@ -845,6 +845,9 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn("owner-demo URL collides with existing tunnel", standalone)
         self.assertIn('wait_port_free 8897 "Admin backend"', standalone)
         self.assertIn('wait_port_free 8898 "Member gateway"', standalone)
+        self.assertIn("wait_ngrok_api", standalone)
+        self.assertIn("within 60 seconds", standalone)
+        self.assertIn("did not create an HTTPS owner-demo URL within 60 seconds", standalone)
         self.assertNotIn('DELETE "$NGROK_API/command_line"', standalone)
 
         self.assertIn("ngrokAgentApi", preflight)
@@ -882,7 +885,7 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn('EXPECTED_MODEL="23124RN87I"', bootstrap)
         self.assertIn("archive SHA-256 mismatch", bootstrap)
         self.assertIn("less than 512 MB free storage", bootstrap)
-        self.assertIn("existing ngrok Agent API is unavailable", bootstrap)
+        self.assertIn("existing ngrok Agent API did not become ready within 60 seconds", bootstrap)
         for port in ("8897", "8898", "8899", "8900"):
             self.assertIn(port, bootstrap)
         self.assertIn("pre-existing ngrok tunnel changed", bootstrap)
@@ -893,6 +896,9 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertIn(".nfs-owner-demo-release", bootstrap)
         self.assertIn("owner-demo app root contains unmanaged or malformed content", bootstrap)
         self.assertIn("nfs-owner-demo tunnel already exists", bootstrap)
+        self.assertIn("wait_ngrok_api_to_file", bootstrap)
+        self.assertIn("did not become ready within 60 seconds", bootstrap)
+        self.assertIn("did not recover after owner-demo install", bootstrap)
         self.assertNotIn('DELETE "$NGROK_API/command_line"', bootstrap)
         self.assertNotIn("/tmp/", bootstrap)
         self.assertNotIn("/tmp/", OWNER_DEMO_USB_PREFLIGHT.read_text(encoding="utf-8"))

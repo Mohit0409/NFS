@@ -54,8 +54,20 @@ PY
   chmod 600 "$CONFIG"
 fi
 
-if ! curl -fsS --max-time 3 "$NGROK_API" >/dev/null 2>&1; then
-  echo "Existing ngrok Agent API is not reachable on 127.0.0.1:4040." >&2
+wait_ngrok_api() {
+  for _ in $(seq 1 60); do
+    if curl -fsS --max-time 2 "$NGROK_API" 2>/dev/null |
+       python3 -c 'import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if isinstance(d.get("tunnels",[]),list) else 1)' >/dev/null 2>&1
+    then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+if ! wait_ngrok_api; then
+  echo "Existing ngrok Agent API did not become ready on 127.0.0.1:4040 within 60 seconds." >&2
   exit 1
 fi
 
@@ -189,12 +201,22 @@ wait_http "http://127.0.0.1:8898/api/health" "Member gateway"
 wait_http "http://127.0.0.1:8899/" "Customer site"
 wait_http "http://127.0.0.1:8900/" "Demo edge"
 
-tunnel_json="$(curl -fsS -X POST "$NGROK_API"   -H 'Content-Type: application/json'   --data '{"name":"nfs-owner-demo","addr":"http://127.0.0.1:8900","proto":"http","inspect":true}')"
-
-public_url="$(printf '%s' "$tunnel_json" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print(d.get("public_url",""))')"
+tunnel_json=""
+public_url=""
+for _ in $(seq 1 60); do
+  if tunnel_json="$(curl -fsS --max-time 3 -X POST "$NGROK_API" -H 'Content-Type: application/json' --data '{"name":"nfs-owner-demo","addr":"http://127.0.0.1:8900","proto":"http","inspect":true}' 2>/dev/null)"; then
+    public_url="$(printf '%s' "$tunnel_json" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print(d.get("public_url",""))' 2>/dev/null || true)"
+    case "$public_url" in
+      https://*) break ;;
+    esac
+  fi
+  tunnel_json=""
+  public_url=""
+  sleep 1
+done
 case "$public_url" in
   https://*) ;;
-  *) echo "ngrok Agent API did not return an HTTPS owner-demo URL." >&2; exit 1 ;;
+  *) echo "ngrok Agent API did not create an HTTPS owner-demo URL within 60 seconds." >&2; exit 1 ;;
 esac
 
 printf '%s' "$tunnel_json" | "$PYTHON" -c 'import json,sys; name=sys.argv[1]; public=sys.argv[2].rstrip("/"); d=json.load(sys.stdin); addr=str((d.get("config") or {}).get("addr") or ""); (str(d.get("name") or "") == name) or sys.exit("ngrok POST returned the wrong tunnel name"); (addr in {"http://127.0.0.1:8900","127.0.0.1:8900"}) or sys.exit("ngrok POST returned the wrong upstream: "+addr); (str(d.get("public_url") or "").rstrip("/") == public) or sys.exit("ngrok POST public URL mismatch")' "$TUNNEL_NAME" "$public_url"
