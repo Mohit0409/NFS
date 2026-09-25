@@ -701,6 +701,13 @@ class OperationsScriptTests(unittest.TestCase):
                 demo_plan_count = connection.execute(
                     "SELECT COUNT(*) FROM membership_plans WHERE id LIKE 'demo-%'"
                 ).fetchone()[0]
+                legacy_plan_count = connection.execute(
+                    "SELECT COUNT(*) FROM membership_plans "
+                    "WHERE id IN ('plan-basic-monthly','plan-pro-monthly','plan-elite-monthly')"
+                ).fetchone()[0]
+                total_plan_count = connection.execute(
+                    "SELECT COUNT(*) FROM membership_plans"
+                ).fetchone()[0]
                 demo_menu_count = connection.execute(
                     "SELECT COUNT(*) FROM kitchen_menu_items WHERE id LIKE 'demo-%'"
                 ).fetchone()[0]
@@ -710,6 +717,8 @@ class OperationsScriptTests(unittest.TestCase):
         self.assertEqual(private_rate, 30000)
         self.assertEqual(common_rates, [20000, 20000])
         self.assertEqual(demo_plan_count, len(seed_module.DEMO_PLANS))
+        self.assertEqual(total_plan_count, len(seed_module.DEMO_PLANS))
+        self.assertEqual(legacy_plan_count, 0)
         self.assertEqual(demo_menu_count, len(seed_module.DEMO_MENU))
 
         blocked = preflight.validate(

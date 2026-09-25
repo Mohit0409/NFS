@@ -86,6 +86,11 @@ def seed(database: Database) -> dict[str, object]:
         )
         connection.execute("UPDATE pool_tables SET default_rate_paise=30000,updated_at=? WHERE id='pool-private-1'", (now,))
         connection.execute("UPDATE pool_tables SET default_rate_paise=20000,updated_at=? WHERE id IN ('pool-common-1','pool-common-2')", (now,))
+        # Demo-only cleanup: hide copied Gravity placeholder plans from the owner's catalog.
+        # Production migrations remain unchanged and the demo DB cannot pass production preflight.
+        connection.execute(
+            "DELETE FROM membership_plans WHERE id IN ('plan-basic-monthly','plan-pro-monthly','plan-elite-monthly')"
+        )
 
         for plan_id, code, name, price, months, sort_order in DEMO_PLANS:
             connection.execute(
