@@ -4,8 +4,7 @@ set -euo pipefail
 STATE="$HOME/.local/state/need-for-strength-owner-demo"
 PIDS="$STATE/pids"
 APP_ROOT="$HOME/apps/need-for-strength-owner-demo"
-NGROK_API="http://127.0.0.1:4040/api/tunnels"
-TUNNEL_NAME="nfs-owner-demo"
+TUNNEL_UPSTREAM="http://127.0.0.1:8900"
 
 stop_pid_if_owned() {
   pid="$1"
@@ -55,6 +54,29 @@ stop_owned_pid_file() {
   rm -f "$file"
 }
 
+stop_tunnel_if_owned() {
+  file="$PIDS/tunnel.pid"
+  [ -f "$file" ] || return 0
+  pid="$(cat "$file" 2>/dev/null || true)"
+  case "$pid" in
+    ''|*[!0-9]*) echo "Invalid owner-demo tunnel PID: $pid" >&2; return 1 ;;
+  esac
+  if kill -0 "$pid" 2>/dev/null; then
+    cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+    case "$cmdline" in
+      *cloudflared*"tunnel --url $TUNNEL_UPSTREAM"*) ;;
+      *) echo "Refusing to kill PID $pid: not the Need For Strength Cloudflare Quick Tunnel." >&2; return 1 ;;
+    esac
+    kill "$pid"
+    for _ in $(seq 1 40); do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.25
+    done
+    kill -0 "$pid" 2>/dev/null && { echo "Owner-demo tunnel PID $pid did not stop cleanly." >&2; return 1; }
+  fi
+  rm -f "$file"
+}
+
 stop_orphaned_components() {
   for proc in /proc/[0-9]*; do
     [ -r "$proc/cmdline" ] || continue
@@ -75,6 +97,14 @@ stop_orphaned_components() {
       *"$APP_ROOT/"*"server.gravity"*)
         stop_pid_if_owned "$pid" "server.gravity" "orphan admin backend"
         ;;
+      *cloudflared*"tunnel --url $TUNNEL_UPSTREAM"*)
+        kill "$pid"
+        for _ in $(seq 1 40); do
+          kill -0 "$pid" 2>/dev/null || break
+          sleep 0.25
+        done
+        kill -0 "$pid" 2>/dev/null && { echo "Orphan owner-demo Cloudflare tunnel PID $pid did not stop." >&2; return 1; }
+        ;;
     esac
   done
 }
@@ -83,15 +113,12 @@ stop_owned_pid_file member member_gateway.py
 stop_owned_pid_file admin server.gravity
 stop_owned_pid_file edge demo-edge.py
 stop_owned_pid_file web "http.server 8899"
+stop_tunnel_if_owned
 
 # A previous failed restart can lose PID-file bookkeeping while leaving a child
 # process alive. Recover only processes whose command line proves they belong
 # to the dedicated Need For Strength owner-demo app tree.
 stop_orphaned_components
 
-if curl -fsS --max-time 3 "$NGROK_API" >/dev/null 2>&1; then
-  curl -fsS -X DELETE "$NGROK_API/$TUNNEL_NAME" >/dev/null 2>&1 || true
-fi
-
 echo "Need For Strength standalone owner demo stopped."
-echo "Existing non-demo ngrok tunnels and demo database/config were preserved."
+echo "Existing non-demo services/tunnels and demo database/config were preserved."

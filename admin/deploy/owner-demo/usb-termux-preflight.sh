@@ -4,9 +4,7 @@ set -u
 REPORT="${1:-/sdcard/Download/need-for-strength-owner-demo-preflight.txt}"
 EXPECTED_USER="u0_a304"
 EXPECTED_MODEL="23124RN87I"
-NGROK_API="http://127.0.0.1:4040/api/tunnels"
 TMP_ROOT="${TMPDIR:-${PREFIX:-/data/data/com.termux/files/usr}/tmp}"
-NGROK_JSON="$TMP_ROOT/nfs-ngrok-tunnels.json"
 mkdir -p "$TMP_ROOT"
 READY=true
 BLOCKERS=""
@@ -60,7 +58,7 @@ PY
     *) [ "$free_kb" -ge 524288 ] || add_blocker low_storage ;;
   esac
 
-  for cmd in python3 curl tar git; do
+  for cmd in python3 curl tar git cloudflared; do
     if command -v "$cmd" >/dev/null 2>&1; then
       value "command_$cmd" "$(command -v "$cmd")"
     else
@@ -76,38 +74,7 @@ PY
     add_blocker python_cryptography_unavailable
   fi
 
-  if curl -fsS --max-time 3 "$NGROK_API" >"$NGROK_JSON" 2>/dev/null; then
-    value ngrokAgentApi ok
-    tunnel_summary="$(python3 - "$NGROK_JSON" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as handle:
-    data = json.load(handle)
-parts = []
-for tunnel in data.get("tunnels", []):
-    name = str(tunnel.get("name") or "")
-    public = str(tunnel.get("public_url") or "")
-    addr = str((tunnel.get("config") or {}).get("addr") or "")
-    parts.append(f"{name}|{public}|{addr}")
-print(";".join(parts))
-PY
-)"
-    value existingNgrokTunnels "$tunnel_summary"
-    if python3 - "$NGROK_JSON" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as handle:
-    data = json.load(handle)
-raise SystemExit(0 if any(t.get("name") == "command_line" for t in data.get("tunnels", [])) else 1)
-PY
-    then
-      value existingCommandLineTunnel preserved
-    else
-      value existingCommandLineTunnel not_present
-    fi
-  else
-    value ngrokAgentApi unavailable
-    add_blocker ngrok_agent_api_unavailable
-  fi
-  rm -f "$NGROK_JSON"
+  value ownerDemoTunnelProvider "cloudflare-quick-tunnel"
 
   for port in 8897 8898 8899 8900; do
     state="$(port_state "$port")"

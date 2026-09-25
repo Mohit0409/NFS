@@ -16,11 +16,11 @@ STATE="$HOME/.local/state/need-for-strength-owner-demo"
 DATA="$HOME/.local/share/need-for-strength-owner-demo"
 PIDS="$STATE/pids"
 LOGS="$STATE/logs"
-TUNNEL_NAME="nfs-owner-demo"
-NGROK_API="http://127.0.0.1:4040/api/tunnels"
+CF_HOME="$STATE/cloudflare-home"
+CLOUDFLARED="$(command -v cloudflared || true)"
 
-mkdir -p "$CONFIG_DIR" "$STATE" "$DATA" "$PIDS" "$LOGS"
-chmod 700 "$CONFIG_DIR" "$STATE" "$DATA" "$PIDS" "$LOGS"
+mkdir -p "$CONFIG_DIR" "$STATE" "$DATA" "$PIDS" "$LOGS" "$CF_HOME"
+chmod 700 "$CONFIG_DIR" "$STATE" "$DATA" "$PIDS" "$LOGS" "$CF_HOME"
 printf '%s\n' "$REPO" > "$CONFIG_DIR/repository"
 chmod 600 "$CONFIG_DIR/repository"
 
@@ -54,22 +54,11 @@ PY
   chmod 600 "$CONFIG"
 fi
 
-wait_ngrok_api() {
-  for _ in $(seq 1 60); do
-    if curl -fsS --max-time 2 "$NGROK_API" 2>/dev/null |
-       python3 -c 'import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if isinstance(d.get("tunnels",[]),list) else 1)' >/dev/null 2>&1
-    then
-      return 0
-    fi
-    sleep 1
-  done
-  return 1
-}
-
-if ! wait_ngrok_api; then
-  echo "Existing ngrok Agent API did not become ready on 127.0.0.1:4040 within 60 seconds." >&2
+[ -n "$CLOUDFLARED" ] && [ -x "$CLOUDFLARED" ] || {
+  echo "cloudflared is required for the isolated owner demo tunnel." >&2
+  echo "Install it in Termux with: pkg install cloudflared -y" >&2
   exit 1
-fi
+}
 
 export PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}"
 OWNER_DEMO_PYTHON="$(command -v python3)" bash "$PROFILE/prepare-owner-demo-runtime.sh"
@@ -124,18 +113,7 @@ ensure_stopped admin server.gravity
 ensure_stopped member member_gateway.py
 ensure_stopped web http.server
 ensure_stopped edge demo-edge.py
-
-# Reuse the already-running ngrok agent without touching any non-demo tunnel.
-# An existing owner-demo tunnel is replaceable only when it already targets our edge port.
-current_tunnels="$(curl -fsS "$NGROK_API")"
-owner_demo_addr="$(printf '%s' "$current_tunnels" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print(next(((t.get("config") or {}).get("addr","") for t in d.get("tunnels",[]) if t.get("name")=="nfs-owner-demo"),""))')"
-if [ -n "$owner_demo_addr" ] && [ "$owner_demo_addr" != "http://127.0.0.1:8900" ]; then
-  echo "Refusing to replace ngrok tunnel $TUNNEL_NAME because it targets $owner_demo_addr." >&2
-  exit 1
-fi
-if [ -n "$owner_demo_addr" ]; then
-  curl -fsS -X DELETE "$NGROK_API/$TUNNEL_NAME" >/dev/null
-fi
+ensure_stopped tunnel "cloudflared tunnel --url http://127.0.0.1:8900"
 
 start_component() {
   name="$1"
@@ -201,29 +179,27 @@ wait_http "http://127.0.0.1:8898/api/health" "Member gateway"
 wait_http "http://127.0.0.1:8899/" "Customer site"
 wait_http "http://127.0.0.1:8900/" "Demo edge"
 
-tunnel_json=""
+rm -f "$LOGS/tunnel.log"
+start_component tunnel "cloudflared tunnel --url http://127.0.0.1:8900" env HOME="$CF_HOME" "$CLOUDFLARED" tunnel --url http://127.0.0.1:8900
+
 public_url=""
 for _ in $(seq 1 60); do
-  if tunnel_json="$(curl -fsS --max-time 3 -X POST "$NGROK_API" -H 'Content-Type: application/json' --data '{"name":"nfs-owner-demo","addr":"http://127.0.0.1:8900","proto":"http","inspect":true}' 2>/dev/null)"; then
-    public_url="$(printf '%s' "$tunnel_json" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print(d.get("public_url",""))' 2>/dev/null || true)"
-    case "$public_url" in
-      https://*) break ;;
-    esac
+  public_url="$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOGS/tunnel.log" 2>/dev/null | tail -n 1 || true)"
+  case "$public_url" in
+    https://*.trycloudflare.com) break ;;
+  esac
+  if ! assert_owned_pid tunnel "cloudflared tunnel --url http://127.0.0.1:8900"; then
+    echo "Cloudflare Quick Tunnel exited before providing a public URL. See $LOGS/tunnel.log" >&2
+    exit 1
   fi
-  tunnel_json=""
-  public_url=""
   sleep 1
 done
 case "$public_url" in
-  https://*) ;;
-  *) echo "ngrok Agent API did not create an HTTPS owner-demo URL within 60 seconds." >&2; exit 1 ;;
+  https://*.trycloudflare.com) ;;
+  *) echo "Cloudflare Quick Tunnel did not provide a trycloudflare.com URL within 60 seconds." >&2; exit 1 ;;
 esac
 
-printf '%s' "$tunnel_json" | "$PYTHON" -c 'import json,sys; name=sys.argv[1]; public=sys.argv[2].rstrip("/"); d=json.load(sys.stdin); addr=str((d.get("config") or {}).get("addr") or ""); (str(d.get("name") or "") == name) or sys.exit("ngrok POST returned the wrong tunnel name"); (addr in {"http://127.0.0.1:8900","127.0.0.1:8900"}) or sys.exit("ngrok POST returned the wrong upstream: "+addr); (str(d.get("public_url") or "").rstrip("/") == public) or sys.exit("ngrok POST public URL mismatch")' "$TUNNEL_NAME" "$public_url"
-
-printf '%s' "$current_tunnels" | "$PYTHON" -c 'import json,sys; public=sys.argv[1].rstrip("/"); d=json.load(sys.stdin); collisions=[str(t.get("name") or "") for t in d.get("tunnels",[]) if t.get("name")!="nfs-owner-demo" and str(t.get("public_url") or "").rstrip("/")==public]; collisions and sys.exit("owner-demo URL collides with existing tunnel "+collisions[0])' "$public_url"
-
-"$PYTHON" "$PROFILE/sync-ngrok-url.py" --config "$CONFIG" --tunnel-name "$TUNNEL_NAME" --public-url "$public_url" >/dev/null
+"$PYTHON" "$PROFILE/sync-ngrok-url.py" --config "$CONFIG" --public-url "$public_url" >/dev/null
 
 ensure_stopped admin server.gravity
 ensure_stopped member member_gateway.py
@@ -232,11 +208,11 @@ wait_port_free 8898 "Member gateway"
 start_component admin server.gravity   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" -m server.gravity
 start_component member member_gateway.py   python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" -- "$PYTHON" "$PROJECT_ROOT/customer-website/gateway/member_gateway.py"
 
-wait_http "http://127.0.0.1:8897/api/health" "Admin backend after ngrok origin sync"
-wait_http "http://127.0.0.1:8900/" "Demo edge after ngrok origin sync"
+wait_http "http://127.0.0.1:8897/api/health" "Admin backend after public-origin sync"
+wait_http "http://127.0.0.1:8900/" "Demo edge after public-origin sync"
 
-curl -fsS --max-time 12 -H "ngrok-skip-browser-warning: 1" "$public_url/" >/dev/null
-curl -fsS --max-time 12 -H "ngrok-skip-browser-warning: 1" "$public_url/api/health" >/dev/null
+curl -fsS --max-time 15 "$public_url/" >/dev/null
+curl -fsS --max-time 15 "$public_url/api/health" >/dev/null
 
 cat > "$STATE/owner-demo-url.txt" <<EOF
 Customer site: $public_url/

@@ -6,10 +6,7 @@ ARCHIVE="${1:-/sdcard/Download/need-for-strength-owner-demo.tar.gz}"
 HASH_FILE="${2:-/sdcard/Download/need-for-strength-owner-demo.sha256}"
 COMMIT_FILE="${3:-/sdcard/Download/need-for-strength-owner-demo.commit}"
 RESULT="${4:-/sdcard/Download/need-for-strength-owner-demo-result.txt}"
-NGROK_API="http://127.0.0.1:4040/api/tunnels"
 TMP_ROOT="${TMPDIR:-${PREFIX:-/data/data/com.termux/files/usr}/tmp}"
-BEFORE_JSON="$TMP_ROOT/nfs-owner-demo-ngrok-before.json"
-AFTER_JSON="$TMP_ROOT/nfs-owner-demo-ngrok-after.json"
 EXPECTED_USER="u0_a304"
 EXPECTED_MODEL="23124RN87I"
 
@@ -23,32 +20,11 @@ fail() {
   exit 1
 }
 
-wait_ngrok_api_to_file() {
-  output="$1"
-  temporary="$output.wait"
-  rm -f "$temporary"
-  for _ in $(seq 1 60); do
-    if curl -fsS --max-time 2 "$NGROK_API" >"$temporary" 2>/dev/null &&
-       python3 - "$temporary" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as handle:
-    data = json.load(handle)
-raise SystemExit(0 if isinstance(data.get("tunnels", []), list) else 1)
-PY
-    then
-      mv "$temporary" "$output"
-      return 0
-    fi
-    sleep 1
-  done
-  rm -f "$temporary"
-  return 1
-}
 
 [ "$(whoami)" = "$EXPECTED_USER" ] || fail "wrong Termux user"
 [ "$(getprop ro.product.model 2>/dev/null || true)" = "$EXPECTED_MODEL" ] || fail "wrong Redmi model"
 
-for cmd in python3 curl tar; do
+for cmd in python3 curl tar cloudflared; do
   command -v "$cmd" >/dev/null 2>&1 || fail "missing command: $cmd"
 done
 
@@ -83,31 +59,12 @@ free_kb="$(df -Pk "$HOME" | awk 'NR==2 {print $4}')"
 case "$free_kb" in ''|*[!0-9]*) fail "unable to read free storage" ;; esac
 [ "$free_kb" -ge 524288 ] || fail "less than 512 MB free storage"
 
-wait_ngrok_api_to_file "$BEFORE_JSON" || fail "existing ngrok Agent API did not become ready within 60 seconds"
-python3 - "$BEFORE_JSON" <<'PY' || fail "existing ngrok API response is invalid"
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as handle:
-    data = json.load(handle)
-if not isinstance(data.get("tunnels", []), list):
-    raise SystemExit(1)
-PY
-
 APP_ROOT="$HOME/apps/need-for-strength-owner-demo"
 STATE_ROOT="$HOME/.local/state/need-for-strength-owner-demo"
 CONFIG_ROOT="$HOME/.config/need-for-strength-owner-demo"
 
 if [ -d "$STATE_ROOT/pids" ] && find "$STATE_ROOT/pids" -type f -name '*.pid' -print -quit 2>/dev/null | grep -q .; then
   fail "owner-demo PID state already exists"
-fi
-
-if python3 - "$BEFORE_JSON" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as handle:
-    data = json.load(handle)
-raise SystemExit(0 if any(t.get("name") == "nfs-owner-demo" for t in data.get("tunnels", [])) else 1)
-PY
-then
-  fail "nfs-owner-demo tunnel already exists; stop the existing demo before first-install cleanup"
 fi
 
 stop_orphan_pid() {
@@ -216,25 +173,7 @@ trap cleanup_failed_install EXIT
 cd "$APP"
 bash admin/deploy/owner-demo/install-owner-demo-standalone.sh
 
-wait_ngrok_api_to_file "$AFTER_JSON" || fail "ngrok Agent API did not recover after owner-demo install"
-python3 - "$BEFORE_JSON" "$AFTER_JSON" <<'PY'
-import json, sys
-before = json.load(open(sys.argv[1], encoding="utf-8"))
-after = json.load(open(sys.argv[2], encoding="utf-8"))
-before_map = {t.get("name"): t.get("public_url") for t in before.get("tunnels", [])}
-after_map = {t.get("name"): t.get("public_url") for t in after.get("tunnels", [])}
-for name, public in before_map.items():
-    if name == "nfs-owner-demo":
-        continue
-    if after_map.get(name) != public:
-        raise SystemExit(f"pre-existing ngrok tunnel changed: {name}")
-if not str(after_map.get("nfs-owner-demo") or "").startswith("https://"):
-    raise SystemExit("owner-demo HTTPS tunnel missing")
-print("EXISTING_NGROK_TUNNELS=PRESERVED")
-PY
-
 trap - EXIT
-rm -f "$BEFORE_JSON" "$AFTER_JSON"
 
 echo "OWNER_DEMO_BOOTSTRAP=PASS"
 echo "Commit: $commit"
