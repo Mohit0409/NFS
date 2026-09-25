@@ -69,18 +69,11 @@ PY
     fi
   done
 
-  if python3 -m venv --help >/dev/null 2>&1; then
-    value pythonVenv ok
+  if python3 -c 'import cryptography' >/dev/null 2>&1; then
+    value pythonCryptography ok
   else
-    value pythonVenv missing
-    add_blocker python_venv_unavailable
-  fi
-
-  if curl -fsS --max-time 6 https://pypi.org/simple/pip/ >/dev/null 2>&1; then
-    value pythonPackageIndex reachable
-  else
-    value pythonPackageIndex unreachable
-    add_blocker python_package_index_unreachable
+    value pythonCryptography missing
+    add_blocker python_cryptography_unavailable
   fi
 
   if curl -fsS --max-time 3 "$NGROK_API" >"$NGROK_JSON" 2>/dev/null; then

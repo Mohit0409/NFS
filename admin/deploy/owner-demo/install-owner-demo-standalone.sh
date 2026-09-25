@@ -59,9 +59,10 @@ if ! curl -fsS --max-time 3 "$NGROK_API" >/dev/null 2>&1; then
   exit 1
 fi
 
-OWNER_DEMO_VENV="$REPO/.venv" bash "$PROFILE/prepare-owner-demo-runtime.sh"
+export PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}"
+OWNER_DEMO_PYTHON="$(command -v python3)" bash "$PROFILE/prepare-owner-demo-runtime.sh"
 PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
-PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+PYTHON="${PYTHON:-$(command -v python3)}"
 [ -x "$PYTHON" ] || { echo "Python runtime is missing: $PYTHON" >&2; exit 1; }
 
 cd "$REPO"

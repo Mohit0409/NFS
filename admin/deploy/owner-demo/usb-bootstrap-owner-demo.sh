@@ -90,11 +90,45 @@ APP_ROOT="$HOME/apps/need-for-strength-owner-demo"
 STATE_ROOT="$HOME/.local/state/need-for-strength-owner-demo"
 CONFIG_ROOT="$HOME/.config/need-for-strength-owner-demo"
 
-if [ -e "$APP_ROOT" ]; then
-  fail "owner-demo app directory already exists; refuse first-install overwrite"
-fi
 if [ -d "$STATE_ROOT/pids" ] && find "$STATE_ROOT/pids" -type f -name '*.pid' -print -quit 2>/dev/null | grep -q .; then
   fail "owner-demo PID state already exists"
+fi
+
+if python3 - "$BEFORE_JSON" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+raise SystemExit(0 if any(t.get("name") == "nfs-owner-demo" for t in data.get("tunnels", [])) else 1)
+PY
+then
+  fail "nfs-owner-demo tunnel already exists; stop the existing demo before first-install cleanup"
+fi
+
+if [ -e "$APP_ROOT" ]; then
+  [ -d "$APP_ROOT" ] || fail "owner-demo app root exists but is not a directory"
+  python3 - "$APP_ROOT" <<'PY' || fail "owner-demo app root contains unmanaged or malformed content"
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+entries = list(root.iterdir())
+for entry in entries:
+    if entry.is_symlink() or not entry.is_dir():
+        raise SystemExit(1)
+    name = entry.name
+    if not re.fullmatch(r"[0-9a-f]{40}", name):
+        raise SystemExit(1)
+    marker = entry / ".nfs-owner-demo-release"
+    if not marker.is_file():
+        raise SystemExit(1)
+    if marker.read_text(encoding="utf-8").strip() != name:
+        raise SystemExit(1)
+print(f"SAFE_RESIDUAL_RELEASES={len(entries)}")
+PY
+  find "$APP_ROOT" -mindepth 1 -maxdepth 1 -type d -exec rm -rf -- {} +
+  rmdir "$APP_ROOT" 2>/dev/null || fail "owner-demo app root could not be cleaned safely"
+  echo "Removed inactive managed owner-demo release residue from an earlier failed attempt."
 fi
 
 APP="$APP_ROOT/$commit"
