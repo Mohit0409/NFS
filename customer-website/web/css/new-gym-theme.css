@@ -571,20 +571,25 @@ body::before {
    §11  MEMBERSHIP / PRICING CARDS
    ========================================================================== */
 
-.pricing-grid {
+.membership-grid,
+.pt-package-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
+  gap: 18px;
   margin-top: 40px;
 }
 
+.pt-package-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 /* Shared card base */
-.price-card,
+.membership-card,
+.pt-package-card,
 .info-card,
 .training-card,
 .bmi-card,
 .owner-demo-panel,
-.pt-package-card,
 .exercise-preview-card,
 .member-card,
 .account-card {
@@ -594,29 +599,32 @@ body::before {
   box-shadow: none;
 }
 
-.price-card {
+.membership-card,
+.pt-package-card {
   position: relative;
-  min-height: 0;
   display: flex;
+  min-height: 320px;
   flex-direction: column;
-  padding: 32px 24px;
-  border-radius: var(--radius);
+  align-items: flex-start;
+  padding: 28px 24px;
   transition: transform 200ms ease, border-color 200ms ease;
 }
 
-.price-card:hover {
+.membership-card:hover,
+.pt-package-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(232, 97, 45, 0.4) !important;
+  border-color: rgba(232, 97, 45, 0.5) !important;
 }
 
-.price-card--free,
+.membership-card--featured,
 .price-card--featured {
   border-color: var(--lime) !important;
   border-width: 2px;
   background: var(--panel) !important;
 }
 
-/* Badges / ribbons */
+/* Badges */
+.membership-card__badge,
 .price-badge,
 .price-ribbon {
   background: var(--lime);
@@ -631,51 +639,44 @@ body::before {
   font-size: 0.7rem;
 }
 
-.price-kicker {
+.membership-card__label,
+.pt-package-card__label {
+  margin: 18px 0 10px;
   color: var(--muted);
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.price-amount {
+.membership-card__price,
+.pt-package-card__price {
   color: #ffffff;
   font-family: var(--font-display);
-  font-size: clamp(2.6rem, 3.6vw, 3.4rem);
-  font-weight: 800;
+  font-size: clamp(2.4rem, 3.4vw, 3.6rem);
+  font-weight: 900;
   letter-spacing: -0.02em;
+  line-height: 1;
 }
 
-.price-amount > span,
-.price-amount small {
-  color: var(--muted);
-}
-
-.price-cycle {
-  color: var(--muted);
-  font-size: 0.7rem;
-}
-
-/* Plan feature list */
-.plan-highlights {
+.membership-card__features {
   display: grid;
-  gap: 9px;
-  margin: 18px 0 24px;
+  gap: 10px;
+  margin: 22px 0 26px;
   padding: 0;
   list-style: none;
 }
 
-.plan-highlights li {
+.membership-card__features li {
   position: relative;
   padding-left: 22px;
-  color: #cccccc;
-  font-size: 0.8rem;
+  color: #bbbbbb;
+  font-size: 0.82rem;
   line-height: 1.45;
 }
 
-.plan-highlights li::before {
+.membership-card__features li::before {
   content: "\2713";
   position: absolute;
   left: 0;
@@ -683,15 +684,10 @@ body::before {
   font-weight: 900;
 }
 
-/* Legacy price-features list (style.css) */
-.price-features,
-.info-card ul {
-  color: #cccccc;
-}
-
-.price-card__cta {
-  margin-top: auto;
+.membership-card__cta,
+.pt-package-card__cta {
   width: 100%;
+  margin-top: auto;
 }
 
 .pricing-note {
@@ -703,104 +699,6 @@ body::before {
   margin: 6px 0 4px;
   font-size: 1.5rem;
   color: #ffffff;
-}
-
-/* Owner demo panel — base heading */
-
-/* Owner-offer membership cards — card layout */
-.owner-offer-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.owner-offer-title {
-  margin: 8px 0 20px;
-  color: #ffffff;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 2.4vw, 2rem);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.owner-offer-lines {
-  display: grid;
-  gap: 8px;
-  margin: 0 0 22px;
-}
-
-/* ---- Featured price (first line): ONE big price per card ---- */
-.owner-offer-line:first-child {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0 0 18px;
-  margin-bottom: 6px;
-  border: none;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: none;
-  gap: 2px;
-}
-
-.owner-offer-line:first-child strong {
-  font-size: clamp(2.6rem, 5vw, 3.8rem);
-  font-family: var(--font-display);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-.owner-offer-line:first-child span {
-  font-size: 0.82rem;
-  color: var(--muted);
-  font-weight: 500;
-  margin-top: 6px;
-}
-
-.owner-offer-line:first-child small {
-  width: auto;
-  margin-top: 4px;
-  color: var(--lime);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-/* ---- Secondary prices: compact list, not cards ---- */
-.owner-offer-line:not(:first-child) {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 7px 0;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 0;
-  background: none;
-}
-
-.owner-offer-line:not(:first-child):last-of-type {
-  border-bottom: none;
-}
-
-.owner-offer-line:not(:first-child) span {
-  color: #999999;
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-
-.owner-offer-line:not(:first-child) strong {
-  color: #cccccc;
-  font-size: 0.82rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.owner-offer-line:not(:first-child) small {
-  display: none;
 }
 
 /* ---- Personal-training packages: standalone cards ---- */
@@ -1235,8 +1133,12 @@ body::before {
   color: var(--muted);
 }
 
-/* Hide the animated dummy figure in exercise preview */
-.exercise-preview-motion {
+/* Hide the animated dummy figure in exercise preview and any injected 3D mascot */
+.exercise-preview-motion,
+#gf-athlete-3d,
+.gf-rep-label,
+#gf-curl-counter,
+#gf-athlete-loading {
   display: none !important;
 }
 
@@ -1652,7 +1554,7 @@ body::before {
    ========================================================================== */
 
 @media (max-width: 1080px) {
-  .pricing-grid {
+  .membership-grid {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -1660,7 +1562,8 @@ body::before {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .price-card {
+  .membership-card,
+  .pt-package-card {
     min-height: 0;
   }
 }
@@ -1693,7 +1596,8 @@ body::before {
     border-right: none;
   }
 
-  .price-card {
+  .membership-card,
+  .pt-package-card {
     min-height: 0;
   }
 
@@ -1755,11 +1659,12 @@ body::before {
     font-size: clamp(2rem, 10vw, 3rem);
   }
 
-  .pricing-grid,
+  .membership-grid,
   .pt-package-grid {
     grid-template-columns: 1fr;
   }
 
+  .membership-card,
   .pt-package-card {
     min-height: 0;
   }
@@ -1829,8 +1734,8 @@ body::before {
   }
 
   .button,
-  .price-card,
-  .owner-offer-line,
+  .membership-card,
+  .pt-package-card,
   .desktop-nav a::after {
     transition: none;
   }

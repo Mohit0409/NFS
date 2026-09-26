@@ -33,42 +33,46 @@
         title: 'Women Membership',
         badge: 'Founding 100 Members',
         featured: true,
-        lines: Object.freeze([
-          Object.freeze({ label: '12 Months', price: '₹21,999', note: 'Founding offer' }),
-          Object.freeze({ label: 'Regular 1 Month', price: '₹2,499' }),
-          Object.freeze({ label: 'Regular 3 Months', price: '₹6,000' }),
-          Object.freeze({ label: 'Regular 6 Months', price: '₹10,800' }),
-          Object.freeze({ label: 'Regular 12 Months', price: '₹24,000' })
+        price: '₹21,999',
+        features: Object.freeze([
+          'Founding 100 members offer',
+          '12 months full training-floor access',
+          'BCA progress check-ins',
+          'Goal reviews with the team'
         ])
       }),
       Object.freeze({
         title: 'Men Membership',
         badge: 'Founding 100 Members',
         featured: true,
-        lines: Object.freeze([
-          Object.freeze({ label: '12 Months', price: '₹27,999', note: 'Founding offer' }),
-          Object.freeze({ label: 'Regular 1 Month', price: '₹2,999' }),
-          Object.freeze({ label: 'Regular 3 Months', price: '₹7,500' }),
-          Object.freeze({ label: 'Regular 6 Months', price: '₹13,500' }),
-          Object.freeze({ label: 'Regular 12 Months', price: '₹30,000' })
+        price: '₹27,999',
+        features: Object.freeze([
+          'Founding 100 members offer',
+          '12 months full training-floor access',
+          'BCA progress check-ins',
+          'Goal reviews with the team'
         ])
       }),
       Object.freeze({
         title: 'Student Membership',
         badge: 'Valid Student ID Required',
-        lines: Object.freeze([
-          Object.freeze({ label: '1 Month', price: '₹1,999' }),
-          Object.freeze({ label: '3 Months', price: '₹5,499' }),
-          Object.freeze({ label: '6 Months', price: '₹9,999' })
+        price: '₹1,999',
+        features: Object.freeze([
+          'Valid student ID required',
+          '1 month full training-floor access',
+          'Starter workout structure',
+          'Renewable month to month'
         ])
       }),
       Object.freeze({
         title: 'Couple Membership',
         badge: 'Train Together',
-        lines: Object.freeze([
-          Object.freeze({ label: '3 Months', price: '₹11,000' }),
-          Object.freeze({ label: '6 Months', price: '₹20,000' }),
-          Object.freeze({ label: '12 Months', price: '₹48,000' })
+        price: '₹11,000',
+        features: Object.freeze([
+          'Train together',
+          '3 months full training-floor access',
+          'Shared goal-setting guidance',
+          'Best value for two'
         ])
       })
     ]),
