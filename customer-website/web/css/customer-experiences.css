@@ -1,126 +1,242 @@
 /* ==========================================================================
    Need For Strength — Customer Experiences
+   Theme: "Urban Concrete" — industrial gym aesthetic
    Covers: BCA section, Cue Master pool, Kitchen grids (homepage),
            plus dedicated pool.html & kitchen.html catalog pages.
    Loads AFTER style.css and new-gym-theme.css (V2 variables available).
-   Palette: charcoal · ivory · bronze — NO neon green.
+   Palette: charcoal · white · burnt orange (#e8612d) — NO gold/bronze/neon.
    ========================================================================== */
 
 
-/* ── 1. Experience Media (shared image frame) ──────────────────────────── */
-
-.experience-media {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: #0a0c10;
-  box-shadow: var(--shadow);
-}
-
-.experience-media img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 340px;
-  object-fit: cover;
-  filter: saturate(0.9) contrast(1.06);
-}
-
-
-/* ── 2. Experience Grid (two-column split) ─────────────────────────────── */
+/* ── 1. Experience Grid (two-column split layout) ──────────────────────── */
 
 .experience-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 48px;
   align-items: center;
 }
 
 
+/* ── 2. Experience Media (shared image frame) ──────────────────────────── */
+
+.experience-media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius, 8px);
+  background: #111;
+}
+
+.experience-media img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  filter: saturate(0.92) contrast(1.04);
+  transition: transform 400ms ease;
+}
+
+.experience-media:hover img {
+  transform: scale(1.03);
+}
+
+
 /* ── 3. Experience Copy (text side of split sections) ──────────────────── */
+
+.experience-copy .eyebrow {
+  display: inline-block;
+  margin: 0 0 12px;
+  color: var(--lime, #e8612d);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 
 .experience-copy h2,
 .experience-copy h1 {
-  font-family: var(--font-display);
-  font-weight: 600;
+  margin: 0 0 16px;
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 700;
   line-height: 1.05;
-  color: var(--text);
-  max-width: 14ch;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text, #fff);
 }
 
 .experience-copy p {
-  max-width: 62ch;
-  color: var(--muted);
-}
-
-.experience-points {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 26px 0;
-}
-
-.experience-points span {
-  position: relative;
-  padding: 13px 16px 13px 32px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(191, 154, 84, 0.07);
-  color: #d8cfc0;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.experience-points span::before {
-  content: "";
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--lime);
-  transform: translateY(-50%);
-  box-shadow: 0 0 8px rgba(191, 154, 84, 0.55);
-}
-
-.experience-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 26px;
+  margin: 0 0 8px;
+  max-width: 58ch;
+  color: #ccc;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .experience-note {
   display: block;
   margin-top: 16px;
-  color: var(--muted);
-  font-size: 0.84rem;
+  color: var(--muted, #888);
+  font-size: 0.82rem;
   font-style: italic;
+  line-height: 1.5;
 }
 
 
-/* ── 4. BCA Section ────────────────────────────────────────────────────── */
+/* ── 4. Experience Points / Tags (chip row) ────────────────────────────── */
+
+.experience-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.experience-points span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #ccc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: border-color 200ms ease, color 200ms ease;
+}
+
+.experience-points span::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lime, #e8612d);
+  flex-shrink: 0;
+}
+
+.experience-points span:hover {
+  border-color: var(--lime, #e8612d);
+  color: #fff;
+}
+
+
+/* ── 5. Experience Actions (button row) ────────────────────────────────── */
+
+.experience-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+
+/* ── 6. BCA Section ────────────────────────────────────────────────────── */
 
 .bca-section {
   background:
-    radial-gradient(circle at 88% 18%, rgba(191, 154, 84, 0.09), transparent 34%),
-    var(--bg);
+    radial-gradient(ellipse at 85% 20%, rgba(232, 97, 45, 0.06), transparent 40%),
+    var(--bg, #1a1a1a);
 }
 
 .bca-section .experience-media {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
 }
 
 
-/* ── 5. Customer Page Heroes (pool.html, kitchen.html) ─────────────────── */
+/* ── 7. Cue Master Section (homepage pool) ─────────────────────────────── */
 
-.customer-page-hero {
-  padding: 140px 0 64px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, #07080b, var(--bg-soft));
+.cue-master-section {
+  background:
+    radial-gradient(ellipse at 15% 80%, rgba(232, 97, 45, 0.05), transparent 40%),
+    var(--bg, #1a1a1a);
+}
+
+.cue-master-section [data-pool-name] {
+  color: var(--text, #fff);
+}
+
+.cue-master-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cue-master-card {
+  padding: 24px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius, 8px);
+  background: var(--panel, #252525);
+  transition: border-color 200ms ease, transform 200ms ease;
+}
+
+.cue-master-card:hover {
+  border-color: rgba(232, 97, 45, 0.35);
+  transform: translateY(-3px);
+}
+
+.cue-master-card span {
+  display: block;
+  color: var(--lime, #e8612d);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cue-master-card strong {
+  display: block;
+  margin: 10px 0 6px;
+  color: var(--text, #fff);
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cue-master-card p {
+  margin: 0;
+  color: var(--muted, #888);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+
+/* ── 8. Customer Page Hero (pool.html, kitchen.html) ───────────────────── */
+
+.customer-page-hero,
+.page-hero {
+  position: relative;
+  min-height: 50vh;
+  display: flex;
+  align-items: flex-end;
+  padding: 80px 0 48px;
+  background: #111;
+  overflow: hidden;
+}
+
+.customer-page-hero::after,
+.page-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(17, 17, 17, 0.3) 0%,
+    rgba(17, 17, 17, 0.7) 50%,
+    rgba(26, 26, 26, 0.95) 100%
+  );
+  z-index: 1;
+}
+
+.customer-page-hero > .shell,
+.page-hero > .shell {
+  position: relative;
+  z-index: 2;
 }
 
 .customer-page-hero__grid {
@@ -130,122 +246,67 @@
   align-items: center;
 }
 
-.customer-page-hero .experience-media img {
-  min-height: 340px;
-}
-
-.customer-page-hero h1 {
-  margin: 0.2em 0;
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 7vw, 6rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+.customer-page-hero h1,
+.page-hero h1 {
+  margin: 0.2em 0 16px;
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
   line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--text, #fff);
 }
 
-.customer-page-hero p:not(.eyebrow) {
-  color: var(--muted);
-}
-
-
-/* ── 6. Catalog Lists (toolbar / heading bar) ──────────────────────────── */
-
-.catalog-toolbar {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 28px;
-}
-
-.catalog-toolbar h2 {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3.6vw, 3rem);
-  font-weight: 600;
-  line-height: 1.05;
-  margin: 0;
-}
-
-.catalog-status {
-  color: var(--muted);
-  margin: 0;
-}
-
-
-/* ── 7. Menu Cards (kitchen items) ─────────────────────────────────────── */
-
-.menu-category {
-  margin-top: 38px;
-}
-
-.menu-category h2 {
-  margin-bottom: 16px;
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 600;
-}
-
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.menu-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  padding: 24px;
-  box-shadow: var(--shadow-soft);
-  transition: transform 180ms ease, border-color 180ms ease;
-}
-
-.menu-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(191, 154, 84, 0.4);
-}
-
-.menu-card__top {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: start;
-}
-
-.menu-card h3 {
-  margin: 4px 0 0;
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.menu-card p {
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.55;
-}
-
-.menu-price {
-  color: var(--lime-strong);
-  font-size: 1.3rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.menu-category-label {
-  color: var(--lime);
+.customer-page-hero .eyebrow,
+.page-hero .eyebrow {
+  color: var(--lime, #e8612d);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
+.customer-page-hero p:not(.eyebrow),
+.page-hero p:not(.eyebrow) {
+  color: #ccc;
+  max-width: 48ch;
+  line-height: 1.6;
+}
 
-/* ── 8. Pool Table Cards ───────────────────────────────────────────────── */
 
+/* ── 9. Pool Page Specific ─────────────────────────────────────────────── */
+
+.pool-hero-image,
+.kitchen-hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Pool feature list */
+.pool-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  color: #ccc;
+  font-size: 0.95rem;
+}
+
+.pool-feature:last-child {
+  border-bottom: none;
+}
+
+.pool-feature strong {
+  color: var(--text, #fff);
+}
+
+/* Pool table grid (catalog page) */
 .pool-table-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -254,17 +315,16 @@
 }
 
 .public-table-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
   padding: 24px;
-  box-shadow: var(--shadow-soft);
-  transition: transform 180ms ease, border-color 180ms ease;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius, 8px);
+  background: var(--panel, #252525);
+  transition: transform 200ms ease, border-color 200ms ease;
 }
 
 .public-table-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(191, 154, 84, 0.4);
+  border-color: rgba(232, 97, 45, 0.35);
 }
 
 .table-card__top {
@@ -276,37 +336,38 @@
 
 .public-table-card h3 {
   margin: 4px 0 0;
-  color: var(--text);
-  font-family: var(--font-display);
+  color: var(--text, #fff);
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .public-table-card small {
-  color: var(--muted);
+  color: var(--muted, #888);
   font-size: 0.8rem;
   line-height: 1.55;
 }
 
-/* Private table card — highlighted with bronze */
+/* Private table card — highlighted with orange */
 .public-table-card--private {
-  border-color: rgba(191, 154, 84, 0.5);
+  border-color: rgba(232, 97, 45, 0.4);
   background:
-    radial-gradient(circle at 84% -12%, rgba(191, 154, 84, 0.15), transparent 56%),
-    var(--panel);
+    radial-gradient(circle at 84% -12%, rgba(232, 97, 45, 0.1), transparent 56%),
+    var(--panel, #252525);
 }
 
 .public-table-card--private h3 {
-  color: var(--lime-strong);
+  color: var(--lime, #e8612d);
 }
 
 .table-status {
   display: inline-flex;
   padding: 6px 12px;
-  border: 1px solid rgba(191, 154, 84, 0.35);
+  border: 1px solid rgba(232, 97, 45, 0.3);
   border-radius: 6px;
-  background: rgba(191, 154, 84, 0.08);
-  color: var(--lime-strong);
+  background: rgba(232, 97, 45, 0.08);
+  color: var(--lime, #e8612d);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -314,14 +375,14 @@
 }
 
 .table-rate {
-  color: var(--lime-strong);
+  color: var(--lime, #e8612d);
   font-size: 1.5rem;
   font-weight: 800;
   margin: 14px 0 6px;
 }
 
 
-/* ── 9. Pool Reservation Form ──────────────────────────────────────────── */
+/* ── 10. Pool Reservation Form ─────────────────────────────────────────── */
 
 .pool-reservation-layout {
   display: grid;
@@ -334,40 +395,42 @@
   display: grid;
   gap: 16px;
   padding: 32px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--panel);
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius, 8px);
+  background: var(--panel, #252525);
 }
 
 .reservation-form label {
   display: grid;
   gap: 8px;
-  color: #d0d5db;
+  color: #ccc;
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .reservation-form input,
 .reservation-form select,
 .reservation-form textarea {
   width: 100%;
-  min-height: 50px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(8, 9, 12, 0.85);
-  color: var(--text);
-  padding: 13px 15px;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text, #fff);
+  font-size: 0.95rem;
   color-scheme: dark;
+  transition: border-color 200ms ease;
 }
 
 .reservation-form input:focus,
 .reservation-form select:focus,
 .reservation-form textarea:focus {
-  border-color: var(--lime);
+  border-color: var(--lime, #e8612d);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(191, 154, 84, 0.14);
+  box-shadow: 0 0 0 3px rgba(232, 97, 45, 0.12);
 }
 
 .reservation-form .field-pair {
@@ -377,7 +440,7 @@
 }
 
 .reservation-disclaimer {
-  color: var(--muted);
+  color: var(--muted, #888);
   font-size: 0.82rem;
   margin: 0;
 }
@@ -385,12 +448,111 @@
 .reservation-status {
   min-height: 1.4em;
   margin: 0;
-  color: var(--lime-strong);
+  color: var(--lime, #e8612d);
   font-size: 0.84rem;
 }
 
 
-/* ── 10. Feature Link Cards ────────────────────────────────────────────── */
+/* ── 11. Catalog Toolbar / Heading Bar ─────────────────────────────────── */
+
+.catalog-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.catalog-toolbar h2 {
+  margin: 0;
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.05;
+  color: var(--text, #fff);
+}
+
+.catalog-status {
+  color: var(--muted, #888);
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+
+/* ── 12. Kitchen Page / Menu Cards ─────────────────────────────────────── */
+
+.menu-category {
+  margin-top: 38px;
+}
+
+.menu-category h2 {
+  margin: 0 0 16px;
+  color: var(--text, #fff);
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.menu-card {
+  padding: 24px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius, 8px);
+  background: var(--panel, #252525);
+  transition: transform 200ms ease, border-color 200ms ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(232, 97, 45, 0.35);
+}
+
+.menu-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.menu-card h3 {
+  margin: 4px 0 0;
+  color: var(--text, #fff);
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.menu-card p {
+  color: var(--muted, #888);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.menu-price {
+  color: var(--lime, #e8612d);
+  font-size: 1.3rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.menu-category-label {
+  color: var(--lime, #e8612d);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+
+/* ── 13. Feature Link Cards ────────────────────────────────────────────── */
 
 .feature-link-grid {
   display: grid;
@@ -402,9 +564,13 @@
   position: relative;
   overflow: hidden;
   min-height: 310px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius, 8px);
+  transition: border-color 200ms ease;
+}
+
+.feature-link-card:hover {
+  border-color: rgba(232, 97, 45, 0.3);
 }
 
 .feature-link-card img {
@@ -413,13 +579,19 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 400ms ease;
+}
+
+.feature-link-card:hover img {
+  transform: scale(1.04);
 }
 
 .feature-link-card::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 20%, rgba(5, 7, 9, 0.94));
+  background: linear-gradient(180deg, transparent 20%, rgba(10, 10, 10, 0.92));
+  z-index: 1;
 }
 
 .feature-link-card__copy {
@@ -431,63 +603,25 @@
 }
 
 .feature-link-card__copy h3 {
-  margin: 0.2em 0;
-  font-family: var(--font-display);
+  margin: 0 0 6px;
+  font-family: var(--font-display, "Barlow Condensed", Impact, sans-serif);
   font-size: 1.9rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text, #fff);
 }
 
 .feature-link-card__copy p {
   margin: 0 0 14px;
-  color: #cbc6ba;
+  color: #ccc;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 
-/* ── 11. Cue Master Cards (homepage pool section) ──────────────────────── */
+/* ── 14. Responsive — 820px (stack grids) ──────────────────────────────── */
 
-.cue-master-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 18px;
-  margin-top: 28px;
-}
-
-.cue-master-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 24px;
-  background: var(--panel);
-  box-shadow: var(--shadow-soft);
-}
-
-.cue-master-card span {
-  display: block;
-  color: var(--lime);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.cue-master-card strong {
-  display: block;
-  margin: 10px 0 6px;
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: 1.9rem;
-  font-weight: 600;
-}
-
-.cue-master-card p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-
-/* ── 12. Responsive Breakpoints ────────────────────────────────────────── */
-
-@media (max-width: 900px) {
+@media (max-width: 820px) {
   .experience-grid,
   .customer-page-hero__grid,
   .pool-reservation-layout {
@@ -503,17 +637,52 @@
     min-height: 240px;
   }
 
-  .customer-page-hero {
-    padding-top: 110px;
+  .customer-page-hero,
+  .page-hero {
+    min-height: 40vh;
+    padding: 100px 0 40px;
+  }
+
+  .customer-page-hero h1,
+  .page-hero h1 {
+    font-size: clamp(2.4rem, 6vw, 4rem);
   }
 
   .cue-master-cards {
     grid-template-columns: 1fr;
   }
+
+  .feature-link-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-link-card {
+    min-height: 260px;
+  }
 }
 
-@media (max-width: 620px) {
-  .experience-points,
+
+/* ── 15. Responsive — 640px (compact) ──────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .experience-grid {
+    gap: 28px;
+  }
+
+  .experience-copy h2,
+  .experience-copy h1 {
+    font-size: clamp(1.6rem, 5vw, 2rem);
+  }
+
+  .experience-points {
+    gap: 8px;
+  }
+
+  .experience-points span {
+    font-size: 0.7rem;
+    padding: 6px 12px;
+  }
+
   .menu-grid,
   .pool-table-grid,
   .feature-link-grid,
@@ -521,16 +690,22 @@
     grid-template-columns: 1fr;
   }
 
-  .experience-media {
-    border-radius: var(--radius);
-  }
-
-  .customer-page-hero h1 {
-    font-size: 3rem;
+  .customer-page-hero h1,
+  .page-hero h1 {
+    font-size: 2.4rem;
   }
 
   .catalog-toolbar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .cue-master-card strong {
+    font-size: 1.4rem;
+  }
+
+  .menu-card,
+  .public-table-card {
+    padding: 18px;
   }
 }

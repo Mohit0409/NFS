@@ -58,45 +58,39 @@
 
   function renderMembershipOffers() {
     const offers = Array.isArray(cfg.membershipOffers) ? cfg.membershipOffers : [];
-    const grid = document.querySelector('.pricing-grid');
+    const grid = document.querySelector('.membership-grid');
     if (!grid || !offers.length) return;
     grid.replaceChildren();
     for (const offer of offers) {
       const card = document.createElement('article');
-      card.className = 'price-card reveal owner-offer-card' + (offer.featured ? ' price-card--featured' : '');
+      card.className = 'membership-card reveal' + (offer.featured ? ' membership-card--featured' : '');
       if (offer.badge) {
         const badge = document.createElement('span');
-        badge.className = 'price-badge';
+        badge.className = 'membership-card__badge';
         badge.textContent = offer.badge;
         card.append(badge);
       }
-      const title = document.createElement('h3');
-      title.className = 'owner-offer-title';
-      title.textContent = offer.title || 'Membership';
-      card.append(title);
-      const list = document.createElement('div');
-      list.className = 'owner-offer-lines';
-      for (const line of Array.isArray(offer.lines) ? offer.lines : []) {
-        const row = document.createElement('div');
-        row.className = 'owner-offer-line';
-        const label = document.createElement('span');
-        label.textContent = line.label || '';
-        const price = document.createElement('strong');
-        price.textContent = line.price || 'Ask';
-        row.append(label, price);
-        if (line.note) {
-          const note = document.createElement('small');
-          note.textContent = line.note;
-          row.append(note);
-        }
-        list.append(row);
+      const label = document.createElement('p');
+      label.className = 'membership-card__label';
+      label.textContent = offer.title || 'Membership';
+      card.append(label);
+      const price = document.createElement('h3');
+      price.className = 'membership-card__price';
+      price.textContent = offer.price || 'Ask';
+      card.append(price);
+      const features = document.createElement('ul');
+      features.className = 'membership-card__features';
+      for (const item of Array.isArray(offer.features) ? offer.features : []) {
+        const li = document.createElement('li');
+        li.textContent = item;
+        features.append(li);
       }
-      card.append(list);
+      card.append(features);
       const button = document.createElement('button');
-      button.className = 'button button--outline price-card__cta';
+      button.className = 'button button--outline membership-card__cta price-card__cta';
       button.type = 'button';
       button.dataset.enquiry = 'membership';
-      button.textContent = 'Enquire About This Plan';
+      button.textContent = 'Enquire Now';
       card.append(button);
       grid.append(card);
     }
@@ -108,14 +102,24 @@
     if (!root || !offers.length) return;
     root.replaceChildren();
     for (const offer of offers) {
-      const row = document.createElement('div');
-      row.className = 'owner-offer-line';
-      const label = document.createElement('span');
-      label.textContent = offer.label || '';
+      const card = document.createElement('article');
+      card.className = 'pt-package-card';
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'pt-package-card__eyebrow';
+      eyebrow.textContent = 'Personal Training';
       const price = document.createElement('strong');
+      price.className = 'pt-package-card__price';
       price.textContent = offer.price || 'Ask';
-      row.append(label, price);
-      root.append(row);
+      const label = document.createElement('p');
+      label.className = 'pt-package-card__label';
+      label.textContent = offer.label || '';
+      const button = document.createElement('button');
+      button.className = 'button button--outline pt-package-card__cta';
+      button.type = 'button';
+      button.dataset.enquiry = 'coaching';
+      button.textContent = 'Enquire Now';
+      card.append(eyebrow, price, label, button);
+      root.append(card);
     }
   }
 
