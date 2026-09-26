@@ -51,7 +51,7 @@ function Get-CleanCommit {
 }
 
 function Assert-TargetIdentity {
-  $identityCommand = 'printf "USER=%s\nMODEL=%s\nMANUFACTURER=%s\n" "$(whoami)" "$(getprop ro.product.model 2>/dev/null || true)" "$(getprop ro.product.manufacturer 2>/dev/null || true)"'
+  $identityCommand = 'echo "USER=$(whoami)"; echo "MODEL=$(getprop ro.product.model 2>/dev/null || true)"; echo "MANUFACTURER=$(getprop ro.product.manufacturer 2>/dev/null || true)"'
   $raw = Invoke-Ssh $identityCommand
   $values = @{}
   foreach ($line in $raw) {
