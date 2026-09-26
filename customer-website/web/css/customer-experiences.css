@@ -1,15 +1,20 @@
 /* ==========================================================================
-   Need For Strength — experience sections & public catalog pages
-   (BCA / Cue Master / Kitchen grids, pool + kitchen public pages).
-   Aligned with the premium charcoal / ivory / bronze design system.
+   Need For Strength — Customer Experiences
+   Covers: BCA section, Cue Master pool, Kitchen grids (homepage),
+           plus dedicated pool.html & kitchen.html catalog pages.
+   Loads AFTER style.css and new-gym-theme.css (V2 variables available).
+   Palette: charcoal · ivory · bronze — NO neon green.
    ========================================================================== */
+
+
+/* ── 1. Experience Media (shared image frame) ──────────────────────────── */
 
 .experience-media {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: #0e1116;
+  background: #0a0c10;
   box-shadow: var(--shadow);
 }
 
@@ -17,10 +22,13 @@
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 360px;
+  min-height: 340px;
   object-fit: cover;
-  filter: saturate(0.95) contrast(1.04);
+  filter: saturate(0.9) contrast(1.06);
 }
+
+
+/* ── 2. Experience Grid (two-column split) ─────────────────────────────── */
 
 .experience-grid {
   display: grid;
@@ -29,8 +37,15 @@
   align-items: center;
 }
 
+
+/* ── 3. Experience Copy (text side of split sections) ──────────────────── */
+
 .experience-copy h2,
 .experience-copy h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--text);
   max-width: 14ch;
 }
 
@@ -51,7 +66,7 @@
   padding: 13px 16px 13px 32px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(201, 160, 95, 0.07);
+  background: rgba(191, 154, 84, 0.07);
   color: #d8cfc0;
   font-size: 0.82rem;
   font-weight: 700;
@@ -68,7 +83,7 @@
   border-radius: 50%;
   background: var(--lime);
   transform: translateY(-50%);
-  box-shadow: 0 0 8px rgba(201, 160, 95, 0.55);
+  box-shadow: 0 0 8px rgba(191, 154, 84, 0.55);
 }
 
 .experience-actions {
@@ -82,25 +97,30 @@
   display: block;
   margin-top: 16px;
   color: var(--muted);
+  font-size: 0.84rem;
+  font-style: italic;
 }
+
+
+/* ── 4. BCA Section ────────────────────────────────────────────────────── */
 
 .bca-section {
   background:
-    radial-gradient(circle at 88% 18%, rgba(201, 160, 95, 0.09), transparent 34%),
+    radial-gradient(circle at 88% 18%, rgba(191, 154, 84, 0.09), transparent 34%),
     var(--bg);
 }
 
 .bca-section .experience-media {
-  aspect-ratio: 16/9;
+  aspect-ratio: 16 / 9;
 }
 
-/* ------------------------------------------------------- public page heroes */
+
+/* ── 5. Customer Page Heroes (pool.html, kitchen.html) ─────────────────── */
+
 .customer-page-hero {
-  padding: 160px 0 64px;
+  padding: 140px 0 64px;
   border-bottom: 1px solid var(--line);
-  background:
-    radial-gradient(circle at 84% 12%, rgba(201, 160, 95, 0.08), transparent 32%),
-    linear-gradient(180deg, #08090c, #0e1116);
+  background: linear-gradient(180deg, #07080b, var(--bg-soft));
 }
 
 .customer-page-hero__grid {
@@ -120,7 +140,7 @@
   font-family: var(--font-display);
   font-size: clamp(3rem, 7vw, 6rem);
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   line-height: 0.95;
 }
 
@@ -128,25 +148,32 @@
   color: var(--muted);
 }
 
-/* ------------------------------------------------------------ catalog lists */
+
+/* ── 6. Catalog Lists (toolbar / heading bar) ──────────────────────────── */
+
 .catalog-toolbar {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 26px;
+  margin-bottom: 28px;
 }
 
 .catalog-toolbar h2 {
-  margin: 0;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 3.6vw, 3rem);
+  font-weight: 600;
   line-height: 1.05;
+  margin: 0;
 }
 
 .catalog-status {
-  margin: 0;
   color: var(--muted);
+  margin: 0;
 }
+
+
+/* ── 7. Menu Cards (kitchen items) ─────────────────────────────────────── */
 
 .menu-category {
   margin-top: 38px;
@@ -158,7 +185,6 @@
   font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
 .menu-grid {
@@ -167,32 +193,28 @@
   gap: 16px;
 }
 
-.menu-card,
-.public-table-card {
+.menu-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #161b23, #11161d);
-  padding: 22px;
+  background: var(--panel);
+  padding: 24px;
   box-shadow: var(--shadow-soft);
   transition: transform 180ms ease, border-color 180ms ease;
 }
 
-.menu-card:hover,
-.public-table-card:hover {
+.menu-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(226, 196, 140, 0.45);
+  border-color: rgba(191, 154, 84, 0.4);
 }
 
-.menu-card__top,
-.table-card__top {
+.menu-card__top {
   display: flex;
   justify-content: space-between;
   gap: 14px;
   align-items: start;
 }
 
-.menu-card h3,
-.public-table-card h3 {
+.menu-card h3 {
   margin: 4px 0 0;
   color: var(--text);
   font-family: var(--font-display);
@@ -200,15 +222,13 @@
   font-weight: 600;
 }
 
-.menu-card p,
-.public-table-card small {
+.menu-card p {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.55;
 }
 
-.menu-price,
-.table-rate {
+.menu-price {
   color: var(--lime-strong);
   font-size: 1.3rem;
   font-weight: 800;
@@ -223,7 +243,9 @@
   text-transform: uppercase;
 }
 
-/* -------------------------------------------------------------- pool tables */
+
+/* ── 8. Pool Table Cards ───────────────────────────────────────────────── */
+
 .pool-table-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -231,11 +253,47 @@
   margin: 28px 0;
 }
 
+.public-table-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 24px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.public-table-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(191, 154, 84, 0.4);
+}
+
+.table-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.public-table-card h3 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.public-table-card small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+/* Private table card — highlighted with bronze */
 .public-table-card--private {
-  border-color: rgba(226, 196, 140, 0.6);
+  border-color: rgba(191, 154, 84, 0.5);
   background:
-    radial-gradient(circle at 84% -12%, rgba(201, 160, 95, 0.2), transparent 56%),
-    linear-gradient(180deg, #181e27, #11161d);
+    radial-gradient(circle at 84% -12%, rgba(191, 154, 84, 0.15), transparent 56%),
+    var(--panel);
 }
 
 .public-table-card--private h3 {
@@ -245,9 +303,9 @@
 .table-status {
   display: inline-flex;
   padding: 6px 12px;
-  border: 1px solid rgba(226, 196, 140, 0.4);
-  border-radius: 999px;
-  background: rgba(201, 160, 95, 0.10);
+  border: 1px solid rgba(191, 154, 84, 0.35);
+  border-radius: 6px;
+  background: rgba(191, 154, 84, 0.08);
   color: var(--lime-strong);
   font-size: 0.72rem;
   font-weight: 800;
@@ -256,34 +314,38 @@
 }
 
 .table-rate {
-  margin: 14px 0 6px;
+  color: var(--lime-strong);
   font-size: 1.5rem;
+  font-weight: 800;
+  margin: 14px 0 6px;
 }
 
-/* -------------------------------------------------------- reservation form */
+
+/* ── 9. Pool Reservation Form ──────────────────────────────────────────── */
+
 .pool-reservation-layout {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
-  gap: 36px;
+  gap: 40px;
   align-items: start;
 }
 
 .reservation-form {
   display: grid;
-  gap: 15px;
-  padding: 30px;
+  gap: 16px;
+  padding: 32px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #161b23, #11161d);
+  background: var(--panel);
   box-shadow: var(--shadow-soft);
 }
 
 .reservation-form label {
   display: grid;
   gap: 8px;
-  color: #d5dae0;
+  color: #d0d5db;
   font-size: 0.78rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.03em;
 }
 
@@ -291,9 +353,10 @@
 .reservation-form select,
 .reservation-form textarea {
   width: 100%;
-  border: 1px solid rgba(219, 199, 161, 0.22);
-  border-radius: 13px;
-  background: rgba(9, 12, 16, 0.85);
+  min-height: 50px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(8, 9, 12, 0.85);
   color: var(--text);
   padding: 13px 15px;
   color-scheme: dark;
@@ -304,7 +367,7 @@
 .reservation-form textarea:focus {
   border-color: var(--lime);
   outline: none;
-  box-shadow: 0 0 0 4px rgba(201, 160, 95, 0.16);
+  box-shadow: 0 0 0 3px rgba(191, 154, 84, 0.14);
 }
 
 .reservation-form .field-pair {
@@ -314,9 +377,9 @@
 }
 
 .reservation-disclaimer {
-  margin: 0;
   color: var(--muted);
   font-size: 0.82rem;
+  margin: 0;
 }
 
 .reservation-status {
@@ -326,7 +389,9 @@
   font-size: 0.84rem;
 }
 
-/* ---------------------------------------------------------- feature links */
+
+/* ── 10. Feature Link Cards ────────────────────────────────────────────── */
+
 .feature-link-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -377,7 +442,51 @@
   color: #cbc6ba;
 }
 
-/* --------------------------------------------------------------- responsive */
+
+/* ── 11. Cue Master Cards (homepage pool section) ──────────────────────── */
+
+.cue-master-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.cue-master-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.cue-master-card span {
+  display: block;
+  color: var(--lime);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cue-master-card strong {
+  display: block;
+  margin: 10px 0 6px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 600;
+}
+
+.cue-master-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+
+/* ── 12. Responsive Breakpoints ────────────────────────────────────────── */
+
 @media (max-width: 900px) {
   .experience-grid,
   .customer-page-hero__grid,
@@ -391,11 +500,15 @@
   }
 
   .experience-media img {
-    min-height: 260px;
+    min-height: 240px;
   }
 
   .customer-page-hero {
-    padding-top: 120px;
+    padding-top: 110px;
+  }
+
+  .cue-master-cards {
+    grid-template-columns: 1fr;
   }
 }
 
