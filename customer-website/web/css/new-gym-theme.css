@@ -704,33 +704,7 @@ body::before {
   color: #ffffff;
 }
 
-/* PT packages: display as a grid of cards, not table rows */
-.owner-demo-panel .owner-offer-lines {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.owner-demo-panel .owner-offer-line {
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 20px 16px;
-  gap: 10px;
-}
-
-.owner-demo-panel .owner-offer-line span {
-  order: 2;
-  font-size: 0.78rem;
-  color: var(--muted);
-  line-height: 1.3;
-}
-
-.owner-demo-panel .owner-offer-line strong {
-  order: 1;
-  font-size: 1.4rem;
-  font-family: var(--font-display);
-}
+/* Owner demo panel — base heading */
 
 /* Owner-offer membership cards — card layout */
 .owner-offer-card {
@@ -826,6 +800,57 @@ body::before {
 
 .owner-offer-line:not(:first-child) small {
   display: none;
+}
+
+/* ---- PT packages: override back to equal card grid (not big-first) ---- */
+.owner-demo-panel .owner-offer-lines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0 0 22px;
+}
+
+.owner-demo-panel .owner-offer-line,
+.owner-demo-panel .owner-offer-line:first-child,
+.owner-demo-panel .owner-offer-line:not(:first-child) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 22px 16px;
+  margin-bottom: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  gap: 8px;
+}
+
+.owner-demo-panel .owner-offer-line:hover {
+  border-color: rgba(232, 97, 45, 0.4);
+}
+
+.owner-demo-panel .owner-offer-line strong,
+.owner-demo-panel .owner-offer-line:first-child strong,
+.owner-demo-panel .owner-offer-line:not(:first-child) strong {
+  order: 1;
+  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.owner-demo-panel .owner-offer-line span,
+.owner-demo-panel .owner-offer-line:first-child span,
+.owner-demo-panel .owner-offer-line:not(:first-child) span {
+  order: 2;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.4;
+  margin-top: 0;
 }
 
 .owner-benefit-list {
