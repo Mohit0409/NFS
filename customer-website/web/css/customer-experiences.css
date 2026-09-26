@@ -1,23 +1,423 @@
-.experience-media{position:relative;overflow:hidden;border-radius:28px;border:1px solid rgba(255,255,255,.1);background:#11161b;box-shadow:0 24px 70px rgba(0,0,0,.28)}
-.experience-media img{display:block;width:100%;height:100%;min-height:360px;object-fit:cover}
-.experience-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:42px;align-items:center}
-.experience-copy h2,.experience-copy h1{max-width:14ch}.experience-copy p{max-width:62ch}
-.experience-points{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
-.experience-points span{padding:13px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035);font-weight:700}
-.experience-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.experience-note{display:block;margin-top:16px;color:var(--muted)}
-.bca-section{background:linear-gradient(135deg,rgba(180,255,47,.08),transparent 48%),#0d1115}.bca-section .experience-media{aspect-ratio:16/9}
-.customer-page-hero{padding:150px 0 58px;background:linear-gradient(180deg,#090c0f,#10161b)}.customer-page-hero__grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:42px;align-items:center}
-.customer-page-hero .experience-media img{min-height:320px}.customer-page-hero h1{font-size:clamp(2.7rem,7vw,6rem);line-height:.9;margin:.2em 0}
-.catalog-toolbar{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:24px}.catalog-status{color:var(--muted);margin:0}
-.menu-category{margin-top:34px}.menu-category h2{font-size:1.5rem;margin-bottom:14px}.menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.menu-card,.public-table-card{border:1px solid rgba(255,255,255,.1);border-radius:20px;background:#10161b;padding:20px}.menu-card__top,.table-card__top{display:flex;justify-content:space-between;gap:14px;align-items:start}
-.menu-card h3,.public-table-card h3{margin:0}.menu-price,.table-rate{color:var(--lime);font-size:1.25rem;font-weight:800;white-space:nowrap}.menu-category-label{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.12em}
-.pool-table-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:28px 0}.table-status{display:inline-flex;padding:6px 10px;border-radius:99px;background:rgba(180,255,47,.1);color:var(--lime);font-size:.8rem;font-weight:800;text-transform:capitalize}
-.pool-reservation-layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:32px;align-items:start}.reservation-form{display:grid;gap:14px;padding:24px;border:1px solid rgba(255,255,255,.1);border-radius:24px;background:#10161b}
-.reservation-form label{display:grid;gap:7px;font-weight:700}.reservation-form input,.reservation-form select,.reservation-form textarea{width:100%;border:1px solid rgba(255,255,255,.14);background:#090d11;color:#fff;border-radius:12px;padding:13px}
-.reservation-form .field-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reservation-disclaimer{font-size:.86rem;color:var(--muted);margin:0}.reservation-status{min-height:1.4em;color:var(--lime)}
-.feature-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.feature-link-card{position:relative;overflow:hidden;border-radius:24px;min-height:310px;border:1px solid rgba(255,255,255,.1)}
-.feature-link-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.feature-link-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(5,8,10,.94))}
-.feature-link-card__copy{position:absolute;z-index:2;left:22px;right:22px;bottom:22px}.feature-link-card__copy h3{font-size:1.7rem;margin:.2em 0}.feature-link-card__copy p{margin:0 0 14px;color:#d2d7dc}
-@media(max-width:900px){.experience-grid,.customer-page-hero__grid,.pool-reservation-layout{grid-template-columns:1fr}.menu-grid,.pool-table-grid{grid-template-columns:1fr 1fr}.experience-media img{min-height:260px}.customer-page-hero{padding-top:118px}}
-@media(max-width:620px){.experience-points,.menu-grid,.pool-table-grid,.feature-link-grid,.reservation-form .field-pair{grid-template-columns:1fr}.experience-media{border-radius:20px}.customer-page-hero h1{font-size:3.2rem}.catalog-toolbar{align-items:start;flex-direction:column}}
+/* ==========================================================================
+   Need For Strength — experience sections & public catalog pages
+   (BCA / Cue Master / Kitchen grids, pool + kitchen public pages).
+   Aligned with the premium charcoal / ivory / bronze design system.
+   ========================================================================== */
+
+.experience-media {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #0e1116;
+  box-shadow: var(--shadow);
+}
+
+.experience-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  object-fit: cover;
+  filter: saturate(0.95) contrast(1.04);
+}
+
+.experience-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+
+.experience-copy h2,
+.experience-copy h1 {
+  max-width: 14ch;
+}
+
+.experience-copy p {
+  max-width: 62ch;
+  color: var(--muted);
+}
+
+.experience-points {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 26px 0;
+}
+
+.experience-points span {
+  position: relative;
+  padding: 13px 16px 13px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(201, 160, 95, 0.07);
+  color: #d8cfc0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.experience-points span::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lime);
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(201, 160, 95, 0.55);
+}
+
+.experience-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.experience-note {
+  display: block;
+  margin-top: 16px;
+  color: var(--muted);
+}
+
+.bca-section {
+  background:
+    radial-gradient(circle at 88% 18%, rgba(201, 160, 95, 0.09), transparent 34%),
+    var(--bg);
+}
+
+.bca-section .experience-media {
+  aspect-ratio: 16/9;
+}
+
+/* ------------------------------------------------------- public page heroes */
+.customer-page-hero {
+  padding: 160px 0 64px;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 84% 12%, rgba(201, 160, 95, 0.08), transparent 32%),
+    linear-gradient(180deg, #08090c, #0e1116);
+}
+
+.customer-page-hero__grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.customer-page-hero .experience-media img {
+  min-height: 340px;
+}
+
+.customer-page-hero h1 {
+  margin: 0.2em 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 0.95;
+}
+
+.customer-page-hero p:not(.eyebrow) {
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------ catalog lists */
+.catalog-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.catalog-toolbar h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 1.05;
+}
+
+.catalog-status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.menu-category {
+  margin-top: 38px;
+}
+
+.menu-category h2 {
+  margin-bottom: 16px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.menu-card,
+.public-table-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #161b23, #11161d);
+  padding: 22px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.menu-card:hover,
+.public-table-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(226, 196, 140, 0.45);
+}
+
+.menu-card__top,
+.table-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.menu-card h3,
+.public-table-card h3 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.menu-card p,
+.public-table-card small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.menu-price,
+.table-rate {
+  color: var(--lime-strong);
+  font-size: 1.3rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.menu-category-label {
+  color: var(--lime);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* -------------------------------------------------------------- pool tables */
+.pool-table-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 28px 0;
+}
+
+.public-table-card--private {
+  border-color: rgba(226, 196, 140, 0.6);
+  background:
+    radial-gradient(circle at 84% -12%, rgba(201, 160, 95, 0.2), transparent 56%),
+    linear-gradient(180deg, #181e27, #11161d);
+}
+
+.public-table-card--private h3 {
+  color: var(--lime-strong);
+}
+
+.table-status {
+  display: inline-flex;
+  padding: 6px 12px;
+  border: 1px solid rgba(226, 196, 140, 0.4);
+  border-radius: 999px;
+  background: rgba(201, 160, 95, 0.10);
+  color: var(--lime-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: capitalize;
+}
+
+.table-rate {
+  margin: 14px 0 6px;
+  font-size: 1.5rem;
+}
+
+/* -------------------------------------------------------- reservation form */
+.pool-reservation-layout {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.reservation-form {
+  display: grid;
+  gap: 15px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #161b23, #11161d);
+  box-shadow: var(--shadow-soft);
+}
+
+.reservation-form label {
+  display: grid;
+  gap: 8px;
+  color: #d5dae0;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+}
+
+.reservation-form input,
+.reservation-form select,
+.reservation-form textarea {
+  width: 100%;
+  border: 1px solid rgba(219, 199, 161, 0.22);
+  border-radius: 13px;
+  background: rgba(9, 12, 16, 0.85);
+  color: var(--text);
+  padding: 13px 15px;
+  color-scheme: dark;
+}
+
+.reservation-form input:focus,
+.reservation-form select:focus,
+.reservation-form textarea:focus {
+  border-color: var(--lime);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(201, 160, 95, 0.16);
+}
+
+.reservation-form .field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.reservation-disclaimer {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.reservation-status {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--lime-strong);
+  font-size: 0.84rem;
+}
+
+/* ---------------------------------------------------------- feature links */
+.feature-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.feature-link-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 310px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.feature-link-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.feature-link-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 20%, rgba(5, 7, 9, 0.94));
+}
+
+.feature-link-card__copy {
+  position: absolute;
+  z-index: 2;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+}
+
+.feature-link-card__copy h3 {
+  margin: 0.2em 0;
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 600;
+}
+
+.feature-link-card__copy p {
+  margin: 0 0 14px;
+  color: #cbc6ba;
+}
+
+/* --------------------------------------------------------------- responsive */
+@media (max-width: 900px) {
+  .experience-grid,
+  .customer-page-hero__grid,
+  .pool-reservation-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-grid,
+  .pool-table-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .experience-media img {
+    min-height: 260px;
+  }
+
+  .customer-page-hero {
+    padding-top: 120px;
+  }
+}
+
+@media (max-width: 620px) {
+  .experience-points,
+  .menu-grid,
+  .pool-table-grid,
+  .feature-link-grid,
+  .reservation-form .field-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .experience-media {
+    border-radius: var(--radius);
+  }
+
+  .customer-page-hero h1 {
+    font-size: 3rem;
+  }
+
+  .catalog-toolbar {
+    align-items: start;
+    flex-direction: column;
+  }
+}

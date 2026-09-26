@@ -6,6 +6,26 @@ Last updated: 2026-09-26
 
 Turn the current customer website into a classy, premium, modern fitness-club website without breaking any existing functionality.
 
+## Current implementation progress
+
+Completed 2026-09-26:
+- Phase A — Design system: one premium charcoal/ivory/bronze CSS system applied site-wide.
+- Phase B — Homepage: hero full-bleed redesign, membership highlights, BCA/pool/kitchen/about/BMI/diet/exercise sections restyled.
+- Phase C — Dedicated pages: pool reservation page and kitchen menu page restyled; distinct private/common pool cards; forms standardized.
+- Phase D — Images: replaced 4 low-res WebP assets with sharp 1920×1080 originals plus 960×540 responsive variants; added `srcset`/`sizes`.
+- Visual QA: desktop (1440px) and mobile (390px) screenshots verified.
+
+Regression results:
+- customer homepage tests: **10/10 PASS**
+- member-login tests: **9/9 PASS**
+- diet-planner tests: **PASS**
+- member-gateway eligibility tests: covered by login suite — PASS
+- full backend unit tests: **251/251 PASS**
+- Chromium E2E suite: **63/63 PASS**
+- JS syntax checks: PASS
+- Python compile checks: PASS
+- `git diff --check`: PASS
+
 The redesign is a presentation-layer project first. Existing routes, APIs, IDs, data attributes, forms, business rules, authentication, pool operations, kitchen operations, BCA content, membership flows, BMI, diet planner, exercise library, admin links and member login must continue to work.
 
 ## Current issues observed
