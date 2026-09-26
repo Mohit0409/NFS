@@ -108,14 +108,24 @@
     if (!root || !offers.length) return;
     root.replaceChildren();
     for (const offer of offers) {
-      const row = document.createElement('div');
-      row.className = 'owner-offer-line';
-      const label = document.createElement('span');
-      label.textContent = offer.label || '';
+      const card = document.createElement('article');
+      card.className = 'pt-package-card';
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'pt-package-card__eyebrow';
+      eyebrow.textContent = 'Personal Training';
       const price = document.createElement('strong');
+      price.className = 'pt-package-card__price';
       price.textContent = offer.price || 'Ask';
-      row.append(label, price);
-      root.append(row);
+      const label = document.createElement('p');
+      label.className = 'pt-package-card__label';
+      label.textContent = offer.label || '';
+      const button = document.createElement('button');
+      button.className = 'button button--outline pt-package-card__cta';
+      button.type = 'button';
+      button.dataset.enquiry = 'coaching';
+      button.textContent = 'Enquire Now';
+      card.append(eyebrow, price, label, button);
+      root.append(card);
     }
   }
 

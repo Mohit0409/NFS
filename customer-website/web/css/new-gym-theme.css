@@ -584,6 +584,7 @@ body::before {
 .training-card,
 .bmi-card,
 .owner-demo-panel,
+.pt-package-card,
 .exercise-preview-card,
 .member-card,
 .account-card {
@@ -802,55 +803,77 @@ body::before {
   display: none;
 }
 
-/* ---- PT packages: override back to equal card grid (not big-first) ---- */
-.owner-demo-panel .owner-offer-lines {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin: 0 0 22px;
+/* ---- Personal-training packages: standalone cards ---- */
+.pt-packages-heading {
+  margin-top: 56px;
 }
 
-.owner-demo-panel .owner-offer-line,
-.owner-demo-panel .owner-offer-line:first-child,
-.owner-demo-panel .owner-offer-line:not(:first-child) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 22px 16px;
-  margin-bottom: 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  gap: 8px;
-}
-
-.owner-demo-panel .owner-offer-line:hover {
-  border-color: rgba(232, 97, 45, 0.4);
-}
-
-.owner-demo-panel .owner-offer-line strong,
-.owner-demo-panel .owner-offer-line:first-child strong,
-.owner-demo-panel .owner-offer-line:not(:first-child) strong {
-  order: 1;
-  font-size: 1.5rem;
-  font-family: var(--font-display);
-  font-weight: 800;
+.pt-packages-heading h3 {
+  margin: 8px 0 0;
   color: #ffffff;
-  letter-spacing: 0;
-  white-space: nowrap;
-  line-height: 1.2;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.owner-demo-panel .owner-offer-line span,
-.owner-demo-panel .owner-offer-line:first-child span,
-.owner-demo-panel .owner-offer-line:not(:first-child) span {
-  order: 2;
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-weight: 500;
-  line-height: 1.4;
-  margin-top: 0;
+.pt-package-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.pt-package-card {
+  display: flex;
+  min-height: 270px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 26px 22px;
+  transition: transform 200ms ease, border-color 200ms ease;
+}
+
+.pt-package-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(232, 97, 45, 0.5) !important;
+}
+
+.pt-package-card__eyebrow {
+  margin: 0 0 22px;
+  color: var(--lime);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pt-package-card__price {
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 3vw, 3.15rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.pt-package-card__label {
+  margin: 14px 0 24px;
+  color: #aaaaaa;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.pt-package-card__cta {
+  width: 100%;
+  margin-top: auto;
+  padding-inline: 10px;
+}
+
+.owner-benefits-panel {
+  margin-top: 20px;
+  padding: 28px;
 }
 
 .owner-benefit-list {
@@ -1633,6 +1656,10 @@ body::before {
     grid-template-columns: 1fr 1fr;
   }
 
+  .pt-package-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .price-card {
     min-height: 0;
   }
@@ -1673,6 +1700,10 @@ body::before {
   .owner-demo-secondary-grid,
   .cue-master-cards {
     grid-template-columns: 1fr;
+  }
+
+  .pt-package-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -1724,8 +1755,13 @@ body::before {
     font-size: clamp(2rem, 10vw, 3rem);
   }
 
-  .pricing-grid {
+  .pricing-grid,
+  .pt-package-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pt-package-card {
+    min-height: 0;
   }
 }
 
