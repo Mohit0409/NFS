@@ -7,4 +7,5 @@ PORT="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print NEW_GY
 PORT="${PORT:-8899}"
 PYTHON="$(python3 "$REPO/scripts/gravity-env.py" --config "$CONFIG" --print GRAVITY_PYTHON)"
 PYTHON="${PYTHON:-$REPO/.venv/bin/python}"
+cd "$REPO"
 exec "$PYTHON" -m http.server "$PORT" --bind 127.0.0.1 --directory "$PROJECT_ROOT/customer-website/web"

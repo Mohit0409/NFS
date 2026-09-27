@@ -168,7 +168,7 @@ Known owner details now used in the owner preview are Need For Strength, Neemuch
 Dedicated preview profile:
 `admin/deploy/owner-demo/`
 
-The owner-demo profile is separate from the production Termux profile. The active standalone Redmi path uses an isolated Cloudflare Quick Tunnel (`trycloudflare.com`) to the loopback demo edge:
+The owner-demo profile is separate from other applications on the Redmi. Production NFS uses the existing named Cloudflare Tunnel `nfs-nmh` and the permanent hostnames `nfsnmh.com` and `admin.nfsnmh.com` to loopback-only services:
 - `/` → customer website
 - `/admin` → admin portal
 - `/api/member/*` → member gateway
@@ -186,7 +186,7 @@ Demo-only values currently include:
 
 The demo database is stamped `owner_demo_mode=1`; the normal production launch preflight explicitly rejects that database. After owner approval, production must use a clean database and owner-approved values rather than promoting the demo DB.
 
-Start/stop instructions are in `admin/deploy/owner-demo/OWNER_DEMO.md`. The standalone owner demo is currently deployed on the Redmi from commit `e7ba8b9f847a606723724162b808760b09f52fbf`; it remains staging-only and its demo database cannot be promoted to production.
+Use `admin/deploy/owner-demo/install-named-runtime.sh` only from a commit-pinned NFS release after its SHA-256 has been verified. It preserves the existing NFS configuration and SQLite data, rejects unowned PIDs/occupied ports, and installs a scoped Termux:Boot recovery script. The legacy Quick Tunnel installer is staging-only and must never be used for production.
 
 ## Redmi / Termux production profile
 
