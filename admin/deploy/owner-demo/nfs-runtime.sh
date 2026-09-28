@@ -68,13 +68,17 @@ PY
 }
 
 start_component() {
-  local name="$1" marker="$2" run="$3" file="$PIDS/$1.pid" pid
+  local name="$1" marker="$2" run="$3" file="$PIDS/$1.pid" pid i
   port_is_free "$4" || fail "port $4 is occupied; refusing to replace an unknown service"
   nohup bash "$run" >>"$LOGS/$name.log" 2>&1 < /dev/null &
   pid=$!
   printf '%s\n' "$pid" > "$file"
-  sleep .5
-  pid_is_owned "$pid" "$marker" || fail "$name did not start from the active NFS release"
+  for i in $(seq 1 20); do
+    pid_is_owned "$pid" "$marker" && return 0
+    kill -0 "$pid" 2>/dev/null || fail "$name exited during startup"
+    sleep .25
+  done
+  fail "$name did not start from the active NFS release"
 }
 
 wait_http() {
