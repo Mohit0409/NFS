@@ -18,6 +18,12 @@ class NamedRuntimeRegressionTests(unittest.TestCase):
         self.assertIn('case "$cwd" in "$RELEASE"/*)', source)
         self.assertIn('port $4 is occupied; refusing to replace an unknown service', source)
 
+    def test_service_runners_do_not_require_a_release_local_venv(self):
+        for runner in (ROOT / "services").glob("*/run"):
+            source = runner.read_text(encoding="utf-8")
+            self.assertNotIn(".venv/bin/python", source)
+            self.assertIn("command -v python3", source)
+
     def test_installer_sets_only_permanent_domain_values(self):
         source = (ROOT / "install-named-runtime.sh").read_text(encoding="utf-8")
         for value in ("https://nfsnmh.com", "https://www.nfsnmh.com", "https://admin.nfsnmh.com"):
