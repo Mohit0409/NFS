@@ -17,6 +17,7 @@ class NamedRuntimeRegressionTests(unittest.TestCase):
         self.assertIn('refusing to stop unowned', source)
         self.assertIn('case "$cwd" in "$RELEASE"/*)', source)
         self.assertIn('port $4 is occupied; refusing to replace an unknown service', source)
+        self.assertIn('for i in $(seq 1 20); do', source)
 
     def test_service_runners_do_not_require_a_release_local_venv(self):
         for name in ("nfs-demo-admin", "nfs-demo-member", "nfs-demo-web", "nfs-demo-edge"):
