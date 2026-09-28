@@ -1,0 +1,2 @@
+admin/deploy/owner-demo/*.sh text eol=lf
+admin/deploy/owner-demo/services/**/run text eol=lf
